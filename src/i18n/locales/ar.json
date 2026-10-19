@@ -632,6 +632,7 @@
     "tripDescriptionPlaceholder": "مثال: نقل خامات خط الإنتاج 1، مشوار إدارة عامة...",
     "savePayoutBtn": "تسجيل الدفعة",
     "saveChangesBtn": "حفظ التعديلات",
+    "deletePayoutBtn": "حذف هذه الدفعة",
     "startNewWeekTitle": "بدء أسبوع قبض جديد",
     "weekDateLabel": "تاريخ الأسبوع",
     "weekNameLabel": "اسم / تصنيف الأسبوع",

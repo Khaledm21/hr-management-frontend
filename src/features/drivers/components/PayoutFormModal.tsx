@@ -2,6 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '../../../components/ui/Modal';
 import { Button } from '../../../components/ui/Button';
+import { Trash2 } from 'lucide-react';
 import { Driver, DriverCategory } from '../../../types/driverPayouts';
 
 interface PayoutFormData {
@@ -22,6 +23,7 @@ interface PayoutFormModalProps {
   formData: PayoutFormData;
   onChange: (data: PayoutFormData) => void;
   onSubmit: (e: React.FormEvent) => void;
+  onDelete?: () => void;
   drivers: Driver[];
 }
 
@@ -32,6 +34,7 @@ export const PayoutFormModal: React.FC<PayoutFormModalProps> = ({
   formData,
   onChange,
   onSubmit,
+  onDelete,
   drivers,
 }) => {
   const { t } = useTranslation();
@@ -138,13 +141,29 @@ export const PayoutFormModal: React.FC<PayoutFormModalProps> = ({
           />
         </div>
 
-        <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
-          <Button variant="outline" size="sm" type="button" onClick={onClose}>
-            {t('driverPayouts.cancel', 'إلغاء')}
-          </Button>
-          <Button variant="primary" size="sm" type="submit" className="font-bold">
-            {isEdit ? t('driverPayouts.saveChangesBtn', 'حفظ التعديلات') : t('driverPayouts.savePayoutBtn', 'تسجيل الدفعة')}
-          </Button>
+        <div className="flex items-center justify-between gap-2 pt-3 border-t border-slate-100">
+          <div>
+            {isEdit && onDelete && (
+              <Button
+                variant="outline"
+                size="sm"
+                type="button"
+                onClick={onDelete}
+                className="text-xs font-bold text-rose-600 border-rose-200 hover:bg-rose-50 hover:border-rose-300 flex items-center gap-1.5"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                {t('driverPayouts.deletePayoutBtn', 'حذف هذه الدفعة')}
+              </Button>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" type="button" onClick={onClose}>
+              {t('driverPayouts.cancel', 'إلغاء')}
+            </Button>
+            <Button variant="primary" size="sm" type="submit" className="font-bold">
+              {isEdit ? t('driverPayouts.saveChangesBtn', 'حفظ التعديلات') : t('driverPayouts.savePayoutBtn', 'تسجيل الدفعة')}
+            </Button>
+          </div>
         </div>
       </form>
     </Modal>

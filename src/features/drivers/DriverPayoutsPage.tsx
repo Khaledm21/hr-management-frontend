@@ -540,6 +540,7 @@ export const DriverPayoutsPage: React.FC = () => {
           maxRows={weeklyData?.maxRows || 4}
           summary={summary}
           onEditTx={handleOpenEditPayoutModal}
+          onDeleteTx={tx => setTxToDelete(tx)}
           onAddTxForDriver={handleOpenNewPayoutModal}
           onOpenDriverModal={handleOpenNewDriverModal}
           onOpenImportModal={() => setIsExcelImportModalOpen(true)}
@@ -591,6 +592,13 @@ export const DriverPayoutsPage: React.FC = () => {
         formData={payoutForm}
         onChange={setPayoutForm}
         onSubmit={handleSavePayout}
+        onDelete={() => {
+          if (selectedTxForEdit) {
+            const tx = selectedTxForEdit;
+            setIsPayoutModalOpen(false);
+            setTxToDelete(tx);
+          }
+        }}
         drivers={allDrivers}
       />
 

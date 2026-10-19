@@ -632,6 +632,7 @@
     "tripDescriptionPlaceholder": "e.g. Raw materials transport line 1, admin mission...",
     "savePayoutBtn": "Record Payout",
     "saveChangesBtn": "Save Changes",
+    "deletePayoutBtn": "Delete this payout",
     "startNewWeekTitle": "Start New Payout Week",
     "weekDateLabel": "Week Start Date",
     "weekNameLabel": "Week Label / Title",

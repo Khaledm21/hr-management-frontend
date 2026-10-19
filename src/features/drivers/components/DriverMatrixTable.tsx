@@ -2,7 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardHeader, CardTitle, CardContent } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
-import { Users, Plus, Edit2, Upload, Download } from 'lucide-react';
+import { Users, Plus, Edit2, Upload, Download, Trash2 } from 'lucide-react';
 import { Driver, DriverWeeklyColumn, DriverPayoutTransaction, WeeklyPayoutSummary } from '../../../types/driverPayouts';
 import { driverPayoutService } from '../../../services/driverPayoutService';
 import { cn } from '../../../lib/utils';
@@ -12,6 +12,7 @@ interface DriverMatrixTableProps {
   maxRows: number;
   summary: WeeklyPayoutSummary | null | undefined;
   onEditTx: (tx: DriverPayoutTransaction) => void;
+  onDeleteTx?: (tx: DriverPayoutTransaction) => void;
   onAddTxForDriver: (driverId: string) => void;
   onOpenDriverModal: () => void;
   onOpenImportModal?: () => void;
@@ -23,6 +24,7 @@ export const DriverMatrixTable: React.FC<DriverMatrixTableProps> = ({
   maxRows,
   summary,
   onEditTx,
+  onDeleteTx,
   onAddTxForDriver,
   onOpenDriverModal,
   onOpenImportModal,
@@ -158,7 +160,7 @@ export const DriverMatrixTable: React.FC<DriverMatrixTableProps> = ({
                       <td
                         key={col.driver.id}
                         className={cn(
-                          'py-2.5 px-2 border-x border-slate-200/90 text-[13px] font-bold',
+                          'py-2.5 px-2 border-x border-slate-200/90 text-[13px] font-bold relative group/cell',
                           tx ? 'cursor-pointer hover:bg-amber-50/80 transition-colors' : 'text-slate-300'
                         )}
                         onClick={() => {
@@ -175,16 +177,32 @@ export const DriverMatrixTable: React.FC<DriverMatrixTableProps> = ({
                         }
                       >
                         {tx ? (
-                          <span
-                            className={cn(
-                              'inline-block px-1.5 py-0.5 rounded font-black',
-                              isManagement
-                                ? 'text-[#c00000] bg-rose-50/90'
-                                : 'text-slate-900'
+                          <div className="relative inline-flex items-center justify-center">
+                            <span
+                              className={cn(
+                                'inline-block px-1.5 py-0.5 rounded font-black transition-all group-hover/cell:scale-95',
+                                isManagement
+                                  ? 'text-[#c00000] bg-rose-50/90'
+                                  : 'text-slate-900'
+                              )}
+                            >
+                              {tx.amount.toLocaleString()}
+                            </span>
+
+                            {onDeleteTx && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onDeleteTx(tx);
+                                }}
+                                className="opacity-0 group-hover/cell:opacity-100 transition-all duration-150 absolute -top-2.5 rtl:-left-3.5 ltr:-right-3.5 w-5 h-5 rounded-full bg-white border border-rose-300 text-rose-500 hover:text-white hover:bg-rose-600 shadow-sm flex items-center justify-center z-10 hover:scale-110 active:scale-95"
+                                title={t('driverPayouts.deletePayoutBtn', 'حذف هذه الدفعة')}
+                              >
+                                <Trash2 className="w-2.5 h-2.5" />
+                              </button>
                             )}
-                          >
-                            {tx.amount.toLocaleString()}
-                          </span>
+                          </div>
                         ) : (
                           <span className="text-slate-300 font-normal hover:text-brand-600 hover:font-bold">
                             -

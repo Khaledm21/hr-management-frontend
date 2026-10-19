@@ -632,6 +632,7 @@
     "tripDescriptionPlaceholder": "例如: 1号生产线原料拉运、行政公务出差...",
     "savePayoutBtn": "登记款项",
     "saveChangesBtn": "保存修改",
+    "deletePayoutBtn": "删除此款项",
     "startNewWeekTitle": "开启新结算周",
     "weekDateLabel": "周起始日期",
     "weekNameLabel": "周名称 / 标签",
