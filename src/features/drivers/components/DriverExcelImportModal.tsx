@@ -37,6 +37,7 @@ export const DriverExcelImportModal: React.FC<DriverExcelImportModalProps> = ({
   const { success, error: toastError, info } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [file, setFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
 

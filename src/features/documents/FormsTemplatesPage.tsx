@@ -46,7 +46,7 @@ export interface FormTemplate {
   titleSecondary?: string;
   description: string;
   originalFileName: string;
-  downloadUrl: string;
+  downloadUrl?: string;
   fileData?: string;
   format: 'docx' | 'pdf' | 'xlsx';
   fileSize: string;
@@ -307,7 +307,7 @@ export const FormsTemplatesPage: React.FC = () => {
         header: 'التصنيف',
         sortable: true,
         render: row => (
-          <Badge variant="neutral" className="text-[11px] font-medium">
+          <Badge variant="secondary" className="text-[11px] font-medium">
             {row.categoryLabelAr}
           </Badge>
         ),
