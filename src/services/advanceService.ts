@@ -39,6 +39,20 @@ export const advanceService = {
   },
 
   async approveAdvance(id: string): Promise<AdvanceItem> {
+    if (apiClient.isBackendAvailable()) {
+      try {
+        const res = await apiClient.put<any>(`/advances/${id}/approve`);
+        const updated = res?.data || res;
+        if (updated && updated.id) {
+          const idx = advancesState.findIndex(a => a.id === id);
+          if (idx !== -1) advancesState[idx] = updated;
+          return updated;
+        }
+      } catch (err) {
+        console.warn('Backend approveAdvance failed, applying locally:', err);
+      }
+    }
+
     await new Promise(res => setTimeout(res, 60));
     const adv = advancesState.find(a => a.id === id);
     if (!adv) throw new Error('Advance not found');
@@ -48,6 +62,20 @@ export const advanceService = {
   },
 
   async rejectAdvance(id: string): Promise<AdvanceItem> {
+    if (apiClient.isBackendAvailable()) {
+      try {
+        const res = await apiClient.put<any>(`/advances/${id}/reject`);
+        const updated = res?.data || res;
+        if (updated && updated.id) {
+          const idx = advancesState.findIndex(a => a.id === id);
+          if (idx !== -1) advancesState[idx] = updated;
+          return updated;
+        }
+      } catch (err) {
+        console.warn('Backend rejectAdvance failed, applying locally:', err);
+      }
+    }
+
     await new Promise(res => setTimeout(res, 60));
     const adv = advancesState.find(a => a.id === id);
     if (!adv) throw new Error('Advance not found');
@@ -64,6 +92,19 @@ export const advanceService = {
     installmentsCount: number;
     purpose: string;
   }): Promise<AdvanceItem> {
+    if (apiClient.isBackendAvailable()) {
+      try {
+        const res = await apiClient.post<any>('/advances', data);
+        const created = res?.data || res;
+        if (created && created.id) {
+          advancesState.unshift(created);
+          return created;
+        }
+      } catch (err) {
+        console.warn('Backend createAdvance failed, applying locally:', err);
+      }
+    }
+
     await new Promise(res => setTimeout(res, 80));
     const newAdv: AdvanceItem = {
       id: `adv-${Date.now()}`,

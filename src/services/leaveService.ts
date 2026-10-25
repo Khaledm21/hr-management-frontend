@@ -75,6 +75,20 @@ export const leaveService = {
   },
 
   async approveLeave(id: string, comment?: string): Promise<LeaveRequest> {
+    if (apiClient.isBackendAvailable()) {
+      try {
+        const res = await apiClient.put<any>(`/leave-requests/${id}/approve`, { comments: comment });
+        const updated = res?.data || res;
+        if (updated && updated.id) {
+          const idx = requestsState.findIndex(r => r.id === id);
+          if (idx !== -1) requestsState[idx] = updated;
+          return updated;
+        }
+      } catch (err) {
+        console.warn('Backend approveLeave failed, applying locally:', err);
+      }
+    }
+
     await new Promise(res => setTimeout(res, 60));
     const req = requestsState.find(r => r.id === id);
     if (!req) throw new Error('Leave request not found');
@@ -86,6 +100,20 @@ export const leaveService = {
   },
 
   async rejectLeave(id: string, reason: string): Promise<LeaveRequest> {
+    if (apiClient.isBackendAvailable()) {
+      try {
+        const res = await apiClient.put<any>(`/leave-requests/${id}/reject`, { comments: reason });
+        const updated = res?.data || res;
+        if (updated && updated.id) {
+          const idx = requestsState.findIndex(r => r.id === id);
+          if (idx !== -1) requestsState[idx] = updated;
+          return updated;
+        }
+      } catch (err) {
+        console.warn('Backend rejectLeave failed, applying locally:', err);
+      }
+    }
+
     await new Promise(res => setTimeout(res, 60));
     const req = requestsState.find(r => r.id === id);
     if (!req) throw new Error('Leave request not found');
@@ -97,6 +125,19 @@ export const leaveService = {
   },
 
   async createLeaveRequest(data: Omit<LeaveRequest, 'id' | 'submittedAt' | 'status'>): Promise<LeaveRequest> {
+    if (apiClient.isBackendAvailable()) {
+      try {
+        const res = await apiClient.post<any>('/leave-requests', data);
+        const created = res?.data || res;
+        if (created && created.id) {
+          requestsState.unshift(created);
+          return created;
+        }
+      } catch (err) {
+        console.warn('Backend createLeaveRequest failed, applying locally:', err);
+      }
+    }
+
     await new Promise(res => setTimeout(res, 80));
     const newReq: LeaveRequest = {
       ...data,

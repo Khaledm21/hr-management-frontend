@@ -69,4 +69,34 @@ export const attendanceService = {
       attendanceRate: Math.round(((present + late) / (total || 1)) * 100),
     };
   },
+
+  async recordAttendance(data: Partial<AttendanceRecord>): Promise<AttendanceRecord> {
+    if (apiClient.isBackendAvailable()) {
+      try {
+        const res = await apiClient.post<any>('/attendance', data);
+        const created = res?.data || res;
+        if (created && created.id) {
+          attendanceState.unshift(created);
+          return created;
+        }
+      } catch (err) {
+        console.warn('Backend recordAttendance failed, applying locally:', err);
+      }
+    }
+    await new Promise(res => setTimeout(res, 50));
+    const newRecord: AttendanceRecord = {
+      id: `att-${Date.now()}`,
+      employeeId: data.employeeId || 'emp-1',
+      employeeName: data.employeeName || 'Employee',
+      employeeCode: data.employeeCode || '160301001',
+      department: data.department || 'Operations',
+      date: data.date || new Date().toISOString().split('T')[0],
+      checkIn: data.checkIn || '08:30',
+      checkOut: data.checkOut,
+      status: data.status || 'present',
+      workHours: data.workHours || 8,
+    };
+    attendanceState.unshift(newRecord);
+    return newRecord;
+  },
 };

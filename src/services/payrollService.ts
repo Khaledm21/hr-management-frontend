@@ -40,6 +40,18 @@ export const payrollService = {
   },
 
   async getPayrollItems(params: PayrollFilterParams = {}): Promise<PayrollItem[]> {
+    if (apiClient.isBackendAvailable()) {
+      try {
+        const res = await apiClient.get<any>('/payroll/items', { params });
+        const list: PayrollItem[] = Array.isArray(res) ? res : res?.data || [];
+        if (list.length > 0) {
+          return list;
+        }
+      } catch (err) {
+        console.warn('Backend unavailable for getPayrollItems, using fallback data:', err);
+      }
+    }
+
     await new Promise(res => setTimeout(res, 60));
     const period = params.period || '2026-03';
     if (!payrollItemsCache[period]) {
@@ -69,6 +81,20 @@ export const payrollService = {
   },
 
   async updatePeriodStatus(period: string, status: PayrollStatus, approvedBy?: string): Promise<PayrollPeriodSummary> {
+    if (apiClient.isBackendAvailable()) {
+      try {
+        const res = await apiClient.put<any>(`/payroll/periods/${period}/status`, { status, approvedBy });
+        const updated = res?.data || res;
+        if (updated && updated.period) {
+          const idx = summariesState.findIndex(s => s.period === period);
+          if (idx !== -1) summariesState[idx] = updated;
+          return updated;
+        }
+      } catch (err) {
+        console.warn('Backend updatePeriodStatus failed, applying locally:', err);
+      }
+    }
+
     await new Promise(res => setTimeout(res, 70));
     const summary = summariesState.find(s => s.period === period);
     if (!summary) throw new Error('Payroll period not found');

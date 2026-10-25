@@ -51,6 +51,20 @@ export const contractService = {
   },
 
   async renewContract(id: string, newEndDate: string, newSalary?: number): Promise<ContractRecord> {
+    if (apiClient.isBackendAvailable()) {
+      try {
+        const res = await apiClient.put<any>(`/contracts/${id}/renew`, { newEndDate, newSalary });
+        const updated = res?.data || res;
+        if (updated && updated.id) {
+          const idx = contractsState.findIndex(c => c.id === id);
+          if (idx !== -1) contractsState[idx] = updated;
+          return updated;
+        }
+      } catch (err) {
+        console.warn('Backend renewContract failed, applying locally:', err);
+      }
+    }
+
     await new Promise(res => setTimeout(res, 70));
     const contract = contractsState.find(c => c.id === id);
     if (!contract) throw new Error('Contract not found');
