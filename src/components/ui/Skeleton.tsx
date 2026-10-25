@@ -18,7 +18,7 @@ export const Skeleton: React.FC<SkeletonProps> = ({
 
   return (
     <div
-      className={cn('animate-pulse bg-slate-200/80', variants[variant], className)}
+      className={cn('animate-pulse bg-slate-200/80 dark:bg-slate-700/50', variants[variant], className)}
       {...props}
     />
   );

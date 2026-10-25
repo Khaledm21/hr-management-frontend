@@ -10,9 +10,12 @@ import {
   Palette,
   Save,
   CheckCircle2,
+  Upload,
+  RotateCcw,
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
+import { ThemeToggle } from '../../components/ui/ThemeToggle';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { Tabs } from '../../components/ui/Tabs';
@@ -21,25 +24,29 @@ import { CompanySettings, RoleType } from '../../types';
 import { LeavePolicyRule, DocRequirementRule } from '../../mocks/settings';
 import { useToast } from '../../components/ui/Toast';
 import { useDirection, LanguageCode } from '../../context/DirectionContext';
+import { useCompany } from '../../context/CompanyContext';
 
 export const SettingsPage: React.FC = () => {
   const { t } = useTranslation();
   const { success } = useToast();
   const { language, changeLanguage } = useDirection();
+  const { settings, updateSettings, resetToDefault } = useCompany();
 
   const [activeTab, setActiveTab] = useState('company');
-  const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
+  const [companySettings, setCompanySettings] = useState<CompanySettings>(settings);
   const [leavePolicies, setLeavePolicies] = useState<LeavePolicyRule[]>([]);
   const [docReqs, setDocReqs] = useState<DocRequirementRule[]>([]);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
+    setCompanySettings(settings);
+  }, [settings]);
+
+  useEffect(() => {
     Promise.all([
-      settingsService.getCompanySettings(),
       settingsService.getLeavePolicies(),
       settingsService.getDocumentRequirements(),
-    ]).then(([cs, lp, dr]) => {
-      setCompanySettings(cs);
+    ]).then(([lp, dr]) => {
       setLeavePolicies(lp);
       setDocReqs(dr);
     });
@@ -50,11 +57,44 @@ export const SettingsPage: React.FC = () => {
     if (!companySettings) return;
     setIsSaving(true);
     try {
-      await settingsService.updateCompanySettings(companySettings);
-      success('Company profile configuration saved.', 'Settings Updated');
+      await updateSettings(companySettings);
+      success(t('settings.savedSuccess'), t('settings.title'));
+    } catch (err) {
+      console.error('Failed to update company settings:', err);
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = event => {
+      const result = event.target?.result as string;
+      if (result) {
+        setCompanySettings(prev => ({ ...prev, logo: result }));
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleResetToDefaultLogo = async () => {
+    const fresh = await resetToDefault();
+    setCompanySettings(fresh);
+    success(t('settings.savedSuccess'), t('settings.title'));
+  };
+
+  const getLeaveName = (lp: LeavePolicyRule) => {
+    const key = `settings.leave_${lp.type}`;
+    const trans = t(key);
+    return trans && trans !== key ? trans : lp.name;
+  };
+
+  const getDocName = (dr: DocRequirementRule) => {
+    const key = `settings.doc_${dr.docType}`;
+    const trans = t(key);
+    return trans && trans !== key ? trans : dr.name;
   };
 
   const tabs = [
@@ -62,18 +102,18 @@ export const SettingsPage: React.FC = () => {
     { id: 'leave', label: t('settings.leavePolicies'), icon: <Calendar className="w-4 h-4" /> },
     { id: 'docs', label: t('settings.docRequirements'), icon: <FileText className="w-4 h-4" /> },
     { id: 'language', label: t('settings.localization'), icon: <Globe className="w-4 h-4" /> },
-    { id: 'notifications', label: 'Alert Preferences', icon: <Bell className="w-4 h-4" /> },
-    { id: 'appearance', label: 'Theme & Styling', icon: <Palette className="w-4 h-4" /> },
+    { id: 'notifications', label: t('settings.notifications'), icon: <Bell className="w-4 h-4" /> },
+    { id: 'appearance', label: t('settings.appearance'), icon: <Palette className="w-4 h-4" /> },
   ];
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-[#F8FAFC] tracking-tight">
             {t('settings.title')}
           </h1>
-          <p className="text-xs text-slate-500 mt-1">{t('settings.subtitle')}</p>
+          <p className="text-xs text-slate-500 dark:text-[#94A3B8] mt-1">{t('settings.subtitle')}</p>
         </div>
       </div>
 
@@ -86,27 +126,91 @@ export const SettingsPage: React.FC = () => {
           <form onSubmit={handleSaveCompany}>
             <Card>
               <CardHeader>
-                <CardTitle>Legal Entity Details & Regulatory Numbers</CardTitle>
+                <CardTitle>{t('settings.companyTitle')}</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4 text-xs">
+              <CardContent className="space-y-6 text-xs">
+                {/* Logo & Branding Management Section */}
+                <div className="p-4 rounded-xl border border-slate-200 dark:border-[#1E293B] bg-slate-50/70 dark:bg-[#0B0F19] flex flex-col sm:flex-row items-center sm:items-start gap-5">
+                  <div className="flex flex-col items-center gap-2 shrink-0">
+                    <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-xl bg-white dark:bg-[#151D2E] p-2 border-2 border-slate-200 dark:border-[#1E293B] shadow-sm flex items-center justify-center overflow-hidden">
+                      {companySettings.logo ? (
+                        <img
+                          src={companySettings.logo}
+                          alt="Company Logo Preview"
+                          className="max-h-full max-w-full object-contain"
+                        />
+                      ) : (
+                        <Building className="w-10 h-10 text-slate-400" />
+                      )}
+                    </div>
+                    <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                      {t('settings.companyLogo')}
+                    </span>
+                  </div>
+
+                  <div className="flex-1 space-y-3 text-center sm:text-left rtl:sm:text-right">
+                    <div>
+                      <h3 className="font-bold text-slate-900 dark:text-[#F8FAFC] text-sm">
+                        {t('settings.companyLogo')}
+                      </h3>
+                      <p className="text-slate-500 dark:text-[#94A3B8] text-xs mt-0.5 leading-relaxed">
+                        {t('settings.companyLogoDesc')}
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-center sm:justify-start rtl:sm:justify-start gap-2 pt-1">
+                      <label className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs cursor-pointer shadow-sm transition-colors">
+                        <Upload className="w-4 h-4" />
+                        <span>{t('settings.uploadLogo')}</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handleLogoChange}
+                        />
+                      </label>
+
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleResetToDefaultLogo}
+                        leftIcon={<RotateCcw className="w-3.5 h-3.5" />}
+                      >
+                        {t('settings.resetLogo')}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Company Name & Legal Details */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Input
-                    label="Company Name (English)"
-                    value={companySettings.companyName}
+                    label={t('settings.companyNameEn')}
+                    value={companySettings.companyName || ''}
                     onChange={e =>
                       setCompanySettings({ ...companySettings, companyName: e.target.value })
                     }
                   />
                   <Input
-                    label="Company Name (Arabic)"
-                    value={companySettings.companyNameAr}
+                    label={t('settings.companyNameAr')}
+                    value={companySettings.companyNameAr || ''}
                     onChange={e =>
                       setCompanySettings({ ...companySettings, companyNameAr: e.target.value })
                     }
                   />
+                  <div className="md:col-span-2">
+                    <Input
+                      label={t('settings.companyNameZh')}
+                      value={companySettings.companyNameZh || ''}
+                      onChange={e =>
+                        setCompanySettings({ ...companySettings, companyNameZh: e.target.value })
+                      }
+                    />
+                  </div>
                   <Input
-                    label="Tax Registration Number (VAT TRN)"
-                    value={companySettings.taxRegistrationNumber}
+                    label={t('settings.trn')}
+                    value={companySettings.taxRegistrationNumber || ''}
                     onChange={e =>
                       setCompanySettings({
                         ...companySettings,
@@ -115,30 +219,30 @@ export const SettingsPage: React.FC = () => {
                     }
                   />
                   <Input
-                    label="Commercial Registration (CR #)"
-                    value={companySettings.crNumber}
+                    label={t('settings.cr')}
+                    value={companySettings.crNumber || ''}
                     onChange={e =>
                       setCompanySettings({ ...companySettings, crNumber: e.target.value })
                     }
                   />
                   <Input
-                    label="Corporate Support Email"
-                    value={companySettings.companyEmail}
+                    label={t('settings.supportEmail')}
+                    value={companySettings.companyEmail || ''}
                     onChange={e =>
                       setCompanySettings({ ...companySettings, companyEmail: e.target.value })
                     }
                   />
                   <Input
-                    label="Main Phone"
-                    value={companySettings.companyPhone}
+                    label={t('settings.phone')}
+                    value={companySettings.companyPhone || ''}
                     onChange={e =>
                       setCompanySettings({ ...companySettings, companyPhone: e.target.value })
                     }
                   />
                   <div className="md:col-span-2">
                     <Input
-                      label="HQ Address"
-                      value={companySettings.address}
+                      label={t('settings.hqAddress')}
+                      value={companySettings.address || ''}
                       onChange={e =>
                         setCompanySettings({ ...companySettings, address: e.target.value })
                       }
@@ -146,7 +250,16 @@ export const SettingsPage: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="pt-4 border-t border-slate-100 flex justify-end">
+                <div className="pt-4 border-t border-slate-100 dark:border-[#1E293B] flex items-center justify-between">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleResetToDefaultLogo}
+                    leftIcon={<RotateCcw className="w-3.5 h-3.5" />}
+                  >
+                    {t('settings.resetDefaults')}
+                  </Button>
                   <Button
                     variant="primary"
                     size="md"
@@ -154,7 +267,7 @@ export const SettingsPage: React.FC = () => {
                     isLoading={isSaving}
                     leftIcon={<Save className="w-4 h-4" />}
                   >
-                    Save Changes
+                    {t('settings.saveChanges')}
                   </Button>
                 </div>
               </CardContent>
@@ -166,27 +279,27 @@ export const SettingsPage: React.FC = () => {
         {activeTab === 'leave' && (
           <Card>
             <CardHeader>
-              <CardTitle>Corporate Leave Accruals & Policy Limits</CardTitle>
+              <CardTitle>{t('settings.leavePoliciesTitle')}</CardTitle>
             </CardHeader>
             <CardContent className="p-0 overflow-x-auto">
               <table className="w-full text-xs text-left rtl:text-right">
-                <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase font-semibold">
+                <thead className="bg-slate-50 dark:bg-[#0B0F19] border-b border-slate-200 dark:border-[#1E293B] text-slate-500 dark:text-slate-400 uppercase font-semibold">
                   <tr>
-                    <th className="p-3 pl-6 rtl:pl-3 rtl:pr-6">Leave Classification</th>
-                    <th className="p-3">Annual Entitlement</th>
-                    <th className="p-3">Max Carry Over</th>
-                    <th className="p-3">Compensation Rate</th>
-                    <th className="p-3">Requires Medical Certificate</th>
+                    <th className="p-3 pl-6 rtl:pl-3 rtl:pr-6">{t('settings.colLeaveClass')}</th>
+                    <th className="p-3">{t('settings.colAnnualEntitlement')}</th>
+                    <th className="p-3">{t('settings.colMaxCarryOver')}</th>
+                    <th className="p-3">{t('settings.colCompensationRate')}</th>
+                    <th className="p-3">{t('settings.colRequiresMedical')}</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 text-slate-700">
+                <tbody className="divide-y divide-slate-100 dark:divide-[#1E293B] text-slate-700 dark:text-slate-300">
                   {leavePolicies.map(lp => (
-                    <tr key={lp.type} className="hover:bg-slate-50">
-                      <td className="p-3 pl-6 rtl:pl-3 rtl:pr-6 font-semibold text-slate-900">{lp.name}</td>
-                      <td className="p-3">{lp.annualDays} Days</td>
-                      <td className="p-3">{lp.carryOverMax} Days</td>
-                      <td className="p-3 font-semibold text-emerald-700">{lp.paidPercentage}% Full Pay</td>
-                      <td className="p-3">{lp.requireMedicalCertificate ? 'Yes' : 'No'}</td>
+                    <tr key={lp.type} className="hover:bg-slate-50 dark:hover:bg-[#1E293B]/40 transition-colors">
+                      <td className="p-3 pl-6 rtl:pl-3 rtl:pr-6 font-semibold text-slate-900 dark:text-[#F8FAFC]">{getLeaveName(lp)}</td>
+                      <td className="p-3">{lp.annualDays} {t('settings.daysUnit')}</td>
+                      <td className="p-3">{lp.carryOverMax} {t('settings.daysUnit')}</td>
+                      <td className="p-3 font-semibold text-emerald-700 dark:text-emerald-400">{lp.paidPercentage}% {t('settings.fullPay')}</td>
+                      <td className="p-3">{lp.requireMedicalCertificate ? t('settings.yes') : t('settings.no')}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -199,29 +312,29 @@ export const SettingsPage: React.FC = () => {
         {activeTab === 'docs' && (
           <Card>
             <CardHeader>
-              <CardTitle>Mandatory Compliance Checklist for Insurance & Onboarding</CardTitle>
+              <CardTitle>{t('settings.docsComplianceTitle')}</CardTitle>
             </CardHeader>
             <CardContent className="p-0 overflow-x-auto">
               <table className="w-full text-xs text-left rtl:text-right">
-                <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase font-semibold">
+                <thead className="bg-slate-50 dark:bg-[#0B0F19] border-b border-slate-200 dark:border-[#1E293B] text-slate-500 dark:text-slate-400 uppercase font-semibold">
                   <tr>
-                    <th className="p-3 pl-6 rtl:pl-3 rtl:pr-6">Required Personnel Document</th>
-                    <th className="p-3">Mandatory for GOSI/Medical</th>
-                    <th className="p-3">Grace Window (Days)</th>
-                    <th className="p-3">Track Expiration Date</th>
+                    <th className="p-3 pl-6 rtl:pl-3 rtl:pr-6">{t('settings.colRequiredDoc')}</th>
+                    <th className="p-3">{t('settings.colMandatoryInsurance')}</th>
+                    <th className="p-3">{t('settings.colGraceWindow')}</th>
+                    <th className="p-3">{t('settings.colTrackExpiration')}</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 text-slate-700">
+                <tbody className="divide-y divide-slate-100 dark:divide-[#1E293B] text-slate-700 dark:text-slate-300">
                   {docReqs.map(dr => (
-                    <tr key={dr.id} className="hover:bg-slate-50">
-                      <td className="p-3 pl-6 rtl:pl-3 rtl:pr-6 font-semibold text-slate-900">{dr.name}</td>
+                    <tr key={dr.id} className="hover:bg-slate-50 dark:hover:bg-[#1E293B]/40 transition-colors">
+                      <td className="p-3 pl-6 rtl:pl-3 rtl:pr-6 font-semibold text-slate-900 dark:text-[#F8FAFC]">{getDocName(dr)}</td>
                       <td className="p-3">
-                        <span className={dr.mandatoryForInsurance ? 'font-bold text-rose-600' : 'text-slate-400'}>
-                          {dr.mandatoryForInsurance ? 'Mandatory' : 'Optional'}
+                        <span className={dr.mandatoryForInsurance ? 'font-bold text-rose-600 dark:text-rose-400' : 'text-slate-400 dark:text-slate-500'}>
+                          {dr.mandatoryForInsurance ? t('settings.mandatory') : t('settings.optional')}
                         </span>
                       </td>
-                      <td className="p-3">{dr.requiredOnboardingDays} Days</td>
-                      <td className="p-3">{dr.hasExpiration ? 'Monitored' : 'No'}</td>
+                      <td className="p-3">{dr.requiredOnboardingDays} {t('settings.daysUnit')}</td>
+                      <td className="p-3">{dr.hasExpiration ? t('settings.monitored') : t('settings.no')}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -234,30 +347,31 @@ export const SettingsPage: React.FC = () => {
         {activeTab === 'language' && (
           <Card>
             <CardHeader>
-              <CardTitle>Display Language & Layout Direction</CardTitle>
+              <CardTitle>{t('settings.localizationTitle')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 text-xs">
+              <p className="text-slate-500 dark:text-slate-400 text-[11px]">{t('settings.localizationDesc')}</p>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {[
-                  { code: 'en' as LanguageCode, label: 'English', desc: 'Left-to-Right (LTR) default layout', flag: '🇬🇧' },
-                  { code: 'ar' as LanguageCode, label: 'العربية', desc: 'Right-to-Left (RTL) Arabic typography', flag: '🇸🇦' },
-                  { code: 'zh-CN' as LanguageCode, label: '简体中文', desc: 'Simplified Chinese (LTR) layout', flag: '🇨🇳' },
+                  { code: 'en' as LanguageCode, label: t('settings.langEn'), desc: t('settings.langEnDesc'), flag: '🇬🇧' },
+                  { code: 'ar' as LanguageCode, label: t('settings.langAr'), desc: t('settings.langArDesc'), flag: '🇸🇦' },
+                  { code: 'zh-CN' as LanguageCode, label: t('settings.langZh'), desc: t('settings.langZhDesc'), flag: '🇨🇳' },
                 ].map(l => (
                   <button
                     key={l.code}
                     onClick={() => {
                       changeLanguage(l.code);
-                      success(`Active language switched to ${l.label}.`);
+                      success(t('settings.langSwitched', { lang: l.label }));
                     }}
                     className={`p-4 rounded-xl border text-left rtl:text-right transition-all cursor-pointer ${
                       language === l.code
-                        ? 'border-brand-600 bg-brand-50/70 ring-1 ring-brand-500 font-semibold'
-                        : 'border-slate-200 bg-white hover:border-slate-300'
+                        ? 'border-brand-600 bg-brand-50/70 dark:bg-brand-950/40 dark:border-brand-500 ring-1 ring-brand-500 font-semibold'
+                        : 'border-slate-200 dark:border-[#1E293B] bg-white dark:bg-[#151D2E] hover:border-slate-300 dark:hover:border-slate-700'
                     }`}
                   >
                     <div className="text-xl mb-1">{l.flag}</div>
-                    <div className="text-sm font-bold text-slate-900">{l.label}</div>
-                    <div className="text-slate-500 text-[11px] mt-0.5">{l.desc}</div>
+                    <div className="text-sm font-bold text-slate-900 dark:text-[#F8FAFC]">{l.label}</div>
+                    <div className="text-slate-500 dark:text-[#94A3B8] text-[11px] mt-0.5">{l.desc}</div>
                   </button>
                 ))}
               </div>
@@ -269,18 +383,21 @@ export const SettingsPage: React.FC = () => {
         {activeTab === 'notifications' && (
           <Card>
             <CardHeader>
-              <CardTitle>Automated Notification Dispatches</CardTitle>
+              <div>
+                <CardTitle>{t('settings.notificationsTitle')}</CardTitle>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{t('settings.notificationsDesc')}</p>
+              </div>
             </CardHeader>
             <CardContent className="space-y-3 text-xs">
               {[
-                { title: 'Notify HR when contracts reach 30-day expiration window', enabled: true },
-                { title: 'Alert department managers when employee exceeds 3 consecutive absences', enabled: true },
-                { title: 'Send monthly payroll reminder to Finance Director 5 days before closing', enabled: true },
-                { title: 'Notify employee on document verification or rejection with comments', enabled: true },
+                { title: t('settings.notifContractExp'), enabled: true },
+                { title: t('settings.notifAbsence'), enabled: true },
+                { title: t('settings.notifPayroll'), enabled: true },
+                { title: t('settings.notifDocStatus'), enabled: true },
               ].map((item, idx) => (
-                <label key={idx} className="flex items-center justify-between p-3 rounded-lg border border-slate-200 hover:bg-slate-50 cursor-pointer">
-                  <span className="text-slate-800 font-medium">{item.title}</span>
-                  <input type="checkbox" defaultChecked={item.enabled} className="rounded text-brand-600 focus:ring-brand-500 w-4 h-4" />
+                <label key={idx} className="flex items-center justify-between p-3 rounded-lg border border-slate-200 dark:border-[#1E293B] hover:bg-slate-50 dark:hover:bg-[#1E293B]/40 transition-colors cursor-pointer">
+                  <span className="text-slate-800 dark:text-slate-200 font-medium">{item.title}</span>
+                  <input type="checkbox" defaultChecked={item.enabled} className="rounded text-brand-600 focus:ring-brand-500 w-4 h-4 cursor-pointer" />
                 </label>
               ))}
             </CardContent>
@@ -290,20 +407,14 @@ export const SettingsPage: React.FC = () => {
         {activeTab === 'appearance' && (
           <Card>
             <CardHeader>
-              <CardTitle>System Theme & Visual Styling</CardTitle>
+              <CardTitle>{t('settings.appearanceTitle', 'مظهر النظام والسمة البصرية')}</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4 text-xs">
-              <p className="text-slate-600">
-                The Enterprise HR Management System uses tailored navy-slate enterprise hues with high contrast,
-                optimized for readability across thousands of workforce records.
+            <CardContent className="space-y-6 text-xs">
+              <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
+                {t('settings.appearanceDesc', 'اختر النمط البصري المفضل لواجهة نظام الموارد البشرية. يمكنك التبديل بين الوضع الفاتح الكلاسيكي أو الوضع الليلي الرئاسي الفاخر أو مزامنة إعداد جهازك.')}
               </p>
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-brand-600 shadow-sm" title="Brand Primary" />
-                <div className="w-8 h-8 rounded-full bg-slate-900 shadow-sm" title="Navy Sidebar" />
-                <div className="w-8 h-8 rounded-full bg-emerald-600 shadow-sm" title="Success Emerald" />
-                <div className="w-8 h-8 rounded-full bg-amber-500 shadow-sm" title="Warning Amber" />
-                <div className="w-8 h-8 rounded-full bg-rose-600 shadow-sm" title="Danger Rose" />
-              </div>
+              
+              <ThemeToggle variant="cards" />
             </CardContent>
           </Card>
         )}

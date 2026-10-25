@@ -199,6 +199,17 @@ class ApiClient {
 
   private async handleResponse<T>(response: Response): Promise<T> {
     if (!response.ok) {
+      if (response.status === 401) {
+        this.setToken(null);
+        try {
+          localStorage.removeItem('hr_auth_user');
+        } catch {
+          // ignore
+        }
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('auth:unauthorized'));
+        }
+      }
       let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
       try {
         const errorJson = await response.json();

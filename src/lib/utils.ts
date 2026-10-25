@@ -65,3 +65,29 @@ export function downloadCSV(filename: string, rows: Record<string, any>[]) {
   link.click();
   document.body.removeChild(link);
 }
+
+/**
+ * Automatically extracts Gender and Date of Birth from 14-digit Egyptian National ID numbers.
+ * - Digit 1: 2 = 1900-1999, 3 = 2000-2099
+ * - Digits 2-7: YYMMDD
+ * - Digit 13 (second-to-last digit): Even (0,2,4,6,8) = Female (أنثى), Odd (1,3,5,7,9) = Male (ذكر)
+ */
+export function parseEgyptianNationalId(nid: string | number | undefined | null): { gender: 'male' | 'female'; dateOfBirth: string } | null {
+  if (!nid) return null;
+  const clean = String(nid).trim().replace(/[^0-9]/g, '');
+  if (clean.length !== 14) return null;
+
+  const centuryDigit = parseInt(clean[0], 10);
+  const yearPart = parseInt(clean.substring(1, 3), 10);
+  const monthPart = clean.substring(3, 5);
+  const dayPart = clean.substring(5, 7);
+  const genderDigit = parseInt(clean[12], 10);
+
+  const century = centuryDigit === 3 ? 2000 : 1900;
+  const fullYear = century + yearPart;
+  const dateOfBirth = `${fullYear}-${monthPart}-${dayPart}`;
+  const gender: 'male' | 'female' = genderDigit % 2 === 0 ? 'female' : 'male';
+
+  return { gender, dateOfBirth };
+}
+

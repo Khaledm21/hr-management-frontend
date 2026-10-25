@@ -26,6 +26,7 @@ import { Badge, BadgeVariant } from '../../components/ui/Badge';
 import { Avatar } from '../../components/ui/Avatar';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { EmployeeFormModal } from './EmployeeFormModal';
+import { EmployeeBadgeModal } from './components/badge/EmployeeBadgeModal';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEmployees, useDepartments, employeeKeys } from '../../hooks/queries';
 import { Employee } from '../../types';
@@ -41,6 +42,8 @@ export const EmployeesListPage: React.FC = () => {
   const { data: departments = [] } = useDepartments();
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isBadgeModalOpen, setIsBadgeModalOpen] = useState(false);
+  const [badgeModalEmployees, setBadgeModalEmployees] = useState<Employee[]>([]);
 
   // Filters
   const [selectedDept, setSelectedDept] = useState<string>('all');
@@ -97,14 +100,14 @@ export const EmployeesListPage: React.FC = () => {
   const handleConfirmDeactivate = async () => {
     if (!deactivatingEmployee) return;
     await employeeService.deactivateEmployee(deactivatingEmployee.id);
-    success(`Employee ${deactivatingEmployee.firstName} ${deactivatingEmployee.lastName} has been marked as terminated.`);
+    success(t('employees.deactivateSuccess', { name: `${deactivatingEmployee.firstName} ${deactivatingEmployee.lastName}` }));
     setDeactivatingEmployee(null);
     await queryClient.invalidateQueries({ queryKey: employeeKeys.all });
     refetch();
   };
 
   const handleBulkDeactivate = () => {
-    success(`Bulk operation initiated for ${selectedIds.length} employees.`);
+    success(t('employees.bulkDeactivateSuccess', { count: selectedIds.length }));
     setSelectedIds([]);
   };
 
@@ -123,7 +126,7 @@ export const EmployeesListPage: React.FC = () => {
     const selectedRows = employees.filter(e => selectedIds.includes(e.id));
     if (selectedRows.length > 0) {
       downloadCSV('Selected_Employees_List', selectedRows);
-      success(`تم تصدير ${selectedRows.length} موظف بنجاح.`);
+      success(t('employees.exportSuccess', { count: selectedRows.length }));
     }
   };
 
@@ -131,14 +134,14 @@ export const EmployeesListPage: React.FC = () => {
     setIsDeleting(true);
     try {
       const count = await employeeService.deleteAllEmployees();
-      success(t('employees.deleteAllSuccess', { count }) || `تم حذف جميع الموظفين (${count} موظف) بنجاح.`);
+      success(t('employees.deleteAllSuccess', { count }));
       setSelectedIds([]);
       setIsDeleteAllModalOpen(false);
       await queryClient.invalidateQueries({ queryKey: employeeKeys.all });
       refetch();
     } catch (err: any) {
       console.error('Failed to delete all employees', err);
-      toastError(err?.message || 'فشل في حذف جميع الموظفين');
+      toastError(err?.message || t('employees.deleteAllError'));
     } finally {
       setIsDeleting(false);
     }
@@ -149,14 +152,14 @@ export const EmployeesListPage: React.FC = () => {
     setIsDeleting(true);
     try {
       const count = await employeeService.bulkDeleteEmployees(selectedIds);
-      success(t('employees.bulkDeleteSuccess', { count }) || `تم حذف ${count} موظف بنجاح.`);
+      success(t('employees.bulkDeleteSuccess', { count }));
       setSelectedIds([]);
       setIsBulkDeleteModalOpen(false);
       await queryClient.invalidateQueries({ queryKey: employeeKeys.all });
       refetch();
     } catch (err: any) {
       console.error('Failed to bulk delete employees', err);
-      toastError(err?.message || 'فشل في حذف الموظفين المحددين');
+      toastError(err?.message || t('employees.bulkDeleteError'));
     } finally {
       setIsDeleting(false);
     }
@@ -167,14 +170,14 @@ export const EmployeesListPage: React.FC = () => {
     setIsDeleting(true);
     try {
       await employeeService.deleteEmployee(deletingEmployee.id);
-      success(t('employees.singleDeleteSuccess', { name: `${deletingEmployee.firstName} ${deletingEmployee.lastName}` }) || `تم حذف الموظف بنجاح.`);
+      success(t('employees.singleDeleteSuccess', { name: `${deletingEmployee.firstName} ${deletingEmployee.lastName}` }));
       setSelectedIds(prev => prev.filter(id => id !== deletingEmployee.id));
       setDeletingEmployee(null);
       await queryClient.invalidateQueries({ queryKey: employeeKeys.all });
       refetch();
     } catch (err: any) {
       console.error('Failed to delete employee', err);
-      toastError(err?.message || 'فشل في حذف الموظف');
+      toastError(err?.message || t('employees.singleDeleteError'));
     } finally {
       setIsDeleting(false);
     }
@@ -195,8 +198,8 @@ export const EmployeesListPage: React.FC = () => {
   const getContractBadge = (status: string) => {
     if (status === 'expiring_soon') return <Badge variant="warning">{t('common.expiringSoon')}</Badge>;
     if (status === 'expired') return <Badge variant="danger">{t('common.expired')}</Badge>;
-    if (status === 'pending_renewal') return <Badge variant="info">Renewal Pending</Badge>;
-    return <Badge variant="success">Active</Badge>;
+    if (status === 'pending_renewal') return <Badge variant="info">{t('common.pendingRenewal')}</Badge>;
+    return <Badge variant="success">{t('common.active')}</Badge>;
   };
 
   const columns: Column<Employee>[] = useMemo(
@@ -207,7 +210,7 @@ export const EmployeesListPage: React.FC = () => {
         sortable: true,
         width: '110px',
         render: row => (
-          <span className="font-mono font-semibold text-brand-700 bg-brand-50/70 px-2 py-0.5 rounded text-[11px]">
+          <span className="font-mono font-semibold text-brand-700 dark:text-[#38BDF8] bg-brand-50/70 dark:bg-[#38BDF8]/10 px-2 py-0.5 rounded text-[11px]">
             {row.employeeId}
           </span>
         ),
@@ -227,15 +230,15 @@ export const EmployeesListPage: React.FC = () => {
             <div className="flex items-center gap-3 min-w-[250px]">
               <Avatar name={fullName} src={row.avatar} size="sm" />
               <div>
-                <div className="font-semibold text-slate-900 hover:text-brand-600 transition-colors whitespace-nowrap">
+                <div className="font-semibold text-slate-900 dark:text-[#F8FAFC] hover:text-brand-600 dark:hover:text-[#38BDF8] transition-colors whitespace-nowrap">
                   {fullName}
                 </div>
-                <div className="text-[11px] text-slate-400 flex items-center gap-1.5 flex-wrap whitespace-nowrap">
+                <div className="text-[11px] text-slate-400 dark:text-slate-500 flex items-center gap-1.5 flex-wrap whitespace-nowrap">
                   {hasDifferentArabicName && (
-                    <span className="text-slate-600 font-medium">{row.arabicName}</span>
+                    <span className="text-slate-600 dark:text-slate-300 font-medium">{row.arabicName}</span>
                   )}
                   {row.nationalId && (
-                    <span className="font-mono text-[10px] text-slate-400">ID: {row.nationalId}</span>
+                    <span className="font-mono text-[10px] text-slate-400 dark:text-slate-400">{t('employees.nationalIdShort')}: {row.nationalId}</span>
                   )}
                 </div>
               </div>
@@ -249,7 +252,7 @@ export const EmployeesListPage: React.FC = () => {
         sortable: true,
         width: '150px',
         render: row => (
-          <span className="text-slate-700 font-medium whitespace-nowrap">{row.departmentName}</span>
+          <span className="text-slate-700 dark:text-[#CBD5E1] font-medium whitespace-nowrap">{row.departmentName}</span>
         ),
       },
       {
@@ -259,7 +262,7 @@ export const EmployeesListPage: React.FC = () => {
         width: '220px',
         render: row => (
           <div className="min-w-[180px]">
-            <span className="text-slate-800 font-medium block text-xs whitespace-nowrap">
+            <span className="text-slate-800 dark:text-[#CBD5E1] font-medium block text-xs whitespace-nowrap">
               {row.chinesePosition || row.positionTitle}
             </span>
           </div>
@@ -267,20 +270,20 @@ export const EmployeesListPage: React.FC = () => {
       },
       {
         key: 'insuranceStatus',
-        header: 'حالة التأمين (Insurance)',
+        header: t('employees.insuranceStatus'),
         sortable: true,
         width: '160px',
         render: row => {
           if (row.insuranceStatus === 'insured') {
             return (
-              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 whitespace-nowrap">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Insured (مؤمن)
+              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800/40 whitespace-nowrap">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> {t('employees.insured')}
               </span>
             );
           }
           return (
-            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200 whitespace-nowrap">
-              <span className="w-1.5 h-1.5 rounded-full bg-rose-500" /> Not Insured (غير مؤمن)
+            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/40 px-2 py-0.5 rounded-full border border-rose-200 dark:border-rose-800/40 whitespace-nowrap">
+              <span className="w-1.5 h-1.5 rounded-full bg-rose-500" /> {t('employees.notInsured')}
             </span>
           );
         },
@@ -340,7 +343,7 @@ export const EmployeesListPage: React.FC = () => {
                 e.stopPropagation();
                 setActiveMenuId(activeMenuId === row.id ? null : row.id);
               }}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-[#1E293B] transition-colors"
             >
               <MoreVertical className="w-4 h-4" />
             </button>
@@ -348,17 +351,28 @@ export const EmployeesListPage: React.FC = () => {
             {activeMenuId === row.id && (
               <div
                 onClick={e => e.stopPropagation()}
-                className="absolute right-0 rtl:right-auto rtl:left-0 top-full mt-1 w-44 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-30 animate-in fade-in zoom-in-95 text-xs text-left rtl:text-right"
+                className="absolute right-0 rtl:right-auto rtl:left-0 top-full mt-1 w-44 bg-white dark:bg-[#151D2E] rounded-xl shadow-xl border border-slate-200 dark:border-[#1E293B] py-1.5 z-30 animate-in fade-in zoom-in-95 text-xs text-left rtl:text-right"
               >
                 <button
                   onClick={() => {
                     navigate(`/employees/${row.id}`);
                     setActiveMenuId(null);
                   }}
-                  className="w-full px-3 py-1.5 hover:bg-slate-50 flex items-center gap-2 text-slate-700"
+                  className="w-full px-3 py-1.5 hover:bg-slate-50 dark:hover:bg-[#1E293B] flex items-center gap-2 text-slate-700 dark:text-[#F8FAFC]"
                 >
                   <Eye className="w-3.5 h-3.5" />
-                  <span>View Profile</span>
+                  <span>{t('employees.viewProfile')}</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setBadgeModalEmployees([row]);
+                    setIsBadgeModalOpen(true);
+                    setActiveMenuId(null);
+                  }}
+                  className="w-full px-3 py-1.5 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 flex items-center gap-2 text-slate-700 dark:text-emerald-300 font-semibold"
+                >
+                  <CreditCard className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                  <span>{t('employees.printBadge')}</span>
                 </button>
                 <button
                   onClick={() => {
@@ -366,68 +380,68 @@ export const EmployeesListPage: React.FC = () => {
                     setIsFormOpen(true);
                     setActiveMenuId(null);
                   }}
-                  className="w-full px-3 py-1.5 hover:bg-slate-50 flex items-center gap-2 text-slate-700"
+                  className="w-full px-3 py-1.5 hover:bg-slate-50 dark:hover:bg-[#1E293B] flex items-center gap-2 text-slate-700 dark:text-[#F8FAFC]"
                 >
                   <Edit className="w-3.5 h-3.5" />
-                  <span>Edit Details</span>
+                  <span>{t('employees.editDetails')}</span>
                 </button>
                 <button
                   onClick={() => {
                     navigate(`/documents?employee=${row.id}`);
                     setActiveMenuId(null);
                   }}
-                  className="w-full px-3 py-1.5 hover:bg-slate-50 flex items-center gap-2 text-slate-700"
+                  className="w-full px-3 py-1.5 hover:bg-slate-50 dark:hover:bg-[#1E293B] flex items-center gap-2 text-slate-700 dark:text-[#F8FAFC]"
                 >
                   <FileText className="w-3.5 h-3.5" />
-                  <span>Documents</span>
+                  <span>{t('employees.documentsTab')}</span>
                 </button>
                 <button
                   onClick={() => {
                     navigate(`/contracts`);
                     setActiveMenuId(null);
                   }}
-                  className="w-full px-3 py-1.5 hover:bg-slate-50 flex items-center gap-2 text-slate-700"
+                  className="w-full px-3 py-1.5 hover:bg-slate-50 dark:hover:bg-[#1E293B] flex items-center gap-2 text-slate-700 dark:text-[#F8FAFC]"
                 >
                   <FileCheck className="w-3.5 h-3.5" />
-                  <span>Contract</span>
+                  <span>{t('employees.contractsTab')}</span>
                 </button>
                 <button
                   onClick={() => {
                     navigate(`/attendance`);
                     setActiveMenuId(null);
                   }}
-                  className="w-full px-3 py-1.5 hover:bg-slate-50 flex items-center gap-2 text-slate-700"
+                  className="w-full px-3 py-1.5 hover:bg-slate-50 dark:hover:bg-[#1E293B] flex items-center gap-2 text-slate-700 dark:text-[#F8FAFC]"
                 >
                   <Clock className="w-3.5 h-3.5" />
-                  <span>Attendance</span>
+                  <span>{t('employees.attendanceTab')}</span>
                 </button>
                 <button
                   onClick={() => {
                     navigate(`/leave`);
                     setActiveMenuId(null);
                   }}
-                  className="w-full px-3 py-1.5 hover:bg-slate-50 flex items-center gap-2 text-slate-700"
+                  className="w-full px-3 py-1.5 hover:bg-slate-50 dark:hover:bg-[#1E293B] flex items-center gap-2 text-slate-700 dark:text-[#F8FAFC]"
                 >
                   <CalendarDays className="w-3.5 h-3.5" />
-                  <span>Leave History</span>
+                  <span>{t('employees.leaveTab')}</span>
                 </button>
                 <button
                   onClick={() => {
                     navigate(`/payroll`);
                     setActiveMenuId(null);
                   }}
-                  className="w-full px-3 py-1.5 hover:bg-slate-50 flex items-center gap-2 text-slate-700"
+                  className="w-full px-3 py-1.5 hover:bg-slate-50 dark:hover:bg-[#1E293B] flex items-center gap-2 text-slate-700 dark:text-[#F8FAFC]"
                 >
                   <CreditCard className="w-3.5 h-3.5" />
-                  <span>Compensation</span>
+                  <span>{t('employees.payrollTab')}</span>
                 </button>
-                <div className="border-t border-slate-100 my-1" />
+                <div className="border-t border-slate-100 dark:border-[#1E293B] my-1" />
                 <button
                   onClick={() => {
                     setDeactivatingEmployee(row);
                     setActiveMenuId(null);
                   }}
-                  className="w-full px-3 py-1.5 hover:bg-amber-50 flex items-center gap-2 text-amber-700"
+                  className="w-full px-3 py-1.5 hover:bg-amber-50 dark:hover:bg-amber-950/40 flex items-center gap-2 text-amber-700 dark:text-amber-400"
                 >
                   <UserX className="w-3.5 h-3.5" />
                   <span>{t('employees.deactivateEmployee', 'Deactivate')}</span>
@@ -437,7 +451,7 @@ export const EmployeesListPage: React.FC = () => {
                     setDeletingEmployee(row);
                     setActiveMenuId(null);
                   }}
-                  className="w-full px-3 py-1.5 hover:bg-rose-50 flex items-center gap-2 text-rose-600 font-medium"
+                  className="w-full px-3 py-1.5 hover:bg-rose-50 dark:hover:bg-rose-950/40 flex items-center gap-2 text-rose-600 dark:text-rose-400 font-medium"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                   <span>{t('employees.deleteSingle', 'Delete Permanently')}</span>
@@ -456,10 +470,10 @@ export const EmployeesListPage: React.FC = () => {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-[#F8FAFC] tracking-tight">
             {t('employees.directory')}
           </h1>
-          <p className="text-xs text-slate-500 mt-1">{t('employees.subtitle')}</p>
+          <p className="text-xs text-slate-500 dark:text-[#94A3B8] mt-1">{t('employees.subtitle')}</p>
         </div>
 
         <div className="flex items-center gap-2.5">
@@ -467,20 +481,20 @@ export const EmployeesListPage: React.FC = () => {
             <Button
               variant="outline"
               size="md"
-              className="border-rose-200 text-rose-600 hover:bg-rose-50 hover:border-rose-300"
-              leftIcon={<Trash2 className="w-4 h-4 text-rose-600" />}
+              className="border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 hover:border-rose-300"
+              leftIcon={<Trash2 className="w-4 h-4 text-rose-600 dark:text-rose-400" />}
               onClick={() => setIsDeleteAllModalOpen(true)}
             >
-              {t('employees.deleteAll', 'حذف جميع الموظفين')}
+              {t('employees.deleteAll')}
             </Button>
           )}
           <Button
             variant="outline"
             size="md"
-            leftIcon={<Upload className="w-4 h-4 text-brand-600" />}
+            leftIcon={<Upload className="w-4 h-4 text-brand-600 dark:text-[#38BDF8]" />}
             onClick={() => setIsImportModalOpen(true)}
           >
-            استيراد إكسيل / CSV
+            {t('employees.importExcel')}
           </Button>
           <Button
             variant="primary"
@@ -529,6 +543,19 @@ export const EmployeesListPage: React.FC = () => {
               {t('employees.exportSelected')} ({ids.length})
             </Button>
             <Button
+              variant="outline"
+              size="sm"
+              className="border-emerald-300 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100 font-bold"
+              leftIcon={<CreditCard className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />}
+              onClick={() => {
+                const selectedEmployees = employees.filter(e => ids.includes(e.id));
+                setBadgeModalEmployees(selectedEmployees);
+                setIsBadgeModalOpen(true);
+              }}
+            >
+              {t('employees.printBadgesCount', { count: ids.length })}
+            </Button>
+            <Button
               variant="danger"
               size="sm"
               leftIcon={<Trash2 className="w-3.5 h-3.5" />}
@@ -541,7 +568,7 @@ export const EmployeesListPage: React.FC = () => {
               }}
             >
               {ids.length === employees.length
-                ? t('employees.deleteAll', 'حذف جميع الموظفين')
+                ? t('employees.deleteAll')
                 : t('employees.deleteSelected', { count: ids.length })}
             </Button>
             <Button variant="outline" size="sm" onClick={handleBulkDeactivate}>
@@ -560,10 +587,10 @@ export const EmployeesListPage: React.FC = () => {
               className={cn(
                 'inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-semibold cursor-pointer transition-all shadow-sm select-none',
                 isAllSelected
-                  ? 'bg-brand-50 border-brand-400 text-brand-800 ring-1 ring-brand-300'
+                  ? 'bg-brand-50 dark:bg-brand-950/40 border-brand-400 dark:border-brand-500 text-brand-800 dark:text-[#38BDF8] ring-1 ring-brand-300'
                   : isSomeSelected
-                  ? 'bg-amber-50/70 border-amber-300 text-amber-900'
-                  : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50 hover:border-slate-400'
+                  ? 'bg-amber-50/70 dark:bg-amber-950/40 border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-200'
+                  : 'bg-white dark:bg-[#151D2E] border-slate-300 dark:border-[#1E293B] text-slate-700 dark:text-[#F8FAFC] hover:bg-slate-50 dark:hover:bg-[#1E293B]'
               )}
             >
               <input
@@ -587,11 +614,11 @@ export const EmployeesListPage: React.FC = () => {
             <select
               value={selectedDept}
               onChange={e => setSelectedDept(e.target.value)}
-              className="text-xs rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-slate-700 focus:outline-none focus:ring-1 focus:ring-brand-500 cursor-pointer"
+              className="text-xs rounded-lg border border-slate-300 dark:border-[#1E293B] bg-white dark:bg-[#151D2E] px-2.5 py-1.5 text-slate-700 dark:text-[#F8FAFC] focus:outline-none focus:ring-1 focus:ring-brand-500 cursor-pointer"
             >
-              <option value="all">All Departments</option>
+              <option value="all" className="dark:bg-[#151D2E] dark:text-[#F8FAFC]">{t('employees.allDepartments')}</option>
               {departments.map(d => (
-                <option key={d.id} value={d.id}>
+                <option key={d.id} value={d.id} className="dark:bg-[#151D2E] dark:text-[#F8FAFC]">
                   {d.name}
                 </option>
               ))}
@@ -601,36 +628,53 @@ export const EmployeesListPage: React.FC = () => {
             <select
               value={selectedStatus}
               onChange={e => setSelectedStatus(e.target.value)}
-              className="text-xs rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-slate-700 focus:outline-none focus:ring-1 focus:ring-brand-500 cursor-pointer"
+              className="text-xs rounded-lg border border-slate-300 dark:border-[#1E293B] bg-white dark:bg-[#151D2E] px-2.5 py-1.5 text-slate-700 dark:text-[#F8FAFC] focus:outline-none focus:ring-1 focus:ring-brand-500 cursor-pointer"
             >
-              <option value="all">All Statuses</option>
-              <option value="active">Active</option>
-              <option value="probation">Probation</option>
-              <option value="on_leave">On Leave</option>
-              <option value="terminated">Terminated</option>
+              <option value="all" className="dark:bg-[#151D2E] dark:text-[#F8FAFC]">{t('employees.allStatuses')}</option>
+              <option value="active" className="dark:bg-[#151D2E] dark:text-[#F8FAFC]">{t('common.active')}</option>
+              <option value="probation" className="dark:bg-[#151D2E] dark:text-[#F8FAFC]">{t('common.probation')}</option>
+              <option value="on_leave" className="dark:bg-[#151D2E] dark:text-[#F8FAFC]">{t('common.onLeave')}</option>
+              <option value="terminated" className="dark:bg-[#151D2E] dark:text-[#F8FAFC]">{t('common.terminated')}</option>
             </select>
 
             {/* Insurance Status Filter (Matches user's Excel) */}
             <select
               value={selectedInsuranceStatus}
               onChange={e => setSelectedInsuranceStatus(e.target.value)}
-              className="text-xs rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-slate-700 focus:outline-none focus:ring-1 focus:ring-brand-500 cursor-pointer font-semibold"
+              className="text-xs rounded-lg border border-slate-300 dark:border-[#1E293B] bg-white dark:bg-[#151D2E] px-2.5 py-1.5 text-slate-700 dark:text-[#F8FAFC] focus:outline-none focus:ring-1 focus:ring-brand-500 cursor-pointer font-semibold"
             >
-              <option value="all">حالة التأمين: الكل</option>
-              <option value="insured">مؤمن عليهم (Insured - 76)</option>
-              <option value="not_insured">غير مؤمن عليهم (Not Insured - 199)</option>
+              <option value="all" className="dark:bg-[#151D2E] dark:text-[#F8FAFC]">{t('employees.insuranceFilterAll')}</option>
+              <option value="insured" className="dark:bg-[#151D2E] dark:text-[#F8FAFC]">{t('employees.insuranceFilterInsured')}</option>
+              <option value="not_insured" className="dark:bg-[#151D2E] dark:text-[#F8FAFC]">{t('employees.insuranceFilterNotInsured')}</option>
             </select>
 
             {/* Document Completeness Filter */}
             <select
               value={selectedDocStatus}
               onChange={e => setSelectedDocStatus(e.target.value)}
-              className="text-xs rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-slate-700 focus:outline-none focus:ring-1 focus:ring-brand-500 cursor-pointer"
+              className="text-xs rounded-lg border border-slate-300 dark:border-[#1E293B] bg-white dark:bg-[#151D2E] px-2.5 py-1.5 text-slate-700 dark:text-[#F8FAFC] focus:outline-none focus:ring-1 focus:ring-brand-500 cursor-pointer"
             >
-              <option value="all">Document Completion</option>
-              <option value="complete">100% Complete Files</option>
-              <option value="incomplete">Missing Documents</option>
+              <option value="all" className="dark:bg-[#151D2E] dark:text-[#F8FAFC]">{t('employees.docFilterAll')}</option>
+              <option value="complete" className="dark:bg-[#151D2E] dark:text-[#F8FAFC]">{t('employees.docFilterComplete')}</option>
+              <option value="incomplete" className="dark:bg-[#151D2E] dark:text-[#F8FAFC]">{t('employees.docFilterIncomplete')}</option>
             </select>
+
+            {/* Bulk Badge Print Button */}
+            {selectedIds.length > 0 && (
+              <Button
+                variant="primary"
+                size="sm"
+                leftIcon={<CreditCard className="w-3.5 h-3.5" />}
+                onClick={() => {
+                  const selectedEmps = employees.filter(e => selectedIds.includes(e.id));
+                  setBadgeModalEmployees(selectedEmps);
+                  setIsBadgeModalOpen(true);
+                }}
+                className="bg-emerald-600 hover:bg-emerald-700 text-xs font-bold shadow-xs whitespace-nowrap"
+              >
+                {t('employees.printBadgesCount', { count: selectedIds.length })}
+              </Button>
+            )}
           </div>
         }
       />
@@ -659,9 +703,13 @@ export const EmployeesListPage: React.FC = () => {
         isOpen={!!deactivatingEmployee}
         onClose={() => setDeactivatingEmployee(null)}
         onConfirm={handleConfirmDeactivate}
-        title="Confirm Termination / Deactivation"
-        message={`Are you sure you want to deactivate ${deactivatingEmployee?.firstName} ${deactivatingEmployee?.lastName} (${deactivatingEmployee?.employeeId})? This will mark employment as terminated and expire all active contracts.`}
-        confirmLabel="Deactivate Employee"
+        title={t('employees.confirmDeactivateTitle')}
+        message={t('employees.confirmDeactivateMessage', {
+          name: `${deactivatingEmployee?.firstName} ${deactivatingEmployee?.lastName}`,
+          id: deactivatingEmployee?.employeeId,
+        })}
+        confirmLabel={t('employees.confirmDeactivateButton')}
+        cancelLabel={t('common.cancel')}
         isDestructive
       />
 
@@ -670,10 +718,10 @@ export const EmployeesListPage: React.FC = () => {
         isOpen={isDeleteAllModalOpen}
         onClose={() => setIsDeleteAllModalOpen(false)}
         onConfirm={handleConfirmDeleteAll}
-        title={t('employees.confirmDeleteAllTitle', 'تأكيد حذف جميع الموظفين')}
+        title={t('employees.confirmDeleteAllTitle')}
         message={t('employees.confirmDeleteAllMessage', { count: employees.length })}
-        confirmLabel={t('employees.confirmDeleteAllButton', 'نعم، حذف جميع الموظفين نهائياً')}
-        cancelLabel={t('common.cancel', 'إلغاء')}
+        confirmLabel={t('employees.confirmDeleteAllButton')}
+        cancelLabel={t('common.cancel')}
         isLoading={isDeleting}
         isDestructive
       />
@@ -683,10 +731,10 @@ export const EmployeesListPage: React.FC = () => {
         isOpen={isBulkDeleteModalOpen}
         onClose={() => setIsBulkDeleteModalOpen(false)}
         onConfirm={handleConfirmBulkDelete}
-        title={t('employees.confirmBulkDeleteTitle', 'تأكيد حذف الموظفين المحددين')}
+        title={t('employees.confirmBulkDeleteTitle')}
         message={t('employees.confirmBulkDeleteMessage', { count: selectedIds.length })}
-        confirmLabel={t('employees.confirmBulkDeleteButton', 'حذف المحدد نهائياً')}
-        cancelLabel={t('common.cancel', 'إلغاء')}
+        confirmLabel={t('employees.confirmBulkDeleteButton')}
+        cancelLabel={t('common.cancel')}
         isLoading={isDeleting}
         isDestructive
       />
@@ -696,15 +744,27 @@ export const EmployeesListPage: React.FC = () => {
         isOpen={!!deletingEmployee}
         onClose={() => setDeletingEmployee(null)}
         onConfirm={handleConfirmSingleDelete}
-        title={t('employees.confirmSingleDeleteTitle', 'تأكيد حذف الموظف')}
+        title={t('employees.confirmSingleDeleteTitle')}
         message={t('employees.confirmSingleDeleteMessage', {
           name: `${deletingEmployee?.firstName} ${deletingEmployee?.lastName}`,
         })}
-        confirmLabel={t('employees.confirmSingleDeleteButton', 'حذف نهائي')}
-        cancelLabel={t('common.cancel', 'إلغاء')}
+        confirmLabel={t('employees.confirmSingleDeleteButton')}
+        cancelLabel={t('common.cancel')}
         isLoading={isDeleting}
         isDestructive
       />
+
+      {/* Employee ID Badge Modal */}
+      {isBadgeModalOpen && badgeModalEmployees.length > 0 && (
+        <EmployeeBadgeModal
+          isOpen={isBadgeModalOpen}
+          onClose={() => {
+            setIsBadgeModalOpen(false);
+            setBadgeModalEmployees([]);
+          }}
+          employees={badgeModalEmployees}
+        />
+      )}
     </div>
   );
 };

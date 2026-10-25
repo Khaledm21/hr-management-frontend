@@ -1,5 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { documentService, DocumentFilterParams } from '../../services/documentService';
+import { insuranceKeys } from './useInsuranceQueries';
+import { employeeKeys } from './useEmployeeQueries';
 
 export const documentKeys = {
   all: ['documents'] as const,
@@ -28,6 +30,8 @@ export const useVerifyDocumentMutation = () => {
       documentService.verifyDocument(id, notes),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: documentKeys.all });
+      queryClient.invalidateQueries({ queryKey: insuranceKeys.all });
+      queryClient.invalidateQueries({ queryKey: employeeKeys.all });
     },
   });
 };
@@ -43,6 +47,8 @@ export const useRejectDocumentMutation = () => {
       documentService.rejectDocument(id, rejectionReason),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: documentKeys.all });
+      queryClient.invalidateQueries({ queryKey: insuranceKeys.all });
+      queryClient.invalidateQueries({ queryKey: employeeKeys.all });
     },
   });
 };
@@ -57,6 +63,8 @@ export const useDeleteDocumentMutation = () => {
     mutationFn: (id: string) => documentService.deleteDocument(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: documentKeys.all });
+      queryClient.invalidateQueries({ queryKey: insuranceKeys.all });
+      queryClient.invalidateQueries({ queryKey: employeeKeys.all });
     },
   });
 };
@@ -71,6 +79,8 @@ export const useBulkDeleteDocumentsMutation = () => {
     mutationFn: (ids: string[]) => documentService.bulkDeleteDocuments(ids),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: documentKeys.all });
+      queryClient.invalidateQueries({ queryKey: insuranceKeys.all });
+      queryClient.invalidateQueries({ queryKey: employeeKeys.all });
     },
   });
 };
@@ -85,6 +95,8 @@ export const useDeleteAllDocumentsMutation = () => {
     mutationFn: () => documentService.deleteAllDocuments(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: documentKeys.all });
+      queryClient.invalidateQueries({ queryKey: insuranceKeys.all });
+      queryClient.invalidateQueries({ queryKey: employeeKeys.all });
     },
   });
 };
@@ -100,6 +112,8 @@ export const useUploadDocumentMutation = () => {
       documentService.uploadDocument(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: documentKeys.all });
+      queryClient.invalidateQueries({ queryKey: insuranceKeys.all });
+      queryClient.invalidateQueries({ queryKey: employeeKeys.all });
     },
   });
 };

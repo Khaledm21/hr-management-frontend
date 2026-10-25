@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import * as XLSX from 'xlsx';
+import { useTranslation } from 'react-i18next';
 import {
   Upload,
   FileSpreadsheet,
@@ -18,6 +19,7 @@ import { useToast } from './Toast';
 import { employeeService } from '../../services/employeeService';
 import { insuranceService } from '../../services/insuranceService';
 import { realSeedEmployees, realSeedSocialInsurance } from '../../mocks/realExcelData';
+import { parseEgyptianNationalId } from '../../lib/utils';
 
 export type ImportTargetType = 'employees' | 'social_insurance' | 'missing_documents' | 'full_workbook';
 
@@ -34,6 +36,7 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
   defaultTarget = 'employees',
   onImportComplete,
 }) => {
+  const { t } = useTranslation();
   const { success, error: toastError, info } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -134,7 +137,7 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
         : 'Company_HR_Full_Workbook_Template.xlsx';
 
     XLSX.writeFile(wb, filename);
-    info(`تم تحميل النموذج الرسمي: ${filename}`);
+    info(t('excelImport.templateDownloaded', { filename }));
   };
 
   // 2. Parse uploaded file
@@ -167,7 +170,7 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
       const jsonData: any[] = XLSX.utils.sheet_to_json(activeWorksheet, { defval: '' });
 
       if (jsonData.length === 0) {
-        toastError('لم يتم العثور على صفوف بيانات في هذا الشيت.');
+        toastError(t('excelImport.noDataRows'));
         setIsProcessing(false);
         return;
       }
@@ -205,10 +208,10 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
         detectedSheets: sheetNames,
       });
 
-      success(`تمت قراءة ${jsonData.length} سجل من شيت "${sheetToUse}" بنجاح.`);
+      success(t('excelImport.readSuccess', { count: jsonData.length, sheet: sheetToUse }));
     } catch (err: any) {
       console.error(err);
-      toastError(`فشل في قراءة الملف: ${err.message || 'خطأ غير معروف'}`);
+      toastError(t('excelImport.readError', { error: err.message || t('common.unknownError') }));
     } finally {
       setIsProcessing(false);
     }
@@ -249,6 +252,10 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
           const lastName = parts.length > 1 ? parts.slice(1).join(' ') : 'Staff';
 
           const nationalId = String(row['ID'] || row['ID.'] || row['الرقم القومي'] || `2900000000000${idx + 1}`).trim();
+          const parsedId = parseEgyptianNationalId(nationalId);
+          const gender = parsedId?.gender || (row['Gender'] || row['النوع'] ? (String(row['Gender'] || row['النوع']).toLowerCase().includes('fem') || String(row['Gender'] || row['النوع']).includes('أنث') ? 'female' : 'male') : 'male');
+          const dateOfBirth = parsedId?.dateOfBirth;
+
           const employeeId = String(row['Employee ID'] || row['كود الموظف'] || `180301${String(idx + 1).padStart(3, '0')}`).trim();
           const position = String(row['Position'] || row['الوظيفة'] || 'Staff').trim();
           const department = String(row['Department'] || row['القسم'] || 'HR').trim();
@@ -268,6 +275,8 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
             lastName,
             arabicName,
             nationalId,
+            gender,
+            dateOfBirth,
             department: department,
             departmentName: department,
             position: position,
@@ -358,12 +367,12 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
         await insuranceService.importMissingDocuments(mappedMissing, isOverwrite);
       }
 
-      success(`تم استيراد وحفظ البيانات بنجاح في النظام!`);
+      success(t('excelImport.importSuccess'));
       if (onImportComplete) onImportComplete();
       onClose();
     } catch (err: any) {
       console.error(err);
-      toastError(`حدث خطأ أثناء حفظ البيانات: ${err.message || 'خطأ غير معروف'}`);
+      toastError(t('excelImport.saveError', { error: err.message || t('common.unknownError') }));
     } finally {
       setIsProcessing(false);
     }
@@ -373,16 +382,16 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="استيراد وتحديث البيانات من الإكسيل (Excel / CSV)"
+      title={t('excelImport.modalTitle')}
       size="xl"
       footer={
         <div className="flex items-center justify-between w-full">
           <div className="text-xs text-slate-500">
-            يدعم ملفات <span className="font-mono font-semibold text-slate-700">.xlsx, .xls, .csv</span> مع توافق كامل للغة العربية.
+            {t('excelImport.supportedFormats')}
           </div>
           <div className="flex items-center gap-2">
             <Button variant="outline" onClick={onClose} disabled={isProcessing}>
-              إلغاء
+              {t('common.cancel')}
             </Button>
             <Button
               variant="primary"
@@ -391,7 +400,7 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
               isLoading={isProcessing}
               disabled={!parsedRows || parsedRows.length === 0}
             >
-              تأكيد الاستيراد ({parsedRows.length} سجل)
+              {t('excelImport.confirmImport', { count: parsedRows.length })}
             </Button>
           </div>
         </div>
@@ -400,78 +409,78 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
       <div className="space-y-6">
         {/* Step 1: Target Sheet Selector */}
         <div>
-          <label className="text-xs font-semibold uppercase tracking-wider text-slate-600 block mb-2">
-            1. اختر نوع الشيت المُراد استيراده أو تحديثه:
+          <label className="text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 block mb-2">
+            {t('excelImport.step1Label')}
           </label>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <button
               type="button"
               onClick={() => handleTargetChange('employees')}
-              className={`p-3.5 rounded-xl border text-right transition-all flex flex-col justify-between ${
+              className={`p-3.5 rounded-xl border text-left rtl:text-right transition-all flex flex-col justify-between ${
                 targetType === 'employees'
-                  ? 'border-brand-500 bg-brand-50/50 shadow-sm ring-1 ring-brand-500'
-                  : 'border-slate-200 hover:border-slate-300 bg-white'
+                  ? 'border-brand-500 bg-brand-50/50 dark:bg-brand-950/40 shadow-sm ring-1 ring-brand-500'
+                  : 'border-slate-200 dark:border-[#1E293B] hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-[#151D2E]'
               }`}
             >
               <div className="flex items-center justify-between w-full mb-2">
-                <span className="font-semibold text-slate-900 text-sm">شيت الموظفين والبيانات</span>
-                <Users className={`w-4 h-4 ${targetType === 'employees' ? 'text-brand-600' : 'text-slate-400'}`} />
+                <span className="font-semibold text-slate-900 dark:text-[#F8FAFC] text-sm">{t('excelImport.employeesSheetTitle')}</span>
+                <Users className={`w-4 h-4 ${targetType === 'employees' ? 'text-brand-600 dark:text-[#38BDF8]' : 'text-slate-400'}`} />
               </div>
-              <p className="text-[11px] text-slate-500 leading-relaxed">
-                شيت All Employees (الرقم القومي، المسمى الصيني، كود الموظف، تاريخ التعيين، حالة التأمين).
+              <p className="text-[11px] text-slate-500 dark:text-[#94A3B8] leading-relaxed">
+                {t('excelImport.employeesSheetDesc')}
               </p>
             </button>
 
             <button
               type="button"
               onClick={() => handleTargetChange('social_insurance')}
-              className={`p-3.5 rounded-xl border text-right transition-all flex flex-col justify-between ${
+              className={`p-3.5 rounded-xl border text-left rtl:text-right transition-all flex flex-col justify-between ${
                 targetType === 'social_insurance'
-                  ? 'border-brand-500 bg-brand-50/50 shadow-sm ring-1 ring-brand-500'
-                  : 'border-slate-200 hover:border-slate-300 bg-white'
+                  ? 'border-brand-500 bg-brand-50/50 dark:bg-brand-950/40 shadow-sm ring-1 ring-brand-500'
+                  : 'border-slate-200 dark:border-[#1E293B] hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-[#151D2E]'
               }`}
             >
               <div className="flex items-center justify-between w-full mb-2">
-                <span className="font-semibold text-slate-900 text-sm">شيت التأمينات الاجتماعية</span>
-                <ShieldCheck className={`w-4 h-4 ${targetType === 'social_insurance' ? 'text-brand-600' : 'text-slate-400'}`} />
+                <span className="font-semibold text-slate-900 dark:text-[#F8FAFC] text-sm">{t('excelImport.insuranceSheetTitle')}</span>
+                <ShieldCheck className={`w-4 h-4 ${targetType === 'social_insurance' ? 'text-brand-600 dark:text-[#38BDF8]' : 'text-slate-400'}`} />
               </div>
-              <p className="text-[11px] text-slate-500 leading-relaxed">
-                شيت Social Insurance (الرقم التأميني، الأجر التأميني 4,325، حصة العامل، حصة الشركة، المطابقة).
+              <p className="text-[11px] text-slate-500 dark:text-[#94A3B8] leading-relaxed">
+                {t('excelImport.insuranceSheetDesc')}
               </p>
             </button>
 
             <button
               type="button"
               onClick={() => handleTargetChange('missing_documents')}
-              className={`p-3.5 rounded-xl border text-right transition-all flex flex-col justify-between ${
+              className={`p-3.5 rounded-xl border text-left rtl:text-right transition-all flex flex-col justify-between ${
                 targetType === 'missing_documents'
-                  ? 'border-brand-500 bg-brand-50/50 shadow-sm ring-1 ring-brand-500'
-                  : 'border-slate-200 hover:border-slate-300 bg-white'
+                  ? 'border-brand-500 bg-brand-50/50 dark:bg-brand-950/40 shadow-sm ring-1 ring-brand-500'
+                  : 'border-slate-200 dark:border-[#1E293B] hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-[#151D2E]'
               }`}
             >
               <div className="flex items-center justify-between w-full mb-2">
-                <span className="font-semibold text-slate-900 text-sm">شيت الأوراق الناقصة</span>
-                <FileCheck2 className={`w-4 h-4 ${targetType === 'missing_documents' ? 'text-brand-600' : 'text-slate-400'}`} />
+                <span className="font-semibold text-slate-900 dark:text-[#F8FAFC] text-sm">{t('excelImport.missingDocsSheetTitle')}</span>
+                <FileCheck2 className={`w-4 h-4 ${targetType === 'missing_documents' ? 'text-brand-600 dark:text-[#38BDF8]' : 'text-slate-400'}`} />
               </div>
-              <p className="text-[11px] text-slate-500 leading-relaxed">
-                شيت Missing Documents (شهادة المؤهل، شهادة الميلاد، الرقم القومي، عقد العمل، النواقص).
+              <p className="text-[11px] text-slate-500 dark:text-[#94A3B8] leading-relaxed">
+                {t('excelImport.missingDocsSheetDesc')}
               </p>
             </button>
           </div>
         </div>
 
         {/* Template Download Prompt */}
-        <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="bg-slate-50 dark:bg-[#111827]/70 border border-slate-200 dark:border-[#1E293B] rounded-xl p-3.5 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-emerald-100 text-emerald-700">
+            <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300">
               <FileSpreadsheet className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-xs font-semibold text-slate-800">
-                هل تريد نموذجاً جاهزاً مطابقاً للترتيب المطلوب؟
+              <p className="text-xs font-semibold text-slate-800 dark:text-[#F8FAFC]">
+                {t('excelImport.templatePromptTitle')}
               </p>
-              <p className="text-[11px] text-slate-500">
-                يمكنك تحميل شيت إكسيل منسق بنفس الأعمدة لتعبئته أو نسخه مباشرة.
+              <p className="text-[11px] text-slate-500 dark:text-[#94A3B8]">
+                {t('excelImport.templatePromptDesc')}
               </p>
             </div>
           </div>
@@ -481,21 +490,21 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
             leftIcon={<Download className="w-3.5 h-3.5" />}
             onClick={() => handleDownloadTemplate(targetType)}
           >
-            تحميل النموذج (.xlsx)
+            {t('excelImport.downloadTemplate')}
           </Button>
         </div>
 
         {/* Step 2: Upload Dropzone */}
         <div>
-          <label className="text-xs font-semibold uppercase tracking-wider text-slate-600 block mb-2">
-            2. رفع ملف الإكسيل أو CSV:
+          <label className="text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 block mb-2">
+            {t('excelImport.step2Label')}
           </label>
           <div
             onClick={() => fileInputRef.current?.click()}
             className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all ${
               file
-                ? 'border-emerald-400 bg-emerald-50/40'
-                : 'border-slate-300 hover:border-brand-500 bg-slate-50/50 hover:bg-brand-50/20'
+                ? 'border-emerald-400 bg-emerald-50/40 dark:bg-emerald-950/20'
+                : 'border-slate-300 dark:border-[#1E293B] hover:border-brand-500 dark:hover:border-brand-400 bg-slate-50/50 dark:bg-[#111827]/40 hover:bg-brand-50/20'
             }`}
           >
             <input
@@ -507,13 +516,13 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
             />
             {file ? (
               <div className="flex flex-col items-center gap-2">
-                <div className="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                <div className="w-12 h-12 rounded-xl bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-300 flex items-center justify-center">
                   <FileSpreadsheet className="w-6 h-6" />
                 </div>
                 <div>
-                  <span className="font-semibold text-slate-900 text-sm block">{file.name}</span>
-                  <span className="text-xs text-slate-500 font-mono">
-                    {(file.size / 1024).toFixed(1)} KB • جاهز للاستيراد
+                  <span className="font-semibold text-slate-900 dark:text-[#F8FAFC] text-sm block">{file.name}</span>
+                  <span className="text-xs text-slate-500 dark:text-[#94A3B8] font-mono">
+                    {t('excelImport.readyToImport', { size: (file.size / 1024).toFixed(1) })}
                   </span>
                 </div>
                 <div className="flex items-center gap-2 mt-2">
@@ -526,21 +535,21 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
                     }}
                     leftIcon={<Trash2 className="w-3.5 h-3.5 text-rose-500" />}
                   >
-                    حذف واختيار ملف آخر
+                    {t('excelImport.deleteAndReselect')}
                   </Button>
                 </div>
               </div>
             ) : (
               <div className="flex flex-col items-center gap-2">
-                <div className="w-12 h-12 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center">
+                <div className="w-12 h-12 rounded-xl bg-brand-50 dark:bg-brand-950/40 text-brand-600 dark:text-[#38BDF8] flex items-center justify-center">
                   <Upload className="w-6 h-6" />
                 </div>
                 <div>
-                  <span className="font-semibold text-slate-900 text-sm block">
-                    اسحب وأفلت ملف الإكسيل هنا، أو اضغط للاختيار
+                  <span className="font-semibold text-slate-900 dark:text-[#F8FAFC] text-sm block">
+                    {t('excelImport.dragAndDrop')}
                   </span>
-                  <span className="text-xs text-slate-500">
-                    يدعم ملفات .xlsx, .xls, .csv بحجم حتى 20 ميجابايت
+                  <span className="text-xs text-slate-500 dark:text-[#94A3B8]">
+                    {t('excelImport.maxFileSize')}
                   </span>
                 </div>
               </div>
@@ -551,71 +560,71 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
         {/* Step 3: Parsed Preview & Statistics */}
         {parsedSummary && (
           <div className="space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-[#1E293B] pb-2">
               <div className="flex items-center gap-2">
-                <TableIcon className="w-4 h-4 text-brand-600" />
-                <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-                  معاينة البيانات المقروءة ({parsedSummary.total} سجل)
+                <TableIcon className="w-4 h-4 text-brand-600 dark:text-[#38BDF8]" />
+                <h4 className="text-xs font-bold text-slate-800 dark:text-[#F8FAFC] uppercase tracking-wider">
+                  {t('excelImport.previewTitle', { count: parsedSummary.total })}
                 </h4>
               </div>
 
               {/* Mode switch: Replace vs Append */}
               <div className="flex items-center gap-2 text-xs">
-                <span className="text-slate-500">طريقة الاستيراد:</span>
+                <span className="text-slate-500 dark:text-[#94A3B8]">{t('excelImport.importMode')}</span>
                 <select
                   value={importMode}
                   onChange={(e) => setImportMode(e.target.value as any)}
-                  className="rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs text-slate-700 font-medium focus:ring-1 focus:ring-brand-500"
+                  className="rounded-lg border border-slate-300 dark:border-[#1E293B] bg-white dark:bg-[#151D2E] px-2.5 py-1 text-xs text-slate-700 dark:text-[#F8FAFC] font-medium focus:ring-1 focus:ring-brand-500"
                 >
-                  <option value="replace">استبدال البيانات الحالية بالكامل (مُوصى به)</option>
-                  <option value="append">إضافة وإلحاق بالبيانات الموجودة</option>
+                  <option value="replace">{t('excelImport.modeReplace')}</option>
+                  <option value="append">{t('excelImport.modeAppend')}</option>
                 </select>
               </div>
             </div>
 
             {/* Quick KPI badge bar */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              <div className="bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-center">
-                <span className="text-[10px] uppercase font-semibold text-slate-500 block">إجمالي الصفوف</span>
-                <span className="text-lg font-bold text-slate-800">{parsedSummary.total}</span>
+              <div className="bg-slate-50 dark:bg-[#111827] border border-slate-200 dark:border-[#1E293B] rounded-lg p-2.5 text-center">
+                <span className="text-[10px] uppercase font-semibold text-slate-500 dark:text-[#94A3B8] block">{t('excelImport.totalRows')}</span>
+                <span className="text-lg font-bold text-slate-800 dark:text-[#F8FAFC]">{parsedSummary.total}</span>
               </div>
               {parsedSummary.insuredCount !== undefined && parsedSummary.insuredCount > 0 && (
-                <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-2.5 text-center">
-                  <span className="text-[10px] uppercase font-semibold text-emerald-700 block">المؤمن عليهم</span>
-                  <span className="text-lg font-bold text-emerald-600">{parsedSummary.insuredCount}</span>
+                <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/40 rounded-lg p-2.5 text-center">
+                  <span className="text-[10px] uppercase font-semibold text-emerald-700 dark:text-emerald-300 block">{t('excelImport.insuredCount')}</span>
+                  <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{parsedSummary.insuredCount}</span>
                 </div>
               )}
               {parsedSummary.notInsuredCount !== undefined && parsedSummary.notInsuredCount > 0 && (
-                <div className="bg-rose-50 border border-rose-200 rounded-lg p-2.5 text-center">
-                  <span className="text-[10px] uppercase font-semibold text-rose-700 block">غير مؤمن عليهم</span>
-                  <span className="text-lg font-bold text-rose-600">{parsedSummary.notInsuredCount}</span>
+                <div className="bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/40 rounded-lg p-2.5 text-center">
+                  <span className="text-[10px] uppercase font-semibold text-rose-700 dark:text-rose-300 block">{t('excelImport.notInsuredCount')}</span>
+                  <span className="text-lg font-bold text-rose-600 dark:text-rose-400">{parsedSummary.notInsuredCount}</span>
                 </div>
               )}
               {parsedSummary.notFoundCount !== undefined && parsedSummary.notFoundCount > 0 && (
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-2.5 text-center">
-                  <span className="text-[10px] uppercase font-semibold text-amber-700 block">غير مسجل بالموظفين</span>
-                  <span className="text-lg font-bold text-amber-600">{parsedSummary.notFoundCount}</span>
+                <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/40 rounded-lg p-2.5 text-center">
+                  <span className="text-[10px] uppercase font-semibold text-amber-700 dark:text-amber-300 block">{t('excelImport.notFoundCount')}</span>
+                  <span className="text-lg font-bold text-amber-600 dark:text-amber-400">{parsedSummary.notFoundCount}</span>
                 </div>
               )}
             </div>
 
             {/* Live rows preview table */}
-            <div className="max-h-56 overflow-auto border border-slate-200 rounded-xl bg-white text-xs">
-              <table className="w-full text-right border-collapse">
-                <thead className="bg-slate-100 text-slate-700 sticky top-0 font-semibold border-b border-slate-200">
+            <div className="max-h-56 overflow-auto border border-slate-200 dark:border-[#1E293B] rounded-xl bg-white dark:bg-[#151D2E] text-xs">
+              <table className="w-full text-left rtl:text-right border-collapse">
+                <thead className="bg-slate-100 dark:bg-[#111827] text-slate-700 dark:text-slate-300 sticky top-0 font-semibold border-b border-slate-200 dark:border-[#1E293B]">
                   <tr>
                     {Object.keys(parsedRows[0] || {}).slice(0, 6).map((col) => (
-                      <th key={col} className="p-2 border-l border-slate-200 last:border-l-0 whitespace-nowrap">
+                      <th key={col} className="p-2 border-l border-slate-200 dark:border-[#1E293B] last:border-l-0 whitespace-nowrap">
                         {col}
                       </th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 font-mono text-[11px] text-slate-600">
+                <tbody className="divide-y divide-slate-100 dark:divide-[#1E293B] font-mono text-[11px] text-slate-600 dark:text-slate-300">
                   {parsedRows.slice(0, 6).map((row, idx) => (
-                    <tr key={idx} className="hover:bg-slate-50">
+                    <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-[#1E293B]/50 transition-colors">
                       {Object.keys(parsedRows[0] || {}).slice(0, 6).map((col) => (
-                        <td key={col} className="p-2 border-l border-slate-100 last:border-l-0 whitespace-nowrap">
+                        <td key={col} className="p-2 border-l border-slate-100 dark:border-[#1E293B] last:border-l-0 whitespace-nowrap">
                           {String(row[col])}
                         </td>
                       ))}
@@ -624,8 +633,8 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
                 </tbody>
               </table>
             </div>
-            <p className="text-[11px] text-slate-400 text-center">
-              يتم عرض أول 6 سجلات كمعاينة سريعة. سيتم استيراد كافة السجلات ({parsedRows.length}) عند الضغط على تأكيد.
+            <p className="text-[11px] text-slate-400 dark:text-slate-500 text-center">
+              {t('excelImport.previewNotice', { count: parsedRows.length })}
             </p>
           </div>
         )}

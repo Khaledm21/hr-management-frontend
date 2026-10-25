@@ -5,7 +5,8 @@ import { Modal } from '../../../components/ui/Modal';
 import { Button } from '../../../components/ui/Button';
 import { DriverWeeklyColumn, WeeklyPayoutSummary } from '../../../types/driverPayouts';
 import { cn } from '../../../lib/utils';
-import newHopeLogo from '../../../assets/new-hope-logo.jpg';
+import newHopeLogo from '../../../assets/new-hope-logo.png';
+import { useCompany } from '../../../context/CompanyContext';
 
 interface DriverPrintReportModalProps {
   isOpen: boolean;
@@ -23,6 +24,7 @@ export const DriverPrintReportModal: React.FC<DriverPrintReportModalProps> = ({
   summary,
 }) => {
   const { t, i18n } = useTranslation();
+  const { logo, settings } = useCompany();
   const [includeSignatures, setIncludeSignatures] = useState(true);
 
   const isRtl = i18n.language === 'ar';
@@ -156,14 +158,14 @@ export const DriverPrintReportModal: React.FC<DriverPrintReportModalProps> = ({
     >
       <div className="space-y-4">
         {/* Controls Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200 no-print">
+        <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-50 dark:bg-[#0B0F19] p-3 rounded-xl border border-slate-200 dark:border-[#1E293B] no-print transition-colors">
           <div className="flex items-center gap-3">
-            <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer">
+            <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
               <input
                 type="checkbox"
                 checked={includeSignatures}
                 onChange={e => setIncludeSignatures(e.target.checked)}
-                className="rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+                className="rounded border-slate-300 dark:border-slate-700 text-brand-600 focus:ring-brand-500"
               />
               {t('driverPayouts.showSignatures')}
             </label>
@@ -197,7 +199,7 @@ export const DriverPrintReportModal: React.FC<DriverPrintReportModalProps> = ({
               {/* Company Logo & Identity */}
               <div className="flex items-center gap-3 shrink-0">
                 <img
-                  src={newHopeLogo}
+                  src={logo || newHopeLogo}
                   alt="New Hope Egypt"
                   className="h-12 w-auto object-contain border border-slate-200 rounded p-0.5 bg-white shadow-xs shrink-0"
                 />
@@ -209,10 +211,10 @@ export const DriverPrintReportModal: React.FC<DriverPrintReportModalProps> = ({
                       isRtl ? 'text-right' : 'text-left'
                     )}
                   >
-                    {t('driverPayouts.companyNameEn')}
+                    {settings.companyName || t('driverPayouts.companyNameEn')}
                   </div>
                   <div className="text-[11px] font-bold text-slate-700 whitespace-nowrap mt-0.5">
-                    {t('driverPayouts.companyName')}
+                    {settings.companyNameAr || t('driverPayouts.companyName')}
                   </div>
                   <div className="flex items-center gap-2 mt-1">
                     <span className="text-[10px] bg-emerald-50 text-emerald-800 border border-emerald-300 px-2 py-0.5 rounded font-black whitespace-nowrap">

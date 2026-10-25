@@ -1,49 +1,54 @@
 import { UserAccount, RoleType, PermissionMatrix } from '../types';
-import { mockUsers, defaultPermissionsByRole } from '../mocks/users';
+import { apiClient } from './apiClient';
 
-let usersState = [...mockUsers];
-let permissionsState: Record<RoleType, PermissionMatrix[]> = {
-  ...defaultPermissionsByRole,
-};
+export interface CreateUserData {
+  name: string;
+  email: string;
+  password?: string;
+  role: RoleType;
+  department?: string;
+  avatar?: string;
+  gender?: 'male' | 'female';
+}
 
 export const userService = {
-  async getUsers(): Promise<UserAccount[]> {
-    await new Promise(res => setTimeout(res, 40));
-    return [...usersState];
+  async getUsers(params?: { search?: string; role?: string; status?: string }): Promise<UserAccount[]> {
+    const res = await apiClient.get<UserAccount[]>('/users', { params });
+    return Array.isArray(res) ? res : (res as any)?.data || [];
   },
 
-  async createUser(data: Omit<UserAccount, 'id' | 'lastLogin'>): Promise<UserAccount> {
-    await new Promise(res => setTimeout(res, 60));
-    const newUser: UserAccount = {
-      ...data,
-      id: `usr-${Date.now()}`,
-      lastLogin: 'Never',
-    };
-    usersState.push(newUser);
-    return newUser;
+  async getUserById(id: string): Promise<UserAccount> {
+    return apiClient.get<UserAccount>(`/users/${id}`);
+  },
+
+  async createUser(data: CreateUserData): Promise<UserAccount> {
+    return apiClient.post<UserAccount>('/users', data);
+  },
+
+  async updateUser(id: string, data: Partial<UserAccount>): Promise<UserAccount> {
+    return apiClient.put<UserAccount>(`/users/${id}`, data);
   },
 
   async updateUserRole(id: string, role: RoleType): Promise<UserAccount> {
-    await new Promise(res => setTimeout(res, 60));
-    const user = usersState.find(u => u.id === id);
-    if (!user) throw new Error('User not found');
-    user.role = role;
-    return { ...user };
+    return this.updateUser(id, { role });
   },
 
   async deleteUser(id: string): Promise<boolean> {
-    await new Promise(res => setTimeout(res, 60));
-    usersState = usersState.filter(u => u.id !== id);
+    await apiClient.delete(`/users/${id}`);
     return true;
   },
 
+  async getAllRolePermissions(): Promise<Record<RoleType, PermissionMatrix[]>> {
+    const res = await apiClient.get<Record<RoleType, PermissionMatrix[]>>('/users/roles/permissions');
+    return (res as any)?.data || res;
+  },
+
   async getRolePermissions(role: RoleType): Promise<PermissionMatrix[]> {
-    await new Promise(res => setTimeout(res, 30));
-    return [...(permissionsState[role] || [])];
+    const all = await this.getAllRolePermissions();
+    return all?.[role] || [];
   },
 
   async updateRolePermissions(role: RoleType, permissions: PermissionMatrix[]): Promise<void> {
-    await new Promise(res => setTimeout(res, 50));
-    permissionsState[role] = permissions;
+    await apiClient.put(`/users/roles/permissions/${role}`, { permissions });
   },
 };

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import * as XLSX from 'xlsx';
 import { useTranslation } from 'react-i18next';
 import {
@@ -13,12 +13,10 @@ import {
   AlertTriangle,
   RefreshCw,
   FileCheck2,
-  Search,
   Users,
   Check,
-  ChevronRight,
-  HelpCircle,
   Trash2,
+  FileText,
 } from 'lucide-react';
 import { DataTable, Column } from '../../components/ui/DataTable';
 import { Card, CardContent } from '../../components/ui/Card';
@@ -32,17 +30,16 @@ import {
   useInsuranceStats,
   useToggleDocumentMutation,
 } from '../../hooks/queries';
-import { mockDepartments } from '../../mocks/departments';
 import { SocialInsuranceRecord, MissingDocumentRecord } from '../../types';
 import { ExcelImportModal, ImportTargetType } from '../../components/ui/ExcelImportModal';
 import { insuranceService } from '../../services/insuranceService';
+import { InsuranceForm1GuideModal } from './components/InsuranceForm1GuideModal';
 import { cn } from '../../lib/utils';
 
 type ActiveTab = 'social_insurance' | 'missing_documents' | 'reconciliation';
 
 export const InsurancePage: React.FC = () => {
-  const { t, i18n } = useTranslation();
-  const isRtl = i18n.language === 'ar';
+  const { t } = useTranslation();
   const { success, info, error: toastError } = useToast();
 
   const [activeTab, setActiveTab] = useState<ActiveTab>('social_insurance');
@@ -55,6 +52,10 @@ export const InsurancePage: React.FC = () => {
   // Excel Modal
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [modalTarget, setModalTarget] = useState<ImportTargetType>('social_insurance');
+
+  // Form 1 Guide Modal
+  const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
+  const [selectedGuideRecord, setSelectedGuideRecord] = useState<SocialInsuranceRecord | null>(null);
 
   // Selection & Deletion for Social Insurance
   const [selectedSocialIds, setSelectedSocialIds] = useState<string[]>([]);
@@ -142,9 +143,9 @@ export const InsurancePage: React.FC = () => {
   ) => {
     try {
       const updated = await toggleMutation.mutateAsync({ id: recordId, docType: field });
-      success(`تم تحديث حالة المستند للموظف ${updated.employeeName}`);
+      success(t('insurance.docUpdatedSuccess', { name: updated.employeeName }));
     } catch (err: any) {
-      toastError(err?.message || 'حدث خطأ أثناء تحديث المستند');
+      toastError(err?.message || t('insurance.docUpdateError'));
     }
   };
 
@@ -180,7 +181,7 @@ export const InsurancePage: React.FC = () => {
       const ws = XLSX.utils.json_to_sheet(rows);
       XLSX.utils.book_append_sheet(wb, ws, 'Selected Social Insurance');
       XLSX.writeFile(wb, 'Selected_Social_Insurance_Records.xlsx');
-      success(`تم تصدير ${selectedRows.length} سجل تأمينات بنجاح.`);
+      success(t('insurance.exportSocialSuccess', { count: selectedRows.length }));
     }
   };
 
@@ -188,12 +189,12 @@ export const InsurancePage: React.FC = () => {
     setIsDeleting(true);
     try {
       const count = await insuranceService.deleteAllSocialInsurance();
-      success(t('insurance.deleteAllSocialSuccess', { count }) || `تم حذف جميع سجلات التأمينات (${count} سجل) بنجاح.`);
+      success(t('insurance.deleteAllSocialSuccess', { count }));
       setSelectedSocialIds([]);
       setIsDeleteAllSocialModalOpen(false);
       handleRefetch();
     } catch (err: any) {
-      toastError(err?.message || 'فشل حذف سجلات التأمينات.');
+      toastError(err?.message || t('insurance.deleteAllSocialError'));
     } finally {
       setIsDeleting(false);
     }
@@ -203,12 +204,12 @@ export const InsurancePage: React.FC = () => {
     setIsDeleting(true);
     try {
       const count = await insuranceService.bulkDeleteSocialInsurance(selectedSocialIds);
-      success(t('insurance.bulkDeleteSocialSuccess', { count }) || `تم حذف ${count} سجل تأمينات محدد بنجاح.`);
+      success(t('insurance.bulkDeleteSocialSuccess', { count }));
       setSelectedSocialIds([]);
       setIsBulkDeleteSocialModalOpen(false);
       handleRefetch();
     } catch (err: any) {
-      toastError(err?.message || 'فشل حذف السجلات المحددة.');
+      toastError(err?.message || t('insurance.bulkDeleteSocialError'));
     } finally {
       setIsDeleting(false);
     }
@@ -219,12 +220,12 @@ export const InsurancePage: React.FC = () => {
     setIsDeleting(true);
     try {
       await insuranceService.deleteSocialInsurance(deletingSocialRecord.id);
-      success(`تم حذف سجل التأمينات للموظف "${deletingSocialRecord.employeeName}" بنجاح.`);
+      success(t('insurance.singleDeleteSocialSuccess', { name: deletingSocialRecord.employeeName }));
       setSelectedSocialIds(prev => prev.filter(id => id !== deletingSocialRecord.id));
       setDeletingSocialRecord(null);
       handleRefetch();
     } catch (err: any) {
-      toastError(err?.message || 'فشل حذف السجل.');
+      toastError(err?.message || t('insurance.singleDeleteSocialError'));
     } finally {
       setIsDeleting(false);
     }
@@ -263,7 +264,7 @@ export const InsurancePage: React.FC = () => {
       const ws = XLSX.utils.json_to_sheet(rows);
       XLSX.utils.book_append_sheet(wb, ws, 'Selected Missing Documents');
       XLSX.writeFile(wb, 'Selected_Missing_Documents_Records.xlsx');
-      success(`تم تصدير ${selectedRows.length} سجل نواقص بنجاح.`);
+      success(t('insurance.exportMissingSuccess', { count: selectedRows.length }));
     }
   };
 
@@ -271,12 +272,12 @@ export const InsurancePage: React.FC = () => {
     setIsDeleting(true);
     try {
       const count = await insuranceService.deleteAllMissingDocuments();
-      success(t('insurance.deleteAllMissingSuccess', { count }) || `تم حذف جميع سجلات النواقص (${count} سجل) بنجاح.`);
+      success(t('insurance.deleteAllMissingSuccess', { count }));
       setSelectedMissingIds([]);
       setIsDeleteAllMissingModalOpen(false);
       handleRefetch();
     } catch (err: any) {
-      toastError(err?.message || 'فشل حذف سجلات النواقص.');
+      toastError(err?.message || t('insurance.deleteAllMissingError'));
     } finally {
       setIsDeleting(false);
     }
@@ -286,12 +287,12 @@ export const InsurancePage: React.FC = () => {
     setIsDeleting(true);
     try {
       const count = await insuranceService.bulkDeleteMissingDocuments(selectedMissingIds);
-      success(t('insurance.bulkDeleteMissingSuccess', { count }) || `تم حذف ${count} سجل نواقص محدد بنجاح.`);
+      success(t('insurance.bulkDeleteMissingSuccess', { count }));
       setSelectedMissingIds([]);
       setIsBulkDeleteMissingModalOpen(false);
       handleRefetch();
     } catch (err: any) {
-      toastError(err?.message || 'فشل حذف السجلات المحددة.');
+      toastError(err?.message || t('insurance.bulkDeleteMissingError'));
     } finally {
       setIsDeleting(false);
     }
@@ -302,12 +303,12 @@ export const InsurancePage: React.FC = () => {
     setIsDeleting(true);
     try {
       await insuranceService.deleteMissingDocument(deletingMissingRecord.id);
-      success(`تم حذف سجل النواقص للموظف "${deletingMissingRecord.employeeName}" بنجاح.`);
+      success(t('insurance.singleDeleteMissingSuccess', { name: deletingMissingRecord.employeeName }));
       setSelectedMissingIds(prev => prev.filter(id => id !== deletingMissingRecord.id));
       setDeletingMissingRecord(null);
       handleRefetch();
     } catch (err: any) {
-      toastError(err?.message || 'فشل حذف السجل.');
+      toastError(err?.message || t('insurance.singleDeleteMissingError'));
     } finally {
       setIsDeleting(false);
     }
@@ -332,7 +333,7 @@ export const InsurancePage: React.FC = () => {
       const ws = XLSX.utils.json_to_sheet(rows);
       XLSX.utils.book_append_sheet(wb, ws, 'Social Insurance - September');
       XLSX.writeFile(wb, 'Social_Insurance_September_Export.xlsx');
-      info('تم تصدير شيت التأمينات الاجتماعية بنجاح');
+      info(t('insurance.exportSocialSheetSuccess'));
     } else if (activeTab === 'missing_documents') {
       const rows = missingRecords.map(r => ({
         No: r.serialNo,
@@ -353,7 +354,7 @@ export const InsurancePage: React.FC = () => {
       const ws = XLSX.utils.json_to_sheet(rows);
       XLSX.utils.book_append_sheet(wb, ws, 'Missing Documents');
       XLSX.writeFile(wb, 'Missing_Documents_Export.xlsx');
-      info('تم تصدير شيت الأوراق الناقصة بنجاح');
+      info(t('insurance.exportMissingSheetSuccess'));
     }
   };
 
@@ -362,30 +363,30 @@ export const InsurancePage: React.FC = () => {
     () => [
       {
         key: 'serialNo',
-        header: t('insurance.colSerialNo', 'No'),
+        header: t('insurance.colSerialNo'),
         width: '50px',
         render: row => <span className="font-mono text-slate-400 text-xs">{row.serialNo}</span>,
       },
       {
         key: 'nationalId',
-        header: t('insurance.colNationalId', 'ID (الرقم القومي)'),
+        header: t('insurance.colNationalId'),
         sortable: true,
         render: row => (
-          <span className="font-mono text-xs font-semibold text-slate-800 tracking-wider">
+          <span className="font-mono text-xs font-semibold text-slate-800 dark:text-slate-200 tracking-wider">
             {row.nationalId}
           </span>
         ),
       },
       {
         key: 'employeeName',
-        header: t('insurance.colEmployeeName', 'Name (الاسم)'),
+        header: t('insurance.colEmployeeName'),
         sortable: true,
         render: row => (
           <div>
-            <span className="font-semibold text-slate-900 block text-xs">{row.employeeName}</span>
+            <span className="font-semibold text-slate-900 dark:text-[#F8FAFC] block text-xs">{row.employeeName}</span>
             {row.employeeCode && (
-              <span className="text-[10px] font-mono text-brand-600 block">
-                {t('insurance.colCodePrefix', 'كود:')} {row.employeeCode}
+              <span className="text-[10px] font-mono text-brand-600 dark:text-brand-400 block">
+                {t('insurance.colCodePrefix')} {row.employeeCode}
               </span>
             )}
           </div>
@@ -393,86 +394,96 @@ export const InsurancePage: React.FC = () => {
       },
       {
         key: 'department',
-        header: t('insurance.colDepartment', 'Department (القسم)'),
+        header: t('insurance.colDepartment'),
         sortable: true,
         render: row => (
-          <span className="inline-block px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-100 text-slate-700">
+          <span className="inline-block px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
             {row.department}
           </span>
         ),
       },
       {
         key: 'insuranceNumber',
-        header: t('insurance.colInsuranceNumber', 'Insurance Number (الرقم التأميني)'),
+        header: t('insurance.colInsuranceNumber'),
         sortable: true,
         render: row => (
-          <span className="font-mono text-xs font-bold text-slate-900">{row.insuranceNumber}</span>
+          <span className="font-mono text-xs font-bold text-slate-900 dark:text-[#F8FAFC]">{row.insuranceNumber}</span>
         ),
       },
       {
         key: 'insuranceSalary',
-        header: t('insurance.colInsuranceSalary', 'Insurance Salary (الأجر)'),
+        header: t('insurance.colInsuranceSalary'),
         sortable: true,
         render: row => (
-          <span className="font-mono text-xs text-slate-800">
-            {row.insuranceSalary.toLocaleString('en-US', { minimumFractionDigits: 2 })} {t('insurance.currency', 'ج.م')}
+          <span className="font-mono text-xs text-slate-800 dark:text-slate-200">
+            {row.insuranceSalary.toLocaleString('en-US', { minimumFractionDigits: 2 })} {t('insurance.currency')}
           </span>
         ),
       },
       {
         key: 'workerShare',
-        header: t('insurance.colWorkerShare', 'Worker (العامل 11%)'),
+        header: t('insurance.colWorkerShare'),
         render: row => (
-          <span className="font-mono text-xs text-slate-600">
+          <span className="font-mono text-xs text-slate-600 dark:text-slate-400">
             {row.workerShare.toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </span>
         ),
       },
       {
         key: 'companyShare',
-        header: t('insurance.colCompanyShare', 'Company (الشركة 18.75%)'),
+        header: t('insurance.colCompanyShare'),
         render: row => (
-          <span className="font-mono text-xs font-semibold text-slate-800">
+          <span className="font-mono text-xs font-semibold text-slate-800 dark:text-slate-200">
             {row.companyShare.toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </span>
         ),
       },
       {
         key: 'note',
-        header: t('insurance.colNote', 'Note (ملاحظات)'),
+        header: t('insurance.colNote'),
         render: row => (
-          <span className="text-[11px] text-slate-500 font-mono">{row.note || '—'}</span>
+          <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">{row.note || '—'}</span>
         ),
       },
       {
         key: 'employeeListStatus',
-        header: t('insurance.colMatchStatus', 'Employee List Status (المطابقة)'),
+        header: t('insurance.colMatchStatus'),
         sortable: true,
         render: row => {
           if (row.employeeListStatus === 'found') {
             return (
-              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
-                <CheckCircle2 className="w-3 h-3 text-emerald-600" /> {t('insurance.statusMatched', 'مسجل ومطابق')}
+              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1 rounded-full border border-emerald-200 dark:border-emerald-900/50">
+                <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" /> {t('insurance.statusMatched')}
               </span>
             );
           }
           return (
-            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-700 bg-rose-50 px-2.5 py-1 rounded-full border border-rose-200 animate-pulse">
-              <ShieldAlert className="w-3 h-3 text-rose-600" /> {t('insurance.statusNotRegistered', 'غير مسجل بشيت الموظفين')}
+            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 px-2.5 py-1 rounded-full border border-rose-200 dark:border-rose-900/50 animate-pulse">
+              <ShieldAlert className="w-3 h-3 text-rose-600 dark:text-rose-400" /> {t('insurance.statusNotRegistered')}
             </span>
           );
         },
       },
       {
         key: 'actions',
-        header: t('common.actions', 'إجراءات'),
+        header: t('common.actions'),
         align: 'right',
         render: row => (
-          <div className="flex items-center justify-end">
+          <div className="flex items-center justify-end gap-1">
+            <button
+              onClick={() => {
+                setSelectedGuideRecord(row);
+                setIsGuideModalOpen(true);
+              }}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-colors"
+              title="دليل تعبئة استمارة 1 تأمينات لهذا الموظف"
+            >
+              <FileText className="w-4 h-4" />
+            </button>
             <button
               onClick={() => setDeletingSocialRecord(row)}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
-              title={t('insurance.deleteSingleTooltip', 'حذف هذا السجل نهائياً')}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+              title={t('insurance.deleteSingleTooltip')}
             >
               <Trash2 className="w-4 h-4" />
             </button>
@@ -488,139 +499,139 @@ export const InsurancePage: React.FC = () => {
     () => [
       {
         key: 'serialNo',
-        header: t('insurance.colSerialNo', 'No'),
+        header: t('insurance.colSerialNo'),
         width: '45px',
         render: row => <span className="font-mono text-slate-400 text-xs">{row.serialNo}</span>,
       },
       {
         key: 'department',
-        header: t('insurance.colDepartment', 'Department (القسم)'),
+        header: t('insurance.colDepartment'),
         render: row => (
-          <span className="text-xs font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded">
+          <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">
             {row.department}
           </span>
         ),
       },
       {
         key: 'employeeName',
-        header: t('insurance.colEmployeeName', 'Name (اسم الموظف)'),
+        header: t('insurance.colEmployeeName'),
         sortable: true,
         render: row => (
           <div>
-            <span className="font-semibold text-slate-900 block text-xs">{row.employeeName}</span>
-            <span className="text-[10px] font-mono text-slate-400 block">{row.nationalId}</span>
+            <span className="font-semibold text-slate-900 dark:text-[#F8FAFC] block text-xs">{row.employeeName}</span>
+            <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 block">{row.nationalId}</span>
           </div>
         ),
       },
       {
         key: 'position',
-        header: t('insurance.colPosition', 'Position (الوظيفة)'),
+        header: t('insurance.colPosition'),
         render: row => (
-          <span className="text-xs font-medium text-slate-800 block">{row.position}</span>
+          <span className="text-xs font-medium text-slate-800 dark:text-slate-200 block">{row.position}</span>
         ),
       },
       {
         key: 'employeeCode',
-        header: t('insurance.colEmployeeId', 'Employee ID'),
-        render: row => <span className="font-mono text-xs text-slate-600">{row.employeeCode}</span>,
+        header: t('insurance.colEmployeeId'),
+        render: row => <span className="font-mono text-xs text-slate-600 dark:text-slate-400">{row.employeeCode}</span>,
       },
       {
         key: 'qualificationCert',
-        header: t('insurance.qualification', 'شهادة المؤهل'),
+        header: t('insurance.qualification'),
         render: row => (
           <button
             type="button"
             onClick={() => handleToggleDoc(row.id, 'qualificationCert')}
             className={`px-2 py-1 rounded text-[11px] font-semibold transition-all inline-flex items-center gap-1 ${
               row.qualificationCert === 'available'
-                ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
-                : 'bg-rose-100 text-rose-700 hover:bg-rose-200'
+                ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-200 dark:hover:bg-emerald-900/60'
+                : 'bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 hover:bg-rose-200 dark:hover:bg-rose-900/60'
             }`}
           >
             {row.qualificationCert === 'available' ? <Check className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
-            {row.qualificationCert === 'available' ? t('insurance.docAvailable', 'متوفر') : t('insurance.docMissing', 'Missing')}
+            {row.qualificationCert === 'available' ? t('insurance.docAvailable') : t('insurance.docMissing')}
           </button>
         ),
       },
       {
         key: 'birthCert',
-        header: t('insurance.birthCert', 'شهادة الميلاد'),
+        header: t('insurance.birthCert'),
         render: row => (
           <button
             type="button"
             onClick={() => handleToggleDoc(row.id, 'birthCert')}
             className={`px-2 py-1 rounded text-[11px] font-semibold transition-all inline-flex items-center gap-1 ${
               row.birthCert === 'available'
-                ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
-                : 'bg-rose-100 text-rose-700 hover:bg-rose-200'
+                ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-200 dark:hover:bg-emerald-900/60'
+                : 'bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 hover:bg-rose-200 dark:hover:bg-rose-900/60'
             }`}
           >
             {row.birthCert === 'available' ? <Check className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
-            {row.birthCert === 'available' ? t('insurance.docAvailable', 'متوفر') : t('insurance.docMissing', 'Missing')}
+            {row.birthCert === 'available' ? t('insurance.docAvailable') : t('insurance.docMissing')}
           </button>
         ),
       },
       {
         key: 'idCard',
-        header: t('insurance.nationalId', 'بطاقة الرقم القومي'),
+        header: t('insurance.nationalId'),
         render: row => (
           <button
             type="button"
             onClick={() => handleToggleDoc(row.id, 'idCard')}
             className={`px-2 py-1 rounded text-[11px] font-semibold transition-all inline-flex items-center gap-1 ${
               row.idCard === 'available'
-                ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
-                : 'bg-rose-100 text-rose-700 hover:bg-rose-200'
+                ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-200 dark:hover:bg-emerald-900/60'
+                : 'bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 hover:bg-rose-200 dark:hover:bg-rose-900/60'
             }`}
           >
             {row.idCard === 'available' ? <Check className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
-            {row.idCard === 'available' ? t('insurance.docAvailable', 'متوفر') : t('insurance.docMissing', 'Missing')}
+            {row.idCard === 'available' ? t('insurance.docAvailable') : t('insurance.docMissing')}
           </button>
         ),
       },
       {
         key: 'contract',
-        header: t('insurance.contract', 'عقد العمل'),
+        header: t('insurance.contract'),
         render: row => (
           <button
             type="button"
             onClick={() => handleToggleDoc(row.id, 'contract')}
             className={`px-2 py-1 rounded text-[11px] font-semibold transition-all inline-flex items-center gap-1 ${
               row.contract === 'available'
-                ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
-                : 'bg-rose-100 text-rose-700 hover:bg-rose-200'
+                ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-200 dark:hover:bg-emerald-900/60'
+                : 'bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 hover:bg-rose-200 dark:hover:bg-rose-900/60'
             }`}
           >
             {row.contract === 'available' ? <Check className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
-            {row.contract === 'available' ? t('insurance.docAvailable', 'متوفر') : t('insurance.docMissing', 'Missing')}
+            {row.contract === 'available' ? t('insurance.docAvailable') : t('insurance.docMissing')}
           </button>
         ),
       },
       {
         key: 'status',
-        header: t('insurance.colStatus', 'Status (الحالة)'),
+        header: t('insurance.colStatus'),
         sortable: true,
         render: row => {
           if (row.status === 'complete') {
-            return <Badge variant="success">{t('insurance.statusComplete', 'مكتمل (Complete)')}</Badge>;
+            return <Badge variant="success">{t('insurance.statusComplete')}</Badge>;
           }
           return (
             <Badge variant="danger">
-              {t('insurance.statusIncomplete', { count: row.missingCount }) || `ناقص (${row.missingCount} ملفات)`}
+              {t('insurance.statusIncomplete', { count: row.missingCount })}
             </Badge>
           );
         },
       },
       {
         key: 'actions',
-        header: t('common.actions', 'إجراءات'),
+        header: t('common.actions'),
         align: 'right',
         render: row => (
           <div className="flex items-center justify-end">
             <button
               onClick={() => setDeletingMissingRecord(row)}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
-              title={t('insurance.deleteSingleTooltip', 'حذف هذا السجل نهائياً')}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+              title={t('insurance.deleteSingleTooltip')}
             >
               <Trash2 className="w-4 h-4" />
             </button>
@@ -634,18 +645,18 @@ export const InsurancePage: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Top Header Banner */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white dark:bg-[#151D2E] p-5 rounded-2xl border border-slate-200 dark:border-[#1E293B] shadow-sm transition-colors">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-              {t('insurance.pageTitle', 'إدارة التأمينات الاجتماعية ومسوغات التعيين')}
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-[#F8FAFC] tracking-tight">
+              {t('insurance.pageTitle')}
             </h1>
-            <span className="bg-brand-50 text-brand-700 text-xs px-2.5 py-0.5 rounded-full font-semibold border border-brand-200">
-              {t('insurance.excelSynchronized', 'Excel Synchronized')}
+            <span className="bg-brand-50 dark:bg-brand-950/40 text-brand-700 dark:text-brand-300 text-xs px-2.5 py-0.5 rounded-full font-semibold border border-brand-200 dark:border-brand-800/60">
+              {t('insurance.excelSynchronized')}
             </span>
           </div>
-          <p className="text-xs text-slate-500 mt-1">
-            {t('insurance.pageSubtitle', 'إدارة متطابقة 100% مع شيتات الإكسيل (All Employees • Social Insurance • Missing Documents).')}
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            {t('insurance.pageSubtitle')}
           </p>
         </div>
 
@@ -654,20 +665,33 @@ export const InsurancePage: React.FC = () => {
           <Button
             variant="outline"
             size="sm"
-            leftIcon={<RefreshCw className="w-3.5 h-3.5" />}
-            onClick={handleRefetch}
-            isLoading={isLoading}
+            leftIcon={<FileText className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />}
+            onClick={() => {
+              setSelectedGuideRecord(null);
+              setIsGuideModalOpen(true);
+            }}
+            className="border-blue-200 dark:border-blue-800/60 text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/30 font-bold"
           >
-            {t('common.refresh', 'تحديث')}
+            استمارة 1 تأمينات
           </Button>
 
           <Button
             variant="outline"
             size="sm"
-            leftIcon={<Download className="w-3.5 h-3.5 text-emerald-600" />}
+            leftIcon={<RefreshCw className="w-3.5 h-3.5" />}
+            onClick={handleRefetch}
+            isLoading={isLoading}
+          >
+            {t('common.refresh')}
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            leftIcon={<Download className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />}
             onClick={handleExportCurrentSheet}
           >
-            {t('insurance.exportToExcel', 'تصدير إلى إكسيل (.xlsx)')}
+            {t('insurance.exportToExcel')}
           </Button>
 
           <Button
@@ -676,7 +700,7 @@ export const InsurancePage: React.FC = () => {
             leftIcon={<Upload className="w-3.5 h-3.5" />}
             onClick={() => openImporter(activeTab === 'missing_documents' ? 'missing_documents' : 'social_insurance')}
           >
-            {t('insurance.importExcel', 'استيراد شيت إكسيل / CSV')}
+            {t('insurance.importExcel')}
           </Button>
         </div>
       </div>
@@ -684,40 +708,40 @@ export const InsurancePage: React.FC = () => {
       {/* KPI Cards Matching User's Excel Summary Box Exactly */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: Insured */}
-        <Card className="border-l-4 border-l-emerald-500">
+        <Card className="border-l-4 border-l-emerald-500 bg-white dark:bg-[#151D2E] border-slate-200 dark:border-[#1E293B] shadow-sm transition-colors">
           <CardContent className="p-4 flex items-center justify-between">
             <div>
-              <span className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider block">
-                {t('insurance.kpiInsured', 'المؤمن عليهم (Insured)')}
+              <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider block">
+                {t('insurance.kpiInsured')}
               </span>
-              <span className="text-3xl font-extrabold text-emerald-600 mt-1 block">
+              <span className="text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-1 block">
                 {stats.insuredCount}
               </span>
-              <span className="text-[11px] text-slate-500 font-medium">
-                {t('insurance.kpiInsuredSub', 'مسجلين بالتأمينات ومطابقين')}
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                {t('insurance.kpiInsuredSub')}
               </span>
             </div>
-            <div className="p-3 rounded-xl bg-emerald-50 text-emerald-600">
+            <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 font-bold">
               <ShieldCheck className="w-6 h-6" />
             </div>
           </CardContent>
         </Card>
 
         {/* Card 2: Not Insured */}
-        <Card className="border-l-4 border-l-rose-500">
+        <Card className="border-l-4 border-l-rose-500 bg-white dark:bg-[#151D2E] border-slate-200 dark:border-[#1E293B] shadow-sm transition-colors">
           <CardContent className="p-4 flex items-center justify-between">
             <div>
-              <span className="text-[11px] font-bold text-rose-700 uppercase tracking-wider block">
-                {t('insurance.kpiNotInsured', 'غير مؤمن عليهم (Not Insured)')}
+              <span className="text-[11px] font-bold text-rose-700 dark:text-rose-400 uppercase tracking-wider block">
+                {t('insurance.kpiNotInsured')}
               </span>
-              <span className="text-3xl font-extrabold text-rose-600 mt-1 block">
+              <span className="text-3xl font-extrabold text-rose-600 dark:text-rose-400 mt-1 block">
                 {stats.notInsuredCount}
               </span>
-              <span className="text-[11px] text-slate-500 font-medium">
-                {t('insurance.kpiNotInsuredSub', 'في انتظار استكمال مسوغات التعيين')}
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                {t('insurance.kpiNotInsuredSub')}
               </span>
             </div>
-            <div className="p-3 rounded-xl bg-rose-50 text-rose-600">
+            <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 font-bold">
               <ShieldAlert className="w-6 h-6" />
             </div>
           </CardContent>
@@ -729,48 +753,48 @@ export const InsurancePage: React.FC = () => {
             setActiveTab('social_insurance');
             setSelectedListStatus(selectedListStatus === 'not_found' ? 'all' : 'not_found');
           }}
-          className={`cursor-pointer transition-all border-l-4 border-l-amber-500 hover:shadow-md ${
-            selectedListStatus === 'not_found' ? 'ring-2 ring-amber-500 bg-amber-50/30' : ''
+          className={`cursor-pointer transition-all border-l-4 border-l-amber-500 bg-white dark:bg-[#151D2E] border-slate-200 dark:border-[#1E293B] hover:shadow-md ${
+            selectedListStatus === 'not_found' ? 'ring-2 ring-amber-500 bg-amber-50/30 dark:bg-amber-950/30' : ''
           }`}
         >
           <CardContent className="p-4 flex items-center justify-between">
             <div>
               <div className="flex items-center gap-1.5">
-                <span className="text-[11px] font-bold text-amber-700 uppercase tracking-wider block">
-                  {t('insurance.kpiNotFound', 'غير مسجلين بشيت الموظفين')}
+                <span className="text-[11px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider block">
+                  {t('insurance.kpiNotFound')}
                 </span>
-                <span className="px-1.5 py-0.2 bg-amber-200 text-amber-900 rounded text-[9px] font-bold">
-                  {t('insurance.alertBadge', 'تنبيه')}
+                <span className="px-1.5 py-0.2 bg-amber-200 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200 rounded text-[9px] font-bold">
+                  {t('insurance.alertBadge')}
                 </span>
               </div>
-              <span className="text-3xl font-extrabold text-amber-600 mt-1 block">
+              <span className="text-3xl font-extrabold text-amber-600 dark:text-amber-400 mt-1 block">
                 {stats.notFoundCount}
               </span>
-              <span className="text-[11px] text-amber-800 font-semibold underline">
-                {selectedListStatus === 'not_found' ? t('insurance.clearFilter', 'إلغاء الفلترة') : t('insurance.clickToFilter', 'اضغط للفلترة والمطابقة')}
+              <span className="text-[11px] text-amber-800 dark:text-amber-300 font-semibold underline">
+                {selectedListStatus === 'not_found' ? t('insurance.clearFilter') : t('insurance.clickToFilter')}
               </span>
             </div>
-            <div className="p-3 rounded-xl bg-amber-100 text-amber-700">
+            <div className="p-3 rounded-xl bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 font-bold">
               <AlertTriangle className="w-6 h-6" />
             </div>
           </CardContent>
         </Card>
 
         {/* Card 4: Monthly Social Contributions Total */}
-        <Card className="border-l-4 border-l-brand-500">
+        <Card className="border-l-4 border-l-brand-500 bg-white dark:bg-[#151D2E] border-slate-200 dark:border-[#1E293B] shadow-sm transition-colors">
           <CardContent className="p-4 flex items-center justify-between">
             <div>
-              <span className="text-[11px] font-bold text-brand-700 uppercase tracking-wider block">
-                {t('insurance.kpiMonthlyBill', 'فاتورة التأمينات الشهرية')}
+              <span className="text-[11px] font-bold text-brand-700 dark:text-brand-400 uppercase tracking-wider block">
+                {t('insurance.kpiMonthlyBill')}
               </span>
-              <span className="text-2xl font-extrabold text-brand-600 mt-1 block font-mono">
-                {(stats.totalContributions || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })} {t('insurance.currency', 'ج.م')}
+              <span className="text-2xl font-extrabold text-brand-600 dark:text-brand-400 mt-1 block font-mono">
+                {(stats.totalContributions || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })} {t('insurance.currency')}
               </span>
-              <span className="text-[11px] text-slate-500 font-medium">
-                {t('insurance.kpiMonthlyBillSub', 'حصة العامل 11% + الشركة 18.75%')}
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                {t('insurance.kpiMonthlyBillSub')}
               </span>
             </div>
-            <div className="p-3 rounded-xl bg-brand-50 text-brand-600">
+            <div className="p-3 rounded-xl bg-brand-50 dark:bg-brand-950/40 text-brand-600 dark:text-brand-400 font-bold">
               <FileSpreadsheet className="w-6 h-6" />
             </div>
           </CardContent>
@@ -778,19 +802,19 @@ export const InsurancePage: React.FC = () => {
       </div>
 
       {/* Tabs Navigation Matching Excel Tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-200 pb-0">
+      <div className="flex items-center gap-2 border-b border-slate-200 dark:border-[#1E293B] pb-0 transition-colors">
         <button
           type="button"
           onClick={() => setActiveTab('social_insurance')}
           className={`flex items-center gap-2 px-4 py-3 font-semibold text-xs border-b-2 transition-all ${
             activeTab === 'social_insurance'
-              ? 'border-brand-600 text-brand-600 bg-brand-50/30'
-              : 'border-transparent text-slate-500 hover:text-slate-900'
+              ? 'border-brand-600 text-brand-600 dark:text-brand-400 bg-brand-50/30 dark:bg-brand-950/20'
+              : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
           }`}
         >
           <ShieldCheck className="w-4 h-4" />
-          <span>{t('insurance.tabSocialInsurance', 'شيت التأمينات الاجتماعية (Social Insurance)')}</span>
-          <span className="px-2 py-0.5 rounded-full text-[10px] bg-slate-200 text-slate-800">
+          <span>{t('insurance.tabSocialInsurance')}</span>
+          <span className="px-2 py-0.5 rounded-full text-[10px] bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200">
             {stats.totalInsuredRows}
           </span>
         </button>
@@ -800,13 +824,13 @@ export const InsurancePage: React.FC = () => {
           onClick={() => setActiveTab('missing_documents')}
           className={`flex items-center gap-2 px-4 py-3 font-semibold text-xs border-b-2 transition-all ${
             activeTab === 'missing_documents'
-              ? 'border-brand-600 text-brand-600 bg-brand-50/30'
-              : 'border-transparent text-slate-500 hover:text-slate-900'
+              ? 'border-brand-600 text-brand-600 dark:text-brand-400 bg-brand-50/30 dark:bg-brand-950/20'
+              : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
           }`}
         >
           <FileCheck2 className="w-4 h-4" />
-          <span>{t('insurance.tabMissingDocs', 'شيت الأوراق ومسوغات التعيين الناقصة (Missing Documents)')}</span>
-          <span className="px-2 py-0.5 rounded-full text-[10px] bg-rose-100 text-rose-700 font-bold">
+          <span>{t('insurance.tabMissingDocs')}</span>
+          <span className="px-2 py-0.5 rounded-full text-[10px] bg-rose-100 dark:bg-rose-950/50 text-rose-700 dark:text-rose-400 font-bold">
             {stats.incompleteDocsCount}
           </span>
         </button>
@@ -816,14 +840,14 @@ export const InsurancePage: React.FC = () => {
           onClick={() => setActiveTab('reconciliation')}
           className={`flex items-center gap-2 px-4 py-3 font-semibold text-xs border-b-2 transition-all ${
             activeTab === 'reconciliation'
-              ? 'border-brand-600 text-brand-600 bg-brand-50/30'
-              : 'border-transparent text-slate-500 hover:text-slate-900'
+              ? 'border-brand-600 text-brand-600 dark:text-brand-400 bg-brand-50/30 dark:bg-brand-950/20'
+              : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
           }`}
         >
           <Users className="w-4 h-4" />
-          <span>{t('insurance.tabReconciliation', 'تقرير المطابقة الرقابية (Reconciliation)')}</span>
+          <span>{t('insurance.tabReconciliation')}</span>
           {stats.notFoundCount > 0 && (
-            <span className="px-2 py-0.5 rounded-full text-[10px] bg-amber-100 text-amber-800 font-bold animate-pulse">
+            <span className="px-2 py-0.5 rounded-full text-[10px] bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 font-bold animate-pulse">
               {t('insurance.tabAlertCount', { count: stats.notFoundCount })}
             </span>
           )}
@@ -839,7 +863,7 @@ export const InsurancePage: React.FC = () => {
             keyExtractor={row => row.id}
             isLoading={isLoading}
             searchable
-            searchPlaceholder={t('insurance.searchSocialPlaceholder', 'بحث بالاسم، الرقم القومي، أو الرقم التأميني...')}
+            searchPlaceholder={t('insurance.searchSocialPlaceholder')}
             exportFilename="Social_Insurance_September_List"
             selectable
             selectAllAcrossPages
@@ -853,7 +877,7 @@ export const InsurancePage: React.FC = () => {
                   onClick={() => setSelectedSocialIds(socialRecords.map(r => r.id))}
                   disabled={ids.length === socialRecords.length}
                 >
-                  {t('insurance.selectAllSocial', 'تحديد الكل')} ({socialRecords.length})
+                  {t('insurance.selectAllSocial')} ({socialRecords.length})
                 </Button>
                 <Button
                   variant="outline"
@@ -861,7 +885,7 @@ export const InsurancePage: React.FC = () => {
                   leftIcon={<Download className="w-3.5 h-3.5" />}
                   onClick={handleExportSelectedSocial}
                 >
-                  {t('insurance.exportSelected', 'تصدير المحدد')} ({ids.length})
+                  {t('insurance.exportSelected')} ({ids.length})
                 </Button>
                 <Button
                   variant="danger"
@@ -876,26 +900,25 @@ export const InsurancePage: React.FC = () => {
                   }}
                 >
                   {ids.length === socialRecords.length
-                    ? t('insurance.deleteAllSocial', 'حذف جميع سجلات التأمينات')
-                    : t('insurance.deleteSelectedSocial', { count: ids.length }) || `حذف المحدد (${ids.length})`}
+                    ? t('insurance.deleteAllSocial')
+                    : t('insurance.deleteSelectedSocial', { count: ids.length })}
                 </Button>
                 <Button variant="ghost" size="sm" onClick={clear}>
-                  {t('insurance.clearSelection', 'إلغاء التحديد')}
+                  {t('insurance.clearSelection')}
                 </Button>
               </div>
             )}
             filtersSlot={
               <div className="flex flex-wrap items-center gap-2">
-                {/* خانة تحديد كل سجلات التأمينات */}
                 <label
-                  title={isAllSocialSelected ? t('insurance.clearSelection', 'إلغاء التحديد') : t('insurance.selectAllSocial', 'تحديد الكل')}
+                  title={isAllSocialSelected ? t('insurance.clearSelection') : t('insurance.selectAllSocial')}
                   className={cn(
                     'inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-semibold cursor-pointer transition-all shadow-sm select-none',
                     isAllSocialSelected
-                      ? 'bg-brand-50 border-brand-400 text-brand-800 ring-1 ring-brand-300'
+                      ? 'bg-brand-50 dark:bg-brand-950/40 border-brand-400 dark:border-brand-700 text-brand-800 dark:text-brand-300 ring-1 ring-brand-300 dark:ring-brand-700'
                       : isSomeSocialSelected
-                      ? 'bg-amber-50/70 border-amber-300 text-amber-900'
-                      : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50 hover:border-slate-400'
+                      ? 'bg-amber-50/70 dark:bg-amber-950/40 border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-200'
+                      : 'bg-white dark:bg-[#151D2E] border-slate-300 dark:border-[#1E293B] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-700'
                   )}
                 >
                   <input
@@ -905,14 +928,14 @@ export const InsurancePage: React.FC = () => {
                       if (el) el.indeterminate = isSomeSocialSelected && !isAllSocialSelected;
                     }}
                     onChange={handleToggleSelectAllSocial}
-                    className="w-4 h-4 rounded text-brand-600 focus:ring-brand-500 border-slate-300 cursor-pointer accent-brand-600"
+                    className="w-4 h-4 rounded text-brand-600 focus:ring-brand-500 border-slate-300 dark:border-slate-700 cursor-pointer accent-brand-600"
                   />
                   <span className="whitespace-nowrap">
                     {isAllSocialSelected
-                      ? t('insurance.allSocialSelectedCount', { count: socialRecords.length }) || `تم تحديد كل التأمينات (${socialRecords.length})`
+                      ? t('insurance.allSocialSelectedCount', { count: socialRecords.length })
                       : isSomeSocialSelected
-                      ? t('insurance.selectedCountOf', { selected: selectedSocialIds.length, total: socialRecords.length }) || `محدد (${selectedSocialIds.length} من ${socialRecords.length})`
-                      : t('insurance.selectAllSocialCount', { count: socialRecords.length }) || `تحديد كل التأمينات (${socialRecords.length})`}
+                      ? t('insurance.selectedCountOf', { selected: selectedSocialIds.length, total: socialRecords.length })
+                      : t('insurance.selectAllSocialCount', { count: socialRecords.length })}
                   </span>
                 </label>
 
@@ -920,9 +943,9 @@ export const InsurancePage: React.FC = () => {
                 <select
                   value={selectedDept}
                   onChange={e => setSelectedDept(e.target.value)}
-                  className="text-xs rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-slate-700 focus:outline-none focus:ring-1 focus:ring-brand-500 cursor-pointer"
+                  className="text-xs rounded-lg border border-slate-300 dark:border-[#1E293B] bg-white dark:bg-[#0B0F19] px-2.5 py-1.5 text-slate-700 dark:text-slate-200 [&>option]:bg-white [&>option]:dark:bg-[#151D2E] focus:outline-none focus:ring-1 focus:ring-brand-500 cursor-pointer transition-colors"
                 >
-                  <option value="all">{t('insurance.allDepts', 'جميع الأقسام (All Depts)')}</option>
+                  <option value="all">{t('insurance.allDepts')}</option>
                   <option value="HR">HR</option>
                   <option value="PD">PD</option>
                   <option value="SD">SD</option>
@@ -935,11 +958,11 @@ export const InsurancePage: React.FC = () => {
                 <select
                   value={selectedListStatus}
                   onChange={e => setSelectedListStatus(e.target.value)}
-                  className="text-xs rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-slate-700 focus:outline-none focus:ring-1 focus:ring-brand-500 cursor-pointer font-semibold"
+                  className="text-xs rounded-lg border border-slate-300 dark:border-[#1E293B] bg-white dark:bg-[#0B0F19] px-2.5 py-1.5 text-slate-700 dark:text-slate-200 [&>option]:bg-white [&>option]:dark:bg-[#151D2E] focus:outline-none focus:ring-1 focus:ring-brand-500 cursor-pointer font-semibold transition-colors"
                 >
-                  <option value="all">{t('insurance.allMatchStatus', 'حالة المطابقة: الكل')}</option>
-                  <option value="found">{t('insurance.filterFound', 'مسجل ومطابق بشيت الموظفين (Found)')}</option>
-                  <option value="not_found">{t('insurance.filterNotFound', 'غير مسجل بشيت الموظفين (Not Found)')}</option>
+                  <option value="all">{t('insurance.allMatchStatus')}</option>
+                  <option value="found">{t('insurance.filterFound')}</option>
+                  <option value="not_found">{t('insurance.filterNotFound')}</option>
                 </select>
 
                 {socialRecords.length > 0 && (
@@ -947,10 +970,10 @@ export const InsurancePage: React.FC = () => {
                     size="sm"
                     variant="outline"
                     onClick={() => setIsDeleteAllSocialModalOpen(true)}
-                    className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 border-rose-200"
+                    className="text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/40 border-rose-200 dark:border-rose-900/50"
                     leftIcon={<Trash2 className="w-3.5 h-3.5 text-rose-500" />}
                   >
-                    {t('insurance.deleteAllSocial', 'حذف جميع سجلات التأمينات')}
+                    {t('insurance.deleteAllSocial')}
                   </Button>
                 )}
 
@@ -960,7 +983,7 @@ export const InsurancePage: React.FC = () => {
                   onClick={() => openImporter('social_insurance')}
                   leftIcon={<Upload className="w-3 h-3" />}
                 >
-                  {t('insurance.importSocialBtn', 'استيراد شيت التأمينات')}
+                  {t('insurance.importSocialBtn')}
                 </Button>
               </div>
             }
@@ -977,7 +1000,7 @@ export const InsurancePage: React.FC = () => {
             keyExtractor={row => row.id}
             isLoading={isLoading}
             searchable
-            searchPlaceholder={t('insurance.searchMissingPlaceholder', 'بحث في النواقص بالاسم، الوظيفة، أو كود الموظف...')}
+            searchPlaceholder={t('insurance.searchMissingPlaceholder')}
             exportFilename="Missing_Documents_Audit_List"
             selectable
             selectAllAcrossPages
@@ -991,7 +1014,7 @@ export const InsurancePage: React.FC = () => {
                   onClick={() => setSelectedMissingIds(missingRecords.map(r => r.id))}
                   disabled={ids.length === missingRecords.length}
                 >
-                  {t('insurance.selectAllMissing', 'تحديد الكل')} ({missingRecords.length})
+                  {t('insurance.selectAllMissing')} ({missingRecords.length})
                 </Button>
                 <Button
                   variant="outline"
@@ -999,7 +1022,7 @@ export const InsurancePage: React.FC = () => {
                   leftIcon={<Download className="w-3.5 h-3.5" />}
                   onClick={handleExportSelectedMissing}
                 >
-                  {t('insurance.exportSelected', 'تصدير المحدد')} ({ids.length})
+                  {t('insurance.exportSelected')} ({ids.length})
                 </Button>
                 <Button
                   variant="danger"
@@ -1014,26 +1037,25 @@ export const InsurancePage: React.FC = () => {
                   }}
                 >
                   {ids.length === missingRecords.length
-                    ? t('insurance.deleteAllMissing', 'حذف جميع سجلات النواقص')
-                    : t('insurance.deleteSelectedMissing', { count: ids.length }) || `حذف المحدد (${ids.length})`}
+                    ? t('insurance.deleteAllMissing')
+                    : t('insurance.deleteSelectedMissing', { count: ids.length })}
                 </Button>
                 <Button variant="ghost" size="sm" onClick={clear}>
-                  {t('insurance.clearSelection', 'إلغاء التحديد')}
+                  {t('insurance.clearSelection')}
                 </Button>
               </div>
             )}
             filtersSlot={
               <div className="flex flex-wrap items-center gap-2">
-                {/* خانة تحديد كل سجلات النواقص */}
                 <label
-                  title={isAllMissingSelected ? t('insurance.clearSelection', 'إلغاء التحديد') : t('insurance.selectAllMissing', 'تحديد الكل')}
+                  title={isAllMissingSelected ? t('insurance.clearSelection') : t('insurance.selectAllMissing')}
                   className={cn(
                     'inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-semibold cursor-pointer transition-all shadow-sm select-none',
                     isAllMissingSelected
-                      ? 'bg-brand-50 border-brand-400 text-brand-800 ring-1 ring-brand-300'
+                      ? 'bg-brand-50 dark:bg-brand-950/40 border-brand-400 dark:border-brand-700 text-brand-800 dark:text-brand-300 ring-1 ring-brand-300 dark:ring-brand-700'
                       : isSomeMissingSelected
-                      ? 'bg-amber-50/70 border-amber-300 text-amber-900'
-                      : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50 hover:border-slate-400'
+                      ? 'bg-amber-50/70 dark:bg-amber-950/40 border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-200'
+                      : 'bg-white dark:bg-[#151D2E] border-slate-300 dark:border-[#1E293B] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-700'
                   )}
                 >
                   <input
@@ -1043,27 +1065,27 @@ export const InsurancePage: React.FC = () => {
                       if (el) el.indeterminate = isSomeMissingSelected && !isAllMissingSelected;
                     }}
                     onChange={handleToggleSelectAllMissing}
-                    className="w-4 h-4 rounded text-brand-600 focus:ring-brand-500 border-slate-300 cursor-pointer accent-brand-600"
+                    className="w-4 h-4 rounded text-brand-600 focus:ring-brand-500 border-slate-300 dark:border-slate-700 cursor-pointer accent-brand-600"
                   />
                   <span className="whitespace-nowrap">
                     {isAllMissingSelected
-                      ? t('insurance.allMissingSelectedCount', { count: missingRecords.length }) || `تم تحديد كل النواقص (${missingRecords.length})`
+                      ? t('insurance.allMissingSelectedCount', { count: missingRecords.length })
                       : isSomeMissingSelected
-                      ? t('insurance.selectedCountOf', { selected: selectedMissingIds.length, total: missingRecords.length }) || `محدد (${selectedMissingIds.length} من ${missingRecords.length})`
-                      : t('insurance.selectAllMissingCount', { count: missingRecords.length }) || `تحديد كل النواقص (${missingRecords.length})`}
+                      ? t('insurance.selectedCountOf', { selected: selectedMissingIds.length, total: missingRecords.length })
+                      : t('insurance.selectAllMissingCount', { count: missingRecords.length })}
                   </span>
                 </label>
 
                 <select
                   value={selectedDocFilter}
                   onChange={e => setSelectedDocFilter(e.target.value)}
-                  className="text-xs rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-slate-700 focus:outline-none focus:ring-1 focus:ring-brand-500 cursor-pointer font-semibold"
+                  className="text-xs rounded-lg border border-slate-300 dark:border-[#1E293B] bg-white dark:bg-[#0B0F19] px-2.5 py-1.5 text-slate-700 dark:text-slate-200 [&>option]:bg-white [&>option]:dark:bg-[#151D2E] focus:outline-none focus:ring-1 focus:ring-brand-500 cursor-pointer font-semibold transition-colors"
                 >
-                  <option value="all">{t('insurance.filterAllMissing', 'جميع النواقص')}</option>
-                  <option value="qualification">{t('insurance.filterMissingQual', 'نواقص شهادة المؤهل')}</option>
-                  <option value="birth">{t('insurance.filterMissingBirth', 'نواقص شهادة الميلاد')}</option>
-                  <option value="idCard">{t('insurance.filterMissingId', 'نواقص بطاقة الرقم القومي')}</option>
-                  <option value="contract">{t('insurance.filterMissingContract', 'نواقص عقد العمل')}</option>
+                  <option value="all">{t('insurance.filterAllMissing')}</option>
+                  <option value="qualification">{t('insurance.filterMissingQual')}</option>
+                  <option value="birth">{t('insurance.filterMissingBirth')}</option>
+                  <option value="idCard">{t('insurance.filterMissingId')}</option>
+                  <option value="contract">{t('insurance.filterMissingContract')}</option>
                 </select>
 
                 {missingRecords.length > 0 && (
@@ -1071,10 +1093,10 @@ export const InsurancePage: React.FC = () => {
                     size="sm"
                     variant="outline"
                     onClick={() => setIsDeleteAllMissingModalOpen(true)}
-                    className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 border-rose-200"
+                    className="text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/40 border-rose-200 dark:border-rose-900/50"
                     leftIcon={<Trash2 className="w-3.5 h-3.5 text-rose-500" />}
                   >
-                    {t('insurance.deleteAllMissing', 'حذف جميع سجلات النواقص')}
+                    {t('insurance.deleteAllMissing')}
                   </Button>
                 )}
 
@@ -1084,7 +1106,7 @@ export const InsurancePage: React.FC = () => {
                   onClick={() => openImporter('missing_documents')}
                   leftIcon={<Upload className="w-3 h-3" />}
                 >
-                  {t('insurance.importMissingBtn', 'استيراد شيت النواقص')}
+                  {t('insurance.importMissingBtn')}
                 </Button>
               </div>
             }
@@ -1096,16 +1118,16 @@ export const InsurancePage: React.FC = () => {
       {activeTab === 'reconciliation' && (
         <div className="space-y-6">
           {stats.notFoundCount > 0 ? (
-            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5">
+            <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 rounded-2xl p-5 transition-colors">
               <div className="flex items-start gap-3">
-                <div className="p-2.5 bg-amber-100 text-amber-800 rounded-xl">
+                <div className="p-2.5 bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 rounded-xl">
                   <AlertTriangle className="w-6 h-6" />
                 </div>
                 <div className="space-y-2">
-                  <h3 className="text-base font-bold text-amber-900">
-                    {t('insurance.reconcileDiscrepancyTitle', 'تقرير الفروقات الرقابية بين شيت التأمينات وقاعدة الموظفين')}
+                  <h3 className="text-base font-bold text-amber-900 dark:text-amber-200">
+                    {t('insurance.reconcileDiscrepancyTitle')}
                   </h3>
-                  <p className="text-xs text-amber-800 leading-relaxed">
+                  <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
                     {t('insurance.reconcileDiscrepancyDesc', { count: stats.notFoundCount })}
                   </p>
                   <div className="flex items-center gap-3 pt-2">
@@ -1124,17 +1146,17 @@ export const InsurancePage: React.FC = () => {
               </div>
             </div>
           ) : (
-            <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5">
+            <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/50 rounded-2xl p-5 transition-colors">
               <div className="flex items-start gap-3">
-                <div className="p-2.5 bg-emerald-100 text-emerald-800 rounded-xl">
-                  <CheckCircle2 className="w-6 h-6 text-emerald-600" />
+                <div className="p-2.5 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 rounded-xl">
+                  <CheckCircle2 className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
                 </div>
                 <div className="space-y-1">
-                  <h3 className="text-base font-bold text-emerald-900">
-                    {t('insurance.reconcileCleanTitle', 'المطابقة الرقابية سليمة 100%')}
+                  <h3 className="text-base font-bold text-emerald-900 dark:text-emerald-200">
+                    {t('insurance.reconcileCleanTitle')}
                   </h3>
-                  <p className="text-xs text-emerald-800 leading-relaxed">
-                    {t('insurance.reconcileCleanDesc', 'لا توجد أي فروقات رقابية أو موظفون مسجلون بالتأمينات دون وجودهم في كشوفات العاملين.')}
+                  <p className="text-xs text-emerald-800 dark:text-emerald-300 leading-relaxed">
+                    {t('insurance.reconcileCleanDesc')}
                   </p>
                 </div>
               </div>
@@ -1142,29 +1164,29 @@ export const InsurancePage: React.FC = () => {
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="border border-slate-200 rounded-2xl p-5 bg-white space-y-3">
-              <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+            <div className="border border-slate-200 dark:border-[#1E293B] rounded-2xl p-5 bg-white dark:bg-[#151D2E] space-y-3 transition-colors">
+              <h4 className="text-sm font-bold text-slate-800 dark:text-[#F8FAFC] flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                 {t('insurance.matchedEmployeesTitle', { count: stats.insuredCount })}
               </h4>
-              <p className="text-xs text-slate-500 leading-relaxed">
-                {t('insurance.matchedEmployeesDesc', 'موظفون يعملون حالياً ومسجلون رسمياً في التأمينات الاجتماعية ويتم احتساب حصة العامل (11%) وحصة الشركة (18.75%).')}
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                {t('insurance.matchedEmployeesDesc')}
               </p>
-              <div className="bg-emerald-50 rounded-xl p-3 text-xs text-emerald-800 font-mono">
+              <div className="bg-emerald-50 dark:bg-emerald-950/40 rounded-xl p-3 text-xs text-emerald-800 dark:text-emerald-300 font-mono">
                 {t('insurance.totalMonthlyInsuranceWage', { amount: stats.totalSalary.toLocaleString('en-US', { minimumFractionDigits: 2 }) })}
               </div>
             </div>
 
-            <div className="border border-slate-200 rounded-2xl p-5 bg-white space-y-3">
-              <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                <Clock className="w-4 h-4 text-rose-600" />
+            <div className="border border-slate-200 dark:border-[#1E293B] rounded-2xl p-5 bg-white dark:bg-[#151D2E] space-y-3 transition-colors">
+              <h4 className="text-sm font-bold text-slate-800 dark:text-[#F8FAFC] flex items-center gap-2">
+                <Clock className="w-4 h-4 text-rose-600 dark:text-rose-400" />
                 {t('insurance.uninsuredEmployeesTitle', { count: stats.notInsuredCount })}
               </h4>
-              <p className="text-xs text-slate-500 leading-relaxed">
-                {t('insurance.uninsuredEmployeesDesc', 'يعملون في الشركة ولكن لم يتم إدراجهم في شيت التأمينات الاجتماعية نظراً لنقص مسوغات التعيين (المؤهل، الميلاد، الرقم القومي، العقد).')}
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                {t('insurance.uninsuredEmployeesDesc')}
               </p>
-              <div className="bg-rose-50 rounded-xl p-3 text-xs text-rose-800 font-mono">
-                {t('insurance.readyForInsuranceHint', 'جاهز للتأمين بمجرد اكتمال ملف التعيين')}
+              <div className="bg-rose-50 dark:bg-rose-950/40 rounded-xl p-3 text-xs text-rose-800 dark:text-rose-300 font-mono">
+                {t('insurance.readyForInsuranceHint')}
               </div>
             </div>
           </div>
@@ -1184,10 +1206,10 @@ export const InsurancePage: React.FC = () => {
         isOpen={isDeleteAllSocialModalOpen}
         onClose={() => setIsDeleteAllSocialModalOpen(false)}
         onConfirm={handleConfirmDeleteAllSocial}
-        title={t('insurance.confirmDeleteAllSocialTitle', 'تأكيد حذف جميع سجلات التأمينات')}
+        title={t('insurance.confirmDeleteAllSocialTitle')}
         message={t('insurance.confirmDeleteAllSocialMessage', { count: socialRecords.length })}
-        confirmLabel={t('insurance.confirmDeleteAllSocialButton', 'نعم، حذف جميع التأمينات نهائياً')}
-        cancelLabel={t('common.cancel', 'إلغاء')}
+        confirmLabel={t('insurance.confirmDeleteAllSocialButton')}
+        cancelLabel={t('common.cancel')}
         isLoading={isDeleting}
         isDestructive
       />
@@ -1197,10 +1219,10 @@ export const InsurancePage: React.FC = () => {
         isOpen={isBulkDeleteSocialModalOpen}
         onClose={() => setIsBulkDeleteSocialModalOpen(false)}
         onConfirm={handleConfirmBulkDeleteSocial}
-        title={t('insurance.confirmBulkDeleteSocialTitle', 'تأكيد حذف سجلات التأمينات المحددة')}
+        title={t('insurance.confirmBulkDeleteSocialTitle')}
         message={t('insurance.confirmBulkDeleteSocialMessage', { count: selectedSocialIds.length })}
-        confirmLabel={t('insurance.confirmBulkDeleteSocialButton', 'حذف المحدد نهائياً')}
-        cancelLabel={t('common.cancel', 'إلغاء')}
+        confirmLabel={t('insurance.confirmBulkDeleteSocialButton')}
+        cancelLabel={t('common.cancel')}
         isLoading={isDeleting}
         isDestructive
       />
@@ -1210,10 +1232,10 @@ export const InsurancePage: React.FC = () => {
         isOpen={!!deletingSocialRecord}
         onClose={() => setDeletingSocialRecord(null)}
         onConfirm={handleConfirmSingleDeleteSocial}
-        title={t('insurance.confirmSingleDeleteSocialTitle', 'تأكيد حذف سجل التأمينات')}
+        title={t('insurance.confirmSingleDeleteSocialTitle')}
         message={t('insurance.confirmSingleDeleteSocialMessage', { name: deletingSocialRecord?.employeeName })}
-        confirmLabel={t('insurance.confirmSingleDeleteSocialButton', 'حذف نهائي')}
-        cancelLabel={t('common.cancel', 'إلغاء')}
+        confirmLabel={t('insurance.confirmSingleDeleteSocialButton')}
+        cancelLabel={t('common.cancel')}
         isLoading={isDeleting}
         isDestructive
       />
@@ -1223,10 +1245,10 @@ export const InsurancePage: React.FC = () => {
         isOpen={isDeleteAllMissingModalOpen}
         onClose={() => setIsDeleteAllMissingModalOpen(false)}
         onConfirm={handleConfirmDeleteAllMissing}
-        title={t('insurance.confirmDeleteAllMissingTitle', 'تأكيد حذف جميع سجلات نواقص الملفات')}
+        title={t('insurance.confirmDeleteAllMissingTitle')}
         message={t('insurance.confirmDeleteAllMissingMessage', { count: missingRecords.length })}
-        confirmLabel={t('insurance.confirmDeleteAllMissingButton', 'نعم، حذف جميع النواقص نهائياً')}
-        cancelLabel={t('common.cancel', 'إلغاء')}
+        confirmLabel={t('insurance.confirmDeleteAllMissingButton')}
+        cancelLabel={t('common.cancel')}
         isLoading={isDeleting}
         isDestructive
       />
@@ -1236,10 +1258,10 @@ export const InsurancePage: React.FC = () => {
         isOpen={isBulkDeleteMissingModalOpen}
         onClose={() => setIsBulkDeleteMissingModalOpen(false)}
         onConfirm={handleConfirmBulkDeleteMissing}
-        title={t('insurance.confirmBulkDeleteMissingTitle', 'تأكيد حذف سجلات النواقص المحددة')}
+        title={t('insurance.confirmBulkDeleteMissingTitle')}
         message={t('insurance.confirmBulkDeleteMissingMessage', { count: selectedMissingIds.length })}
-        confirmLabel={t('insurance.confirmBulkDeleteMissingButton', 'حذف المحدد نهائياً')}
-        cancelLabel={t('common.cancel', 'إلغاء')}
+        confirmLabel={t('insurance.confirmBulkDeleteMissingButton')}
+        cancelLabel={t('common.cancel')}
         isLoading={isDeleting}
         isDestructive
       />
@@ -1249,12 +1271,22 @@ export const InsurancePage: React.FC = () => {
         isOpen={!!deletingMissingRecord}
         onClose={() => setDeletingMissingRecord(null)}
         onConfirm={handleConfirmSingleDeleteMissing}
-        title={t('insurance.confirmSingleDeleteMissingTitle', 'تأكيد حذف سجل النواقص')}
+        title={t('insurance.confirmSingleDeleteMissingTitle')}
         message={t('insurance.confirmSingleDeleteMissingMessage', { name: deletingMissingRecord?.employeeName })}
-        confirmLabel={t('insurance.confirmSingleDeleteMissingButton', 'حذف نهائي')}
-        cancelLabel={t('common.cancel', 'إلغاء')}
+        confirmLabel={t('insurance.confirmSingleDeleteMissingButton')}
+        cancelLabel={t('common.cancel')}
         isLoading={isDeleting}
         isDestructive
+      />
+
+      {/* Insurance Form 1 Guide Modal */}
+      <InsuranceForm1GuideModal
+        isOpen={isGuideModalOpen}
+        onClose={() => {
+          setIsGuideModalOpen(false);
+          setSelectedGuideRecord(null);
+        }}
+        insuranceRecord={selectedGuideRecord}
       />
     </div>
   );

@@ -1,5 +1,5 @@
-import { RoleType, UserAccount } from '../types';
-import { mockUsers } from '../mocks/users';
+import { UserAccount, PermissionMatrix, RoleType } from '../types';
+import { apiClient } from './apiClient';
 
 const AUTH_STORAGE_KEY = 'hr_auth_user';
 
@@ -34,8 +34,14 @@ export const demoAccounts: { role: RoleType; name: string; email: string; label:
   },
 ];
 
+export interface LoginResult {
+  user: UserAccount;
+  token: string;
+  permissions: PermissionMatrix[];
+}
+
 export const authService = {
-  getCurrentUser(): UserAccount {
+  getCurrentUser(): UserAccount | null {
     try {
       const stored = localStorage.getItem(AUTH_STORAGE_KEY);
       if (stored) {
@@ -44,53 +50,66 @@ export const authService = {
     } catch {
       // ignore
     }
-    // Default to HR Manager for rich demo experience
-    return mockUsers[0];
+    return null;
   },
 
-  setCurrentUser(user: UserAccount): void {
-    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user));
-  },
-
-  async login(email: string, _password?: string): Promise<UserAccount> {
-    await new Promise(res => setTimeout(res, 200));
-    const found = mockUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
-    if (found) {
-      this.setCurrentUser(found);
-      return found;
+  setCurrentUser(user: UserAccount | null): void {
+    if (user) {
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user));
+    } else {
+      localStorage.removeItem(AUTH_STORAGE_KEY);
     }
-
-    // Default fallback user if random email typed
-    const customUser: UserAccount = {
-      id: 'usr-custom',
-      name: email.split('@')[0],
-      email,
-      role: 'hr_manager',
-      department: 'Human Resources',
-      status: 'active',
-      lastLogin: 'Just now',
-    };
-    this.setCurrentUser(customUser);
-    return customUser;
   },
 
-  async switchRole(role: RoleType): Promise<UserAccount> {
-    const demo = demoAccounts.find(d => d.role === role) || demoAccounts[0];
-    const user: UserAccount = {
-      id: `usr-${role}`,
-      name: demo.name,
-      email: demo.email,
-      role: demo.role,
-      department: role === 'dept_manager' ? 'Engineering & Technology' : 'Human Resources',
-      status: 'active',
-      lastLogin: 'Just now',
-      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${demo.name.replace(' ', '-')}`,
-    };
-    this.setCurrentUser(user);
-    return user;
+  async login(email: string, password?: string): Promise<LoginResult> {
+    const res = await apiClient.post<{ token: string; user: UserAccount; permissions: PermissionMatrix[] }>(
+      '/auth/login',
+      { email, password }
+    );
+    if (res && res.token && res.user) {
+      apiClient.setToken(res.token);
+      this.setCurrentUser(res.user);
+      return {
+        user: res.user,
+        token: res.token,
+        permissions: res.permissions || [],
+      };
+    }
+    throw new Error('Authentication failed');
+  },
+
+  async getMe(): Promise<{ user: UserAccount; permissions: PermissionMatrix[] }> {
+    const res = await apiClient.get<{ user: UserAccount; permissions: PermissionMatrix[] }>('/auth/me');
+    if (res && res.user) {
+      this.setCurrentUser(res.user);
+      return {
+        user: res.user,
+        permissions: res.permissions || [],
+      };
+    }
+    throw new Error('Session invalid');
+  },
+
+  async changePassword(currentPassword: string, newPassword: string): Promise<void> {
+    await apiClient.post('/auth/change-password', { currentPassword, newPassword });
+  },
+
+  async updateProfile(
+    userId: string,
+    data: { name?: string; avatar?: string; gender?: 'male' | 'female' }
+  ): Promise<UserAccount> {
+    const res = await apiClient.put<UserAccount>(`/users/${userId}`, data);
+    const updatedUser = (res as any)?.data || res;
+    const current = this.getCurrentUser();
+    if (current) {
+      const merged = { ...current, ...updatedUser };
+      this.setCurrentUser(merged);
+    }
+    return updatedUser;
   },
 
   logout(): void {
-    localStorage.removeItem(AUTH_STORAGE_KEY);
+    apiClient.setToken(null);
+    this.setCurrentUser(null);
   },
 };

@@ -7,6 +7,9 @@ interface NotificationContextType {
   unreadCount: number;
   markAsRead: (id: string) => Promise<void>;
   markAllAsRead: () => Promise<void>;
+  dismissNotification: (id: string) => Promise<void>;
+  clearAllNotifications: () => Promise<void>;
+  restoreAllDismissed: () => Promise<void>;
   refreshNotifications: () => Promise<void>;
 }
 
@@ -24,6 +27,13 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   useEffect(() => {
     refreshNotifications();
+
+    const handleUpdate = () => {
+      refreshNotifications();
+    };
+
+    window.addEventListener('new_hope_notifications_updated', handleUpdate);
+    return () => window.removeEventListener('new_hope_notifications_updated', handleUpdate);
   }, [refreshNotifications]);
 
   const markAsRead = async (id: string) => {
@@ -36,6 +46,21 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     await refreshNotifications();
   };
 
+  const dismissNotification = async (id: string) => {
+    await notificationService.dismissNotification(id);
+    await refreshNotifications();
+  };
+
+  const clearAllNotifications = async () => {
+    await notificationService.clearAllNotifications();
+    await refreshNotifications();
+  };
+
+  const restoreAllDismissed = async () => {
+    await notificationService.restoreAllDismissed();
+    await refreshNotifications();
+  };
+
   return (
     <NotificationContext.Provider
       value={{
@@ -43,6 +68,9 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         unreadCount,
         markAsRead,
         markAllAsRead,
+        dismissNotification,
+        clearAllNotifications,
+        restoreAllDismissed,
         refreshNotifications,
       }}
     >

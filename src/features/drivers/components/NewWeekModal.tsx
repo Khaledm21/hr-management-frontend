@@ -33,7 +33,7 @@ export const NewWeekModal: React.FC<NewWeekModalProps> = ({
     >
       <form onSubmit={onSubmit} className="space-y-4">
         <div>
-          <label className="block text-xs font-bold text-slate-700 mb-1">
+          <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
             {t('driverPayouts.weekDateLabel', 'تاريخ الأسبوع')} <span className="text-rose-500">*</span>
           </label>
           <input
@@ -44,23 +44,23 @@ export const NewWeekModal: React.FC<NewWeekModalProps> = ({
               onLabelChange(`أسبوع ${e.target.value}`);
             }}
             required
-            className="w-full text-xs bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 focus:bg-white focus:outline-none"
+            className="w-full text-xs bg-slate-50 dark:bg-[#0B0F19] border border-slate-300 dark:border-[#1E293B] text-slate-900 dark:text-[#F8FAFC] rounded-xl px-3 py-2 focus:bg-white dark:focus:bg-[#0B0F19] focus:outline-none transition-colors"
           />
         </div>
 
         <div>
-          <label className="block text-xs font-bold text-slate-700 mb-1">
+          <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
             {t('driverPayouts.weekNameLabel', 'اسم / تصنيف الأسبوع')}
           </label>
           <input
             type="text"
             value={label}
             onChange={e => onLabelChange(e.target.value)}
-            className="w-full text-xs bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 focus:bg-white focus:outline-none font-bold"
+            className="w-full text-xs bg-slate-50 dark:bg-[#0B0F19] border border-slate-300 dark:border-[#1E293B] text-slate-900 dark:text-[#F8FAFC] rounded-xl px-3 py-2 focus:bg-white dark:focus:bg-[#0B0F19] focus:outline-none font-bold transition-colors"
           />
         </div>
 
-        <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+        <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-[#1E293B]">
           <Button variant="outline" size="sm" type="button" onClick={onClose}>
             {t('driverPayouts.cancel', 'إلغاء')}
           </Button>

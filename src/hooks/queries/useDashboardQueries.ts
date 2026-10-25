@@ -1,10 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
 import { dashboardService, DashboardStats } from '../../services/dashboardService';
 import { auditService } from '../../services/auditService';
+import { attendanceService } from '../../services/attendanceService';
 
 export const dashboardKeys = {
   all: ['dashboard'] as const,
   stats: () => [...dashboardKeys.all, 'stats'] as const,
+  attendanceStats: () => [...dashboardKeys.all, 'attendanceStats'] as const,
   auditLogs: (module?: string, search?: string) =>
     [...dashboardKeys.all, 'auditLogs', module, search] as const,
 };
@@ -17,6 +19,17 @@ export const useDashboardStats = () => {
     queryKey: dashboardKeys.stats(),
     queryFn: () => dashboardService.getDashboardStats(),
     staleTime: 3 * 60 * 1000,
+  });
+};
+
+/**
+ * Fetch live attendance statistics
+ */
+export const useAttendanceStats = () => {
+  return useQuery({
+    queryKey: dashboardKeys.attendanceStats(),
+    queryFn: () => attendanceService.getAttendanceStats(),
+    staleTime: 60 * 1000,
   });
 };
 

@@ -96,7 +96,7 @@ export const AdvancesPage: React.FC = () => {
         sortable: true,
         width: '130px',
         render: row => (
-          <span className="font-mono font-semibold text-slate-800 bg-slate-100 px-2 py-0.5 rounded text-xs">
+          <span className="font-mono font-semibold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-[#0B0F19] px-2 py-0.5 rounded text-xs border border-transparent dark:border-[#1E293B]">
             {row.advanceNumber}
           </span>
         ),
@@ -107,8 +107,8 @@ export const AdvancesPage: React.FC = () => {
         sortable: true,
         render: row => (
           <div>
-            <span className="font-semibold text-slate-900 block">{row.employeeName}</span>
-            <span className="text-[11px] text-slate-400">{row.department}</span>
+            <span className="font-semibold text-slate-900 dark:text-[#F8FAFC] block">{row.employeeName}</span>
+            <span className="text-[11px] text-slate-400 dark:text-slate-500">{row.department}</span>
           </div>
         ),
       },
@@ -117,7 +117,7 @@ export const AdvancesPage: React.FC = () => {
         header: t('advances.amount'),
         sortable: true,
         render: row => (
-          <span className="font-bold text-slate-900 font-mono">
+          <span className="font-bold text-slate-900 dark:text-[#F8FAFC] font-mono">
             SAR {row.amount.toLocaleString()}
           </span>
         ),
@@ -127,7 +127,7 @@ export const AdvancesPage: React.FC = () => {
         header: t('advances.installments'),
         sortable: true,
         render: row => (
-          <span>
+          <span className="text-slate-700 dark:text-slate-300 font-mono">
             {row.installmentsCount} mos ({Math.round(row.amount / row.installmentsCount).toLocaleString()} / mo)
           </span>
         ),
@@ -137,7 +137,7 @@ export const AdvancesPage: React.FC = () => {
         header: t('advances.remaining'),
         sortable: true,
         render: row => (
-          <span className="font-mono font-semibold text-rose-700">
+          <span className="font-mono font-semibold text-rose-700 dark:text-rose-400">
             SAR {row.remainingBalance.toLocaleString()}
           </span>
         ),
@@ -145,7 +145,7 @@ export const AdvancesPage: React.FC = () => {
       {
         key: 'purpose',
         header: t('advances.purpose'),
-        render: row => <span className="text-slate-600 line-clamp-1">{row.purpose}</span>,
+        render: row => <span className="text-slate-600 dark:text-slate-400 line-clamp-1">{row.purpose}</span>,
       },
       {
         key: 'status',
@@ -163,14 +163,14 @@ export const AdvancesPage: React.FC = () => {
               <>
                 <button
                   onClick={() => handleApprove(row)}
-                  className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 transition-colors"
+                  className="p-1.5 rounded-lg text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors cursor-pointer"
                   title="Approve"
                 >
                   <CheckCircle2 className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => handleReject(row)}
-                  className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 transition-colors"
+                  className="p-1.5 rounded-lg text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
                   title="Reject"
                 >
                   <XCircle className="w-4 h-4" />
@@ -188,10 +188,10 @@ export const AdvancesPage: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-[#F8FAFC] tracking-tight">
             {t('advances.title')}
           </h1>
-          <p className="text-xs text-slate-500 mt-1">{t('advances.subtitle')}</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{t('advances.subtitle')}</p>
         </div>
 
         <Button
@@ -216,7 +216,7 @@ export const AdvancesPage: React.FC = () => {
           <select
             value={selectedStatus}
             onChange={e => setSelectedStatus(e.target.value)}
-            className="text-xs rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-slate-700 focus:outline-none focus:ring-1 focus:ring-brand-500 cursor-pointer"
+            className="text-xs rounded-lg border border-slate-300 dark:border-[#1E293B] bg-white dark:bg-[#0B0F19] px-2.5 py-1.5 text-slate-700 dark:text-[#F8FAFC] focus:outline-none focus:ring-1 focus:ring-brand-500 dark:focus:ring-[#38BDF8] cursor-pointer"
           >
             <option value="all">All Advance Statuses</option>
             <option value="pending">Pending</option>
@@ -260,9 +260,9 @@ export const AdvancesPage: React.FC = () => {
                 onChange={e => setInstallments(Number(e.target.value))}
               />
             </div>
-            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-              <span className="text-slate-500">Estimated Monthly Deduction:</span>
-              <span className="font-bold text-slate-900 block text-sm mt-0.5">
+            <div className="p-3 bg-slate-50 dark:bg-[#0B0F19] rounded-xl border border-slate-200 dark:border-[#1E293B]">
+              <span className="text-slate-500 dark:text-slate-400">Estimated Monthly Deduction:</span>
+              <span className="font-bold text-slate-900 dark:text-[#F8FAFC] block text-sm mt-0.5 font-mono">
                 SAR {Math.round(amount / (installments || 1)).toLocaleString()} / month
               </span>
             </div>
@@ -273,7 +273,7 @@ export const AdvancesPage: React.FC = () => {
               onChange={e => setPurpose(e.target.value)}
             />
 
-            <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+            <div className="flex justify-end gap-2 pt-3 border-t border-slate-100 dark:border-[#1E293B]">
               <Button
                 variant="secondary"
                 size="sm"

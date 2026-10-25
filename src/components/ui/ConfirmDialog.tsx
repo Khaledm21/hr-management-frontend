@@ -53,14 +53,14 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
       <div className="flex items-start gap-3.5">
         <div
           className={`p-2.5 rounded-full shrink-0 ${
-            isDestructive ? 'bg-rose-100 text-rose-600' : 'bg-brand-100 text-brand-600'
+            isDestructive ? 'bg-rose-100 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400' : 'bg-brand-100 dark:bg-brand-950/50 text-brand-600 dark:text-[#38BDF8]'
           }`}
         >
           <AlertTriangle className="w-5 h-5" />
         </div>
         <div>
-          <h4 className="text-sm font-semibold text-slate-900">{title}</h4>
-          <p className="text-xs text-slate-600 mt-1 leading-relaxed">{message}</p>
+          <h4 className="text-sm font-semibold text-slate-900 dark:text-[#F8FAFC]">{title}</h4>
+          <p className="text-xs text-slate-600 dark:text-[#94A3B8] mt-1 leading-relaxed">{message}</p>
         </div>
       </div>
     </Modal>

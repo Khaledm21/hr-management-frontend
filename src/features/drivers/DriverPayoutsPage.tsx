@@ -33,6 +33,7 @@ import {
   useWeeklySummaries,
   useCreateDriverMutation,
   useUpdateDriverMutation,
+  useDeleteDriverMutation,
   useCreatePayoutMutation,
   useUpdatePayoutMutation,
   useDeletePayoutMutation,
@@ -69,6 +70,7 @@ export const DriverPayoutsPage: React.FC = () => {
   // React Query Mutations with automatic cache invalidation
   const createDriverMutation = useCreateDriverMutation();
   const updateDriverMutation = useUpdateDriverMutation();
+  const deleteDriverMutation = useDeleteDriverMutation();
   const createPayoutMutation = useCreatePayoutMutation();
   const updatePayoutMutation = useUpdatePayoutMutation();
   const deletePayoutMutation = useDeletePayoutMutation();
@@ -95,6 +97,7 @@ export const DriverPayoutsPage: React.FC = () => {
   const [selectedTxForEdit, setSelectedTxForEdit] = useState<DriverPayoutTransaction | null>(null);
   const [selectedDriverForEdit, setSelectedDriverForEdit] = useState<Driver | null>(null);
   const [txToDelete, setTxToDelete] = useState<DriverPayoutTransaction | null>(null);
+  const [driverToDelete, setDriverToDelete] = useState<Driver | null>(null);
 
   // Forms
   const [payoutForm, setPayoutForm] = useState({
@@ -300,6 +303,21 @@ export const DriverPayoutsPage: React.FC = () => {
     }
   };
 
+  const handleDeleteDriverConfirm = async () => {
+    if (!driverToDelete) return;
+    try {
+      await deleteDriverMutation.mutateAsync(driverToDelete.id);
+      success(t('driverPayouts.toastDriverDeleted', `تم حذف السائق "${driverToDelete.name}" بنجاح`));
+      setDriverToDelete(null);
+      if (selectedDriverForEdit?.id === driverToDelete.id) {
+        setIsDriverModalOpen(false);
+        setSelectedDriverForEdit(null);
+      }
+    } catch {
+      toastError(t('driverPayouts.toastDriverDeleteFailed', 'فشل حذف السائق'));
+    }
+  };
+
   const handleCreateNewWeek = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -321,11 +339,15 @@ export const DriverPayoutsPage: React.FC = () => {
     }
   };
 
-  const handleResetZeroData = () => {
-    if (window.confirm('هل تريد تصفير كافة البيانات المحلية تماماً لربط الباك إند النظيف؟')) {
-      driverPayoutService.clearAllData();
-      success('تم تصفير كافة البيانات بنجاح، النظام جاهز للباك إند');
-      queryClient.invalidateQueries({ queryKey: driverKeys.all });
+  const handleResetZeroData = async () => {
+    if (window.confirm('هل تريد تصفير كافة بيانات السائقين والعمليات والملخصات تماماً؟')) {
+      try {
+        await driverPayoutService.clearAllData();
+        queryClient.invalidateQueries({ queryKey: driverKeys.all });
+        success('تم تصفير كافة البيانات بنجاح، النظام الآن خالي تماماً');
+      } catch {
+        toastError('حدث خطأ أثناء تصفير البيانات');
+      }
     }
   };
 
@@ -351,21 +373,21 @@ export const DriverPayoutsPage: React.FC = () => {
   return (
     <div className="space-y-6 print:m-0 print:p-0">
       {/* Top Header Card */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm print:hidden">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white dark:bg-[#151D2E] p-5 rounded-2xl border border-slate-200 dark:border-[#1E293B] shadow-sm print:hidden transition-colors">
         <div className="flex items-center gap-4">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-tr from-amber-600 to-amber-500 text-white shadow-lg shadow-amber-500/20 font-bold">
             <Truck className="w-6 h-6" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-black text-slate-900 tracking-tight">
+              <h1 className="text-xl font-black text-slate-900 dark:text-[#F8FAFC] tracking-tight">
                 {t('driverPayouts.weeklySheetTitle', 'الملخص الأسبوعي - متابعة قبض السواقين')}
               </h1>
               <Badge variant="warning" className="text-xs font-semibold px-2.5 py-0.5">
                 {t('driverPayouts.backendConnected', 'مربوط بالباك إند')}
               </Badge>
             </div>
-            <p className="text-xs text-slate-500 mt-1">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
               {t('driverPayouts.subtitle', 'الملخص الأسبوعي ومصفوفة دفعات السائقين وتوزيعات الإدارة والإنتاج')}
             </p>
           </div>
@@ -374,12 +396,12 @@ export const DriverPayoutsPage: React.FC = () => {
         {/* Action Controls & Week Switcher */}
         <div className="flex flex-wrap items-center gap-2">
           {/* Week Selector Dropdown */}
-          <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5">
-            <Calendar className="w-4 h-4 text-slate-500" />
+          <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-[#0B0F19] border border-slate-200 dark:border-[#1E293B] rounded-xl px-3 py-1.5 transition-colors">
+            <Calendar className="w-4 h-4 text-slate-500 dark:text-slate-400" />
             <select
               value={selectedWeek}
               onChange={e => setSelectedWeek(e.target.value)}
-              className="bg-transparent text-xs font-bold text-slate-800 focus:outline-none cursor-pointer"
+              className="bg-transparent text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer [&>option]:bg-white [&>option]:dark:bg-[#151D2E] [&>option]:text-slate-900 [&>option]:dark:text-slate-200"
             >
               {weeklySummaries.length === 0 ? (
                 <option value={selectedWeek}>{selectedWeek}</option>
@@ -407,9 +429,9 @@ export const DriverPayoutsPage: React.FC = () => {
             variant="outline"
             size="sm"
             onClick={() => setIsExcelImportModalOpen(true)}
-            className="text-xs font-bold text-amber-700 hover:text-amber-800 hover:bg-amber-50 border-amber-300"
+            className="text-xs font-bold text-amber-700 hover:text-amber-800 hover:bg-amber-50 dark:text-amber-400 dark:hover:text-amber-300 dark:hover:bg-amber-950/30 border-amber-300 dark:border-amber-900/50"
           >
-            <Upload className="w-3.5 h-3.5 mr-1 rtl:ml-1 rtl:mr-0 text-amber-600" />
+            <Upload className="w-3.5 h-3.5 mr-1 rtl:ml-1 rtl:mr-0 text-amber-600 dark:text-amber-400" />
             {t('driverPayouts.importExcel', 'استيراد شيت إكسيل')}
           </Button>
 
@@ -417,9 +439,9 @@ export const DriverPayoutsPage: React.FC = () => {
             variant="outline"
             size="sm"
             onClick={handleExportExcel}
-            className="text-xs font-medium text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 border-emerald-300"
+            className="text-xs font-medium text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:text-emerald-300 dark:hover:bg-emerald-950/30 border-emerald-300 dark:border-emerald-900/50"
           >
-            <FileSpreadsheet className="w-3.5 h-3.5 mr-1 rtl:ml-1 rtl:mr-0 text-emerald-600" />
+            <FileSpreadsheet className="w-3.5 h-3.5 mr-1 rtl:ml-1 rtl:mr-0 text-emerald-600 dark:text-emerald-400" />
             {t('driverPayouts.exportExcel', 'تصدير إكسيل')}
           </Button>
 
@@ -427,9 +449,9 @@ export const DriverPayoutsPage: React.FC = () => {
             variant="outline"
             size="sm"
             onClick={() => setIsPrintReportModalOpen(true)}
-            className="text-xs font-bold text-slate-800 hover:bg-slate-100 border-slate-300"
+            className="text-xs font-bold text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border-slate-300 dark:border-slate-700"
           >
-            <Printer className="w-3.5 h-3.5 mr-1 rtl:ml-1 rtl:mr-0 text-slate-600" />
+            <Printer className="w-3.5 h-3.5 mr-1 rtl:ml-1 rtl:mr-0 text-slate-600 dark:text-slate-400" />
             {t('driverPayouts.printPreview', 'معاينة وطباعة التقرير')}
           </Button>
 
@@ -453,13 +475,16 @@ export const DriverPayoutsPage: React.FC = () => {
             {t('driverPayouts.addDriver', 'إضافة سائق')}
           </Button>
 
-          <button
+          <Button
+            variant="outline"
+            size="sm"
             onClick={handleResetZeroData}
-            title={t('common.reset', 'تصفير')}
-            className="p-2 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors"
+            className="text-xs font-bold text-rose-600 dark:text-rose-400 hover:text-white hover:bg-rose-600 dark:hover:bg-rose-600 border-rose-300 dark:border-rose-900/50 transition-colors"
+            title={t('driverPayouts.resetAllData', 'تصفير كافة البيانات')}
           >
-            <RefreshCw className="w-3.5 h-3.5" />
-          </button>
+            <RefreshCw className="w-3.5 h-3.5 mr-1 rtl:ml-1 rtl:mr-0" />
+            {t('driverPayouts.resetAllData', 'تصفير البيانات')}
+          </Button>
         </div>
       </div>
 
@@ -470,14 +495,14 @@ export const DriverPayoutsPage: React.FC = () => {
       <DriverDepartmentBreakdown summary={summary} />
 
       {/* 3. Tabs Navigation */}
-      <div className="flex items-center gap-2 border-b border-slate-200 pb-1 print:hidden">
+      <div className="flex items-center gap-2 border-b border-slate-200 dark:border-[#1E293B] pb-1 print:hidden">
         <button
           onClick={() => setActiveTab('matrix')}
           className={cn(
             'flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl transition-all',
             activeTab === 'matrix'
               ? 'bg-brand-600 text-white shadow-md shadow-brand-500/20'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/60'
           )}
         >
           <FileSpreadsheet className="w-4 h-4" />
@@ -493,7 +518,7 @@ export const DriverPayoutsPage: React.FC = () => {
             'flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl transition-all',
             activeTab === 'transactions'
               ? 'bg-brand-600 text-white shadow-md shadow-brand-500/20'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/60'
           )}
         >
           <CreditCard className="w-4 h-4" />
@@ -509,7 +534,7 @@ export const DriverPayoutsPage: React.FC = () => {
             'flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl transition-all',
             activeTab === 'drivers'
               ? 'bg-brand-600 text-white shadow-md shadow-brand-500/20'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/60'
           )}
         >
           <Users className="w-4 h-4" />
@@ -525,7 +550,7 @@ export const DriverPayoutsPage: React.FC = () => {
             'flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl transition-all',
             activeTab === 'analytics'
               ? 'bg-brand-600 text-white shadow-md shadow-brand-500/20'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/60'
           )}
         >
           <TrendingUp className="w-4 h-4" />
@@ -545,6 +570,7 @@ export const DriverPayoutsPage: React.FC = () => {
           onOpenDriverModal={handleOpenNewDriverModal}
           onOpenImportModal={() => setIsExcelImportModalOpen(true)}
           onEditDriver={handleOpenEditDriverModal}
+          onDeleteDriver={driver => setDriverToDelete(driver)}
         />
       )}
 
@@ -572,6 +598,7 @@ export const DriverPayoutsPage: React.FC = () => {
           columns={weeklyData?.columns || []}
           onAddDriver={handleOpenNewDriverModal}
           onEditDriver={handleOpenEditDriverModal}
+          onDeleteDriver={driver => setDriverToDelete(driver)}
           onQuickPayout={handleOpenNewPayoutModal}
         />
       )}
@@ -613,6 +640,13 @@ export const DriverPayoutsPage: React.FC = () => {
         formData={driverForm}
         onChange={setDriverForm}
         onSubmit={handleSaveDriver}
+        onDelete={() => {
+          if (selectedDriverForEdit) {
+            const drv = selectedDriverForEdit;
+            setIsDriverModalOpen(false);
+            setDriverToDelete(drv);
+          }
+        }}
       />
 
       {/* Modal 3: New Week Cycle */}
@@ -636,6 +670,19 @@ export const DriverPayoutsPage: React.FC = () => {
           name: txToDelete?.driverName || '',
           amount: txToDelete?.amount?.toLocaleString() || '0',
           defaultValue: `هل أنت متأكد من حذف دفعة القبض للسائق "${txToDelete?.driverName}" بقيمة ${txToDelete?.amount?.toLocaleString()} جنيه؟`,
+        })}
+        isDestructive={true}
+      />
+
+      {/* Confirm Delete Driver Dialog */}
+      <ConfirmDialog
+        isOpen={!!driverToDelete}
+        onClose={() => setDriverToDelete(null)}
+        onConfirm={handleDeleteDriverConfirm}
+        title={t('driverPayouts.confirmDeleteDriverTitle', 'تأكيد حذف السائق')}
+        message={t('driverPayouts.confirmDeleteDriverMsg', {
+          name: driverToDelete?.name || '',
+          defaultValue: `هل أنت متأكد من حذف السائق "${driverToDelete?.name}"؟ سيتم حذف السائق وكافة بياناته وسجل دفعاته المرتبطة نهائياً.`,
         })}
         isDestructive={true}
       />

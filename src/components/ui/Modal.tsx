@@ -50,7 +50,7 @@ export const Modal: React.FC<ModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity modal-backdrop"
+        className="fixed inset-0 bg-slate-900/50 dark:bg-black/70 backdrop-blur-sm transition-opacity modal-backdrop"
         onClick={onClose}
       />
 
@@ -59,21 +59,21 @@ export const Modal: React.FC<ModalProps> = ({
         role="dialog"
         aria-modal="true"
         className={cn(
-          'relative w-full bg-white rounded-2xl shadow-2xl border border-slate-100 z-10 overflow-hidden transform transition-all my-8',
+          'relative w-full bg-white dark:bg-[#151D2E] rounded-2xl shadow-2xl border border-slate-100 dark:border-[#1E293B] z-10 overflow-hidden transform transition-all my-8',
           sizeClasses[size]
         )}
       >
         {/* Header */}
         {(title || description) && (
-          <div className="px-6 py-4 border-b border-slate-100 flex items-start justify-between bg-slate-50/50">
+          <div className="px-6 py-4 border-b border-slate-100 dark:border-[#1E293B] flex items-start justify-between bg-slate-50/50 dark:bg-[#111827]/70">
             <div>
-              {title && <h3 className="text-base font-semibold text-slate-900">{title}</h3>}
-              {description && <p className="text-xs text-slate-500 mt-1">{description}</p>}
+              {title && <h3 className="text-base font-semibold text-slate-900 dark:text-[#F8FAFC]">{title}</h3>}
+              {description && <p className="text-xs text-slate-500 dark:text-[#94A3B8] mt-1">{description}</p>}
             </div>
             <button
               type="button"
               onClick={onClose}
-              className="text-slate-400 hover:text-slate-600 rounded-lg p-1.5 transition-colors"
+              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg p-1.5 transition-colors cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -81,11 +81,11 @@ export const Modal: React.FC<ModalProps> = ({
         )}
 
         {/* Body */}
-        <div className="p-6 max-h-[calc(85vh-130px)] overflow-y-auto">{children}</div>
+        <div className="p-6 max-h-[calc(85vh-130px)] overflow-y-auto text-slate-700 dark:text-slate-200">{children}</div>
 
         {/* Footer */}
         {footer && (
-          <div className="px-6 py-3.5 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-3">
+          <div className="px-6 py-3.5 bg-slate-50 dark:bg-[#111827]/70 border-t border-slate-100 dark:border-[#1E293B] flex items-center justify-end gap-3">
             {footer}
           </div>
         )}

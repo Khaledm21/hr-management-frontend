@@ -48,7 +48,7 @@ export const PayoutFormModal: React.FC<PayoutFormModalProps> = ({
     >
       <form onSubmit={onSubmit} className="space-y-4">
         <div>
-          <label className="block text-xs font-bold text-slate-700 mb-1">
+          <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
             {t('driverPayouts.driverName', 'اسم السائق')} <span className="text-rose-500">*</span>
           </label>
           <select
@@ -63,7 +63,7 @@ export const PayoutFormModal: React.FC<PayoutFormModalProps> = ({
               });
             }}
             required
-            className="w-full text-xs bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+            className="w-full text-xs bg-slate-50 dark:bg-[#0B0F19] border border-slate-300 dark:border-[#1E293B] text-slate-900 dark:text-[#F8FAFC] [&>option]:bg-white [&>option]:dark:bg-[#151D2E] rounded-xl px-3 py-2 focus:bg-white dark:focus:bg-[#0B0F19] focus:outline-none focus:ring-2 focus:ring-brand-500 transition-colors"
           >
             <option value="">{t('driverPayouts.selectDriverPlaceholder', '-- اختر السائق --')}</option>
             {drivers.map(d => (
@@ -76,7 +76,7 @@ export const PayoutFormModal: React.FC<PayoutFormModalProps> = ({
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
               {t('driverPayouts.amountEgpLabel', 'المبلغ (جنيه)')} <span className="text-rose-500">*</span>
             </label>
             <input
@@ -86,18 +86,18 @@ export const PayoutFormModal: React.FC<PayoutFormModalProps> = ({
               value={formData.amount}
               onChange={e => onChange({ ...formData, amount: e.target.value })}
               required
-              className="w-full text-xs bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 font-bold focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="w-full text-xs bg-slate-50 dark:bg-[#0B0F19] border border-slate-300 dark:border-[#1E293B] text-slate-900 dark:text-[#F8FAFC] rounded-xl px-3 py-2 font-bold focus:bg-white dark:focus:bg-[#0B0F19] focus:outline-none focus:ring-2 focus:ring-brand-500 transition-colors"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
               {t('driverPayouts.categoryAccountLabel', 'القسم / الحساب')} <span className="text-rose-500">*</span>
             </label>
             <select
               value={formData.category}
               onChange={e => onChange({ ...formData, category: e.target.value as DriverCategory })}
-              className="w-full text-xs bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 font-bold focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="w-full text-xs bg-slate-50 dark:bg-[#0B0F19] border border-slate-300 dark:border-[#1E293B] text-slate-900 dark:text-[#F8FAFC] [&>option]:bg-white [&>option]:dark:bg-[#151D2E] rounded-xl px-3 py-2 font-bold focus:bg-white dark:focus:bg-[#0B0F19] focus:outline-none focus:ring-2 focus:ring-brand-500 transition-colors"
             >
               <option value="production">{t('driverPayouts.productionSubOption', 'الإنتاج (شحنات مصانع وتوزيع)')}</option>
               <option value="management">{t('driverPayouts.managementSubOption', 'الإدارة (مشاوير ومأموريات إدارية)')}</option>
@@ -107,21 +107,21 @@ export const PayoutFormModal: React.FC<PayoutFormModalProps> = ({
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">{t('driverPayouts.date', 'التاريخ')}</label>
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('driverPayouts.date', 'التاريخ')}</label>
             <input
               type="date"
               value={formData.date}
               onChange={e => onChange({ ...formData, date: e.target.value })}
-              className="w-full text-xs bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 focus:bg-white focus:outline-none"
+              className="w-full text-xs bg-slate-50 dark:bg-[#0B0F19] border border-slate-300 dark:border-[#1E293B] text-slate-900 dark:text-[#F8FAFC] rounded-xl px-3 py-2 focus:bg-white dark:focus:bg-[#0B0F19] focus:outline-none transition-colors"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">{t('driverPayouts.paymentMethod', 'طريقة الدفع')}</label>
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('driverPayouts.paymentMethod', 'طريقة الدفع')}</label>
             <select
               value={formData.paymentMethod}
               onChange={e => onChange({ ...formData, paymentMethod: e.target.value as any })}
-              className="w-full text-xs bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 focus:bg-white focus:outline-none"
+              className="w-full text-xs bg-slate-50 dark:bg-[#0B0F19] border border-slate-300 dark:border-[#1E293B] text-slate-900 dark:text-[#F8FAFC] [&>option]:bg-white [&>option]:dark:bg-[#151D2E] rounded-xl px-3 py-2 focus:bg-white dark:focus:bg-[#0B0F19] focus:outline-none transition-colors"
             >
               <option value="cash">{t('driverPayouts.paymentCash', 'نقداً (خزينة)')}</option>
               <option value="transfer">{t('driverPayouts.paymentTransfer', 'تحويل بنكي / محفظة')}</option>
@@ -131,17 +131,17 @@ export const PayoutFormModal: React.FC<PayoutFormModalProps> = ({
         </div>
 
         <div>
-          <label className="block text-xs font-bold text-slate-700 mb-1">{t('driverPayouts.tripDescriptionLabel', 'البيان / تفاصيل الرحلة')}</label>
+          <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">{t('driverPayouts.tripDescriptionLabel', 'البيان / تفاصيل الرحلة')}</label>
           <input
             type="text"
             placeholder={t('driverPayouts.tripDescriptionPlaceholder', 'مثال: نقل خامات خط الإنتاج 1، مشوار إدارة عامة...')}
             value={formData.description}
             onChange={e => onChange({ ...formData, description: e.target.value })}
-            className="w-full text-xs bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+            className="w-full text-xs bg-slate-50 dark:bg-[#0B0F19] border border-slate-300 dark:border-[#1E293B] text-slate-900 dark:text-[#F8FAFC] placeholder-slate-400 dark:placeholder-slate-500 rounded-xl px-3 py-2 focus:bg-white dark:focus:bg-[#0B0F19] focus:outline-none focus:ring-2 focus:ring-brand-500 transition-colors"
           />
         </div>
 
-        <div className="flex items-center justify-between gap-2 pt-3 border-t border-slate-100">
+        <div className="flex items-center justify-between gap-2 pt-3 border-t border-slate-100 dark:border-[#1E293B]">
           <div>
             {isEdit && onDelete && (
               <Button
@@ -149,7 +149,7 @@ export const PayoutFormModal: React.FC<PayoutFormModalProps> = ({
                 size="sm"
                 type="button"
                 onClick={onDelete}
-                className="text-xs font-bold text-rose-600 border-rose-200 hover:bg-rose-50 hover:border-rose-300 flex items-center gap-1.5"
+                className="text-xs font-bold text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-900/50 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:border-rose-300 flex items-center gap-1.5"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 {t('driverPayouts.deletePayoutBtn', 'حذف هذه الدفعة')}

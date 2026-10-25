@@ -9,6 +9,7 @@ import { EmployeeProfilePage } from '../features/employees/EmployeeProfilePage';
 import { DepartmentsPage } from '../features/departments/DepartmentsPage';
 import { PositionsPage } from '../features/positions/PositionsPage';
 import { DocumentsPage } from '../features/documents/DocumentsPage';
+import { FormsTemplatesPage } from '../features/documents/FormsTemplatesPage';
 import { InsurancePage } from '../features/insurance/InsurancePage';
 import { ContractsPage } from '../features/contracts/ContractsPage';
 import { EmploymentHistoryPage } from '../features/employmentHistory/EmploymentHistoryPage';
@@ -27,10 +28,51 @@ import { AuditLogsPage } from '../features/audit/AuditLogsPage';
 import { SettingsPage } from '../features/settings/SettingsPage';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-9 h-9 border-3 border-brand-500 border-t-transparent rounded-full animate-spin" />
+          <span className="text-xs font-semibold text-slate-500">Checking authentication...</span>
+        </div>
+      </div>
+    );
+  }
+
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
+
+  return <>{children}</>;
+};
+
+const PermissionRoute: React.FC<{ module: string; children: React.ReactNode }> = ({ module, children }) => {
+  const { can } = useAuth();
+
+  if (!can(module, 'view')) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <>{children}</>;
+};
+
+const PublicOnlyRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="w-8 h-8 border-3 border-brand-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (isAuthenticated) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
   return <>{children}</>;
 };
 
@@ -38,7 +80,14 @@ export const AppRoutes: React.FC = () => {
   return (
     <Routes>
       {/* Public Auth Route */}
-      <Route path="/login" element={<LoginPage />} />
+      <Route
+        path="/login"
+        element={
+          <PublicOnlyRoute>
+            <LoginPage />
+          </PublicOnlyRoute>
+        }
+      />
 
       {/* Protected App Layout Routes */}
       <Route
@@ -53,45 +102,207 @@ export const AppRoutes: React.FC = () => {
         <Route path="dashboard" element={<DashboardPage />} />
 
         {/* People */}
-        <Route path="employees" element={<EmployeesListPage />} />
-        <Route path="employees/:id" element={<EmployeeProfilePage />} />
-        <Route path="departments" element={<DepartmentsPage />} />
-        <Route path="positions" element={<PositionsPage />} />
+        <Route
+          path="employees"
+          element={
+            <PermissionRoute module="employees">
+              <EmployeesListPage />
+            </PermissionRoute>
+          }
+        />
+        <Route
+          path="employees/:id"
+          element={
+            <PermissionRoute module="employees">
+              <EmployeeProfilePage />
+            </PermissionRoute>
+          }
+        />
+        <Route
+          path="departments"
+          element={
+            <PermissionRoute module="employees">
+              <DepartmentsPage />
+            </PermissionRoute>
+          }
+        />
+        <Route
+          path="positions"
+          element={
+            <PermissionRoute module="employees">
+              <PositionsPage />
+            </PermissionRoute>
+          }
+        />
 
         {/* Documents & Insurance */}
-        <Route path="documents" element={<DocumentsPage />} />
-        <Route path="insurance" element={<InsurancePage />} />
+        <Route
+          path="documents"
+          element={
+            <PermissionRoute module="documents">
+              <DocumentsPage />
+            </PermissionRoute>
+          }
+        />
+        <Route
+          path="forms-templates"
+          element={
+            <PermissionRoute module="documents">
+              <FormsTemplatesPage />
+            </PermissionRoute>
+          }
+        />
+        <Route
+          path="insurance"
+          element={
+            <PermissionRoute module="insurance">
+              <InsurancePage />
+            </PermissionRoute>
+          }
+        />
 
         {/* Employment */}
-        <Route path="contracts" element={<ContractsPage />} />
-        <Route path="employment-history" element={<EmploymentHistoryPage />} />
+        <Route
+          path="contracts"
+          element={
+            <PermissionRoute module="contracts">
+              <ContractsPage />
+            </PermissionRoute>
+          }
+        />
+        <Route
+          path="employment-history"
+          element={
+            <PermissionRoute module="contracts">
+              <EmploymentHistoryPage />
+            </PermissionRoute>
+          }
+        />
 
         {/* Attendance & Leave */}
-        <Route path="attendance" element={<AttendancePage />} />
-        <Route path="leave" element={<LeavePage />} />
-        <Route path="leave/requests" element={<LeavePage />} />
-        <Route path="leave/balances" element={<LeavePage />} />
+        <Route
+          path="attendance"
+          element={
+            <PermissionRoute module="attendance">
+              <AttendancePage />
+            </PermissionRoute>
+          }
+        />
+        <Route
+          path="leave"
+          element={
+            <PermissionRoute module="leave">
+              <LeavePage />
+            </PermissionRoute>
+          }
+        />
+        <Route
+          path="leave/requests"
+          element={
+            <PermissionRoute module="leave">
+              <LeavePage />
+            </PermissionRoute>
+          }
+        />
+        <Route
+          path="leave/balances"
+          element={
+            <PermissionRoute module="leave">
+              <LeavePage />
+            </PermissionRoute>
+          }
+        />
 
         {/* Payroll & Advances & Driver Payouts */}
-        <Route path="payroll" element={<PayrollPage />} />
-        <Route path="payroll/:period" element={<PayrollPeriodDetailsPage />} />
-        <Route path="advances" element={<AdvancesPage />} />
-        <Route path="driver-payouts" element={<DriverPayoutsPage />} />
+        <Route
+          path="payroll"
+          element={
+            <PermissionRoute module="payroll">
+              <PayrollPage />
+            </PermissionRoute>
+          }
+        />
+        <Route
+          path="payroll/:period"
+          element={
+            <PermissionRoute module="payroll">
+              <PayrollPeriodDetailsPage />
+            </PermissionRoute>
+          }
+        />
+        <Route
+          path="advances"
+          element={
+            <PermissionRoute module="advances">
+              <AdvancesPage />
+            </PermissionRoute>
+          }
+        />
+        <Route
+          path="driver-payouts"
+          element={
+            <PermissionRoute module="payroll">
+              <DriverPayoutsPage />
+            </PermissionRoute>
+          }
+        />
 
         {/* Workflow & Approvals */}
-        <Route path="approvals" element={<ApprovalsPage />} />
+        <Route
+          path="approvals"
+          element={
+            <PermissionRoute module="approvals">
+              <ApprovalsPage />
+            </PermissionRoute>
+          }
+        />
 
         {/* Reports & Analytics */}
-        <Route path="reports" element={<ReportsPage />} />
+        <Route
+          path="reports"
+          element={
+            <PermissionRoute module="reports">
+              <ReportsPage />
+            </PermissionRoute>
+          }
+        />
 
         {/* Notifications */}
         <Route path="notifications" element={<NotificationsPage />} />
 
         {/* Administration */}
-        <Route path="users" element={<UsersPage />} />
-        <Route path="roles" element={<RolesPermissionsPage />} />
-        <Route path="audit-logs" element={<AuditLogsPage />} />
-        <Route path="settings" element={<SettingsPage />} />
+        <Route
+          path="users"
+          element={
+            <PermissionRoute module="users">
+              <UsersPage />
+            </PermissionRoute>
+          }
+        />
+        <Route
+          path="roles"
+          element={
+            <PermissionRoute module="users">
+              <RolesPermissionsPage />
+            </PermissionRoute>
+          }
+        />
+        <Route
+          path="audit-logs"
+          element={
+            <PermissionRoute module="audit_logs">
+              <AuditLogsPage />
+            </PermissionRoute>
+          }
+        />
+        <Route
+          path="settings"
+          element={
+            <PermissionRoute module="settings">
+              <SettingsPage />
+            </PermissionRoute>
+          }
+        />
       </Route>
 
       {/* Catch-all redirect */}

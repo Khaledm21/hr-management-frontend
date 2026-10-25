@@ -19,15 +19,35 @@ import { useAuth } from '../../context/AuthContext';
 export const RolesPermissionsPage: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { success } = useToast();
-  const { can } = useAuth();
+  const { success, error: toastError } = useToast();
+  const { can, refreshMe } = useAuth();
 
   const [activeRole, setActiveRole] = useState<RoleType>('hr_manager');
   const [permissions, setPermissions] = useState<PermissionMatrix[]>([]);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    userService.getRolePermissions(activeRole).then(setPermissions);
+    let isMounted = true;
+    userService.getRolePermissions(activeRole).then(data => {
+      if (isMounted && Array.isArray(data)) {
+        const normalized: PermissionMatrix[] = data.map(item => ({
+          module: item.module,
+          label: item.label,
+          view: item.view ?? (item as any).canView ?? true,
+          create: item.create ?? (item as any).canCreate ?? false,
+          edit: item.edit ?? (item as any).canEdit ?? false,
+          delete: item.delete ?? (item as any).canDelete ?? false,
+          approve: item.approve ?? (item as any).canApprove ?? false,
+          export: item.export ?? (item as any).canExport ?? false,
+        }));
+        setPermissions(normalized);
+      }
+    }).catch(err => {
+      toastError(err?.message || 'Failed to load permissions');
+    });
+    return () => {
+      isMounted = false;
+    };
   }, [activeRole]);
 
   const handleToggle = (moduleIndex: number, action: keyof Omit<PermissionMatrix, 'module' | 'label'>) => {
@@ -41,42 +61,69 @@ export const RolesPermissionsPage: React.FC = () => {
     });
   };
 
+  const rolesList: { id: RoleType; name: string; desc: string }[] = [
+    { id: 'hr_manager', name: t('users.roleHrManager', 'HR Manager'), desc: t('users.roleHrManagerDesc', 'Full HR lifecycle administration and approval authorization') },
+    { id: 'hr_staff', name: t('users.roleHrStaff', 'HR Operations Staff'), desc: t('users.roleHrStaffDesc', 'Operational data entry, document review and attendance verification') },
+    { id: 'dept_manager', name: t('users.roleDeptManager', 'Department Head'), desc: t('users.roleDeptManagerDesc', 'Team leaves and requests endorsement within departmental scope') },
+    { id: 'admin', name: t('users.roleAdmin', 'System Administrator'), desc: t('users.roleAdminDesc', 'Enterprise-wide governance, security logs, and role configurations') },
+  ];
+
+  const getModuleLabel = (moduleKey: string, fallback: string) => {
+    const map: Record<string, string> = {
+      employees: 'nav.employees',
+      documents: 'nav.documents',
+      insurance: 'nav.insurance',
+      contracts: 'nav.contracts',
+      attendance: 'nav.attendance',
+      leave: 'nav.leave',
+      payroll: 'nav.payroll',
+      advances: 'nav.advances',
+      approvals: 'nav.approvals',
+      reports: 'nav.reports',
+      users: 'nav.users',
+      settings: 'nav.settings',
+      audit_logs: 'nav.auditLogs',
+      auditLogs: 'nav.auditLogs',
+    };
+    const key = map[moduleKey];
+    return key ? t(key, fallback) : fallback;
+  };
+
   const handleSave = async () => {
     setIsSaving(true);
     try {
       await userService.updateRolePermissions(activeRole, permissions);
-      success(`Updated security policy matrix for role "${activeRole}".`, 'Permissions Saved');
+      const roleName = rolesList.find(r => r.id === activeRole)?.name || activeRole;
+      success(t('users.permissionsSavedSuccess', { role: roleName }), t('users.rolesPermissions', 'Permissions Matrix'));
+      await refreshMe();
+    } catch (err: any) {
+      toastError(err?.message || 'Failed to save permissions');
     } finally {
       setIsSaving(false);
     }
   };
 
-  const rolesList: { id: RoleType; name: string; desc: string }[] = [
-    { id: 'hr_manager', name: 'HR Manager', desc: 'Full workforce governance, policy & compensation oversight' },
-    { id: 'hr_staff', name: 'HR Staff / Specialist', desc: 'Daily directory records & document verification (No payroll)' },
-    { id: 'dept_manager', name: 'Department Manager', desc: 'Department level approvals for leaves & contracts' },
-    { id: 'admin', name: 'System Administrator', desc: 'Global root level access to settings & user permissions' },
-  ];
-
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center gap-2 mb-1.5">
             <Button
               variant="outline"
               size="sm"
               leftIcon={<ArrowLeft className="w-3.5 h-3.5 rtl:rotate-180" />}
               onClick={() => navigate('/users')}
             >
-              Back to Users
+              {t('users.backToUsers', 'الرجوع لقائمة المستخدمين')}
             </Button>
           </div>
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-            {t('users.rolesPermissions')}
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-[#F8FAFC] tracking-tight flex items-center gap-2.5">
+            <KeyRound className="w-6 h-6 text-brand-600 dark:text-brand-400" />
+            <span>{t('users.rolesPermissions', 'مصفوفة الصلاحيات والأدوار الإدارية')}</span>
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Granular Role-Based Access Control (RBAC) across all 13 enterprise system domains
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
+            {t('users.rolesSubtitle', 'تحديد دقيق ومحكم لصلاحيات كل دور وظيفي عبر شاشات ووحدات النظام')}
           </p>
         </div>
 
@@ -87,7 +134,7 @@ export const RolesPermissionsPage: React.FC = () => {
           onClick={handleSave}
           isLoading={isSaving}
         >
-          Save Role Permissions
+          {t('users.savePermissions', 'حفظ مصفوفة الصلاحيات')}
         </Button>
       </div>
 
@@ -101,59 +148,59 @@ export const RolesPermissionsPage: React.FC = () => {
               onClick={() => setActiveRole(r.id)}
               className={`p-4 rounded-xl border text-left rtl:text-right transition-all cursor-pointer ${
                 isSelected
-                  ? 'border-brand-600 bg-brand-50/70 shadow-sm ring-1 ring-brand-500'
-                  : 'border-slate-200 bg-white hover:border-slate-300'
+                  ? 'border-brand-600 bg-brand-50/70 dark:bg-brand-950/40 dark:border-brand-500 shadow-sm ring-1 ring-brand-500'
+                  : 'border-slate-200 dark:border-[#1E293B] bg-white dark:bg-[#151D2E] hover:border-slate-300 dark:hover:border-slate-700'
               }`}
             >
-              <div className="flex items-center justify-between mb-1">
-                <span className={`text-xs font-bold ${isSelected ? 'text-brand-900' : 'text-slate-900'}`}>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className={`text-xs font-bold ${isSelected ? 'text-brand-900 dark:text-brand-300' : 'text-slate-900 dark:text-[#F8FAFC]'}`}>
                   {r.name}
                 </span>
-                {isSelected && <ShieldCheck className="w-4 h-4 text-brand-600" />}
+                {isSelected && <ShieldCheck className="w-4 h-4 text-brand-600 dark:text-brand-400" />}
               </div>
-              <p className="text-[11px] text-slate-500 leading-tight">{r.desc}</p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">{r.desc}</p>
             </button>
           );
         })}
       </div>
 
       {/* Granular Permission Matrix Table */}
-      <Card>
-        <CardHeader>
+      <Card className="bg-white dark:bg-[#151D2E] border-slate-200 dark:border-[#1E293B]">
+        <CardHeader className="border-b border-slate-100 dark:border-[#1E293B] pb-3">
           <div>
-            <CardTitle className="text-sm font-bold text-slate-900">
-              {t('users.roleMatrixTitle')}: <span className="text-brand-600 uppercase">{activeRole.replace('_', ' ')}</span>
+            <CardTitle className="text-sm font-bold text-slate-900 dark:text-[#F8FAFC]">
+              {t('users.roleMatrixTitle', 'صلاحيات الدور المحدد')}: <span className="text-brand-600 dark:text-brand-400 font-bold">{rolesList.find(r => r.id === activeRole)?.name || activeRole}</span>
             </CardTitle>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Click checkboxes to grant or revoke specific operation capabilities.
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              {t('users.matrixHint', 'قم بتفعيل أو تعطيل الصلاحيات الفردية ثم اضغط حفظ لتطبيق التغييرات فورا')}
             </p>
           </div>
         </CardHeader>
         <CardContent className="p-0 overflow-x-auto">
           <table className="w-full text-xs text-left rtl:text-right border-collapse">
-            <thead className="bg-slate-50/80 border-b border-slate-200 text-slate-600 font-bold uppercase text-[11px]">
+            <thead className="bg-slate-50/80 dark:bg-[#0B0F19] border-b border-slate-200 dark:border-[#1E293B] text-slate-600 dark:text-slate-400 font-bold uppercase text-[11px]">
               <tr>
-                <th className="p-3.5 pl-6 rtl:pl-3.5 rtl:pr-6">Functional Module</th>
-                <th className="p-3.5 text-center">{t('users.permView')}</th>
-                <th className="p-3.5 text-center">{t('users.permCreate')}</th>
-                <th className="p-3.5 text-center">{t('users.permEdit')}</th>
-                <th className="p-3.5 text-center">{t('users.permDelete')}</th>
-                <th className="p-3.5 text-center">{t('users.permApprove')}</th>
-                <th className="p-3.5 text-center pr-6 rtl:pr-3.5 rtl:pl-6">{t('users.permExport')}</th>
+                <th className="p-3.5 pl-6 rtl:pl-3.5 rtl:pr-6">{t('users.functionalModule', 'الوحدة الوظيفية')}</th>
+                <th className="p-3.5 text-center">{t('users.permView', 'عرض')}</th>
+                <th className="p-3.5 text-center">{t('users.permCreate', 'إنشاء')}</th>
+                <th className="p-3.5 text-center">{t('users.permEdit', 'تعديل')}</th>
+                <th className="p-3.5 text-center">{t('users.permDelete', 'حذف')}</th>
+                <th className="p-3.5 text-center">{t('users.permApprove', 'اعتماد')}</th>
+                <th className="p-3.5 text-center pr-6 rtl:pr-3.5 rtl:pl-6">{t('users.permExport', 'تصدير')}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 text-slate-700">
+            <tbody className="divide-y divide-slate-100 dark:divide-[#1E293B] text-slate-700 dark:text-slate-300">
               {permissions.map((p, idx) => (
-                <tr key={p.module} className="hover:bg-slate-50/80 transition-colors">
-                  <td className="p-3.5 pl-6 rtl:pl-3.5 rtl:pr-6 font-semibold text-slate-900">
-                    {p.label}
+                <tr key={p.module} className="hover:bg-slate-50/80 dark:hover:bg-[#1E293B]/40 transition-colors">
+                  <td className="p-3.5 pl-6 rtl:pl-3.5 rtl:pr-6 font-semibold text-slate-900 dark:text-[#F8FAFC]">
+                    {getModuleLabel(p.module, p.label)}
                   </td>
                   <td className="p-3.5 text-center">
                     <input
                       type="checkbox"
                       checked={p.view}
                       onChange={() => handleToggle(idx, 'view')}
-                      className="rounded border-slate-300 text-brand-600 focus:ring-brand-500 cursor-pointer w-4 h-4"
+                      className="rounded border-slate-300 dark:border-slate-600 dark:bg-[#0B0F19] text-brand-600 focus:ring-brand-500 cursor-pointer w-4 h-4"
                     />
                   </td>
                   <td className="p-3.5 text-center">
@@ -161,7 +208,7 @@ export const RolesPermissionsPage: React.FC = () => {
                       type="checkbox"
                       checked={p.create}
                       onChange={() => handleToggle(idx, 'create')}
-                      className="rounded border-slate-300 text-brand-600 focus:ring-brand-500 cursor-pointer w-4 h-4"
+                      className="rounded border-slate-300 dark:border-slate-600 dark:bg-[#0B0F19] text-brand-600 focus:ring-brand-500 cursor-pointer w-4 h-4"
                     />
                   </td>
                   <td className="p-3.5 text-center">
@@ -169,7 +216,7 @@ export const RolesPermissionsPage: React.FC = () => {
                       type="checkbox"
                       checked={p.edit}
                       onChange={() => handleToggle(idx, 'edit')}
-                      className="rounded border-slate-300 text-brand-600 focus:ring-brand-500 cursor-pointer w-4 h-4"
+                      className="rounded border-slate-300 dark:border-slate-600 dark:bg-[#0B0F19] text-brand-600 focus:ring-brand-500 cursor-pointer w-4 h-4"
                     />
                   </td>
                   <td className="p-3.5 text-center">
@@ -177,7 +224,7 @@ export const RolesPermissionsPage: React.FC = () => {
                       type="checkbox"
                       checked={p.delete}
                       onChange={() => handleToggle(idx, 'delete')}
-                      className="rounded border-slate-300 text-rose-600 focus:ring-rose-500 cursor-pointer w-4 h-4"
+                      className="rounded border-slate-300 dark:border-slate-600 dark:bg-[#0B0F19] text-rose-600 focus:ring-rose-500 cursor-pointer w-4 h-4"
                     />
                   </td>
                   <td className="p-3.5 text-center">
@@ -185,7 +232,7 @@ export const RolesPermissionsPage: React.FC = () => {
                       type="checkbox"
                       checked={p.approve}
                       onChange={() => handleToggle(idx, 'approve')}
-                      className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer w-4 h-4"
+                      className="rounded border-slate-300 dark:border-slate-600 dark:bg-[#0B0F19] text-emerald-600 focus:ring-emerald-500 cursor-pointer w-4 h-4"
                     />
                   </td>
                   <td className="p-3.5 text-center pr-6 rtl:pr-3.5 rtl:pl-6">
@@ -193,7 +240,7 @@ export const RolesPermissionsPage: React.FC = () => {
                       type="checkbox"
                       checked={p.export}
                       onChange={() => handleToggle(idx, 'export')}
-                      className="rounded border-slate-300 text-brand-600 focus:ring-brand-500 cursor-pointer w-4 h-4"
+                      className="rounded border-slate-300 dark:border-slate-600 dark:bg-[#0B0F19] text-brand-600 focus:ring-brand-500 cursor-pointer w-4 h-4"
                     />
                   </td>
                 </tr>
@@ -205,3 +252,4 @@ export const RolesPermissionsPage: React.FC = () => {
     </div>
   );
 };
+export default RolesPermissionsPage;

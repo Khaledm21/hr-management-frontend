@@ -284,14 +284,28 @@ export const driverPayoutService = {
     if (apiClient.isBackendAvailable()) {
       try {
         await apiClient.delete(`/drivers/${id}`);
-      } catch (err) {
-        console.warn(`Backend unavailable for DELETE /drivers/${id}:`, err);
+      } catch (err: any) {
+        console.warn(`Backend error on DELETE /drivers/${id}:`, err);
+        if (err.message && (err.message.includes('HTTP 4') || err.message.includes('HTTP 5'))) {
+          throw err;
+        }
       }
     }
 
-    const drivers = await this.getDrivers();
+    const drivers = getStoredItem<Driver[]>(STORAGE_KEYS.DRIVERS, []);
     const updated = drivers.filter(d => d.id !== id);
     setStoredItem(STORAGE_KEYS.DRIVERS, updated);
+
+    // Also clean up local transactions for this driver and recalculate affected weekly summaries
+    const txs = getStoredItem<DriverPayoutTransaction[]>(STORAGE_KEYS.TRANSACTIONS, []);
+    const affectedWeeks = new Set(txs.filter(t => t.driverId === id).map(t => t.weekPeriod));
+    const remainingTxs = txs.filter(t => t.driverId !== id);
+    setStoredItem(STORAGE_KEYS.TRANSACTIONS, remainingTxs);
+
+    for (const week of affectedWeeks) {
+      await this.recalculateWeeklySummary(week);
+    }
+
     return true;
   },
 
@@ -1076,6 +1090,11 @@ export const driverPayoutService = {
     // 2. Ensure week cycle exists
     await this.createNewWeeklyCycle(params.weekPeriod, params.weekLabel);
 
+    // Clean up existing transactions for this weekPeriod so import REPLACES rather than appends
+    const existingTxs = getStoredItem<DriverPayoutTransaction[]>(STORAGE_KEYS.TRANSACTIONS, []);
+    const filteredTxs = existingTxs.filter(t => t.weekPeriod !== params.weekPeriod);
+    setStoredItem(STORAGE_KEYS.TRANSACTIONS, filteredTxs);
+
     // 3. Insert transactions
     let txCount = 0;
     for (const t of params.transactions) {
@@ -1101,7 +1120,20 @@ export const driverPayoutService = {
     return { importedDriversCount: newDriversCount, importedTransactionsCount: txCount };
   },
 
-  clearAllData(): void {
+  async clearAllData(): Promise<void> {
+    if (apiClient.isBackendAvailable()) {
+      try {
+        await apiClient.delete('/driver-payouts/clear-all');
+      } catch (err) {
+        console.warn('Backend clear-all DELETE failed, attempting POST:', err);
+        try {
+          await apiClient.post('/driver-payouts/clear-all');
+        } catch {
+          // ignore
+        }
+      }
+    }
+
     const allKeys = [
       STORAGE_KEYS.DRIVERS,
       STORAGE_KEYS.TRANSACTIONS,
@@ -1126,5 +1158,10 @@ export const driverPayoutService = {
         // ignore
       }
     });
+
+    setStoredItem(STORAGE_KEYS.DRIVERS, []);
+    setStoredItem(STORAGE_KEYS.TRANSACTIONS, []);
+    setStoredItem(STORAGE_KEYS.SUMMARIES, []);
+    apiClient.clearCache();
   },
 };

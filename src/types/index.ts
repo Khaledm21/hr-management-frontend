@@ -6,13 +6,16 @@ export type ContractType = 'indefinite' | 'fixed_term' | 'probation' | 'consulta
 export type ContractStatus = 'active' | 'expiring_soon' | 'expired' | 'pending_renewal';
 
 export type DocumentType =
-  | 'national_id'
-  | 'birth_certificate'
   | 'qualification'
+  | 'birth_certificate'
+  | 'national_id'
   | 'contract'
   | 'insurance'
-  | 'passport'
+  | 'military_service'
+  | 'labor_permit'
+  | 'criminal_record'
   | 'medical'
+  | 'passport'
   | 'other';
 
 export type DocumentStatus =
@@ -57,30 +60,30 @@ export interface Employee {
   arabicName?: string;
   chineseName?: string;
   email: string;
-  phone: string;
+  phone?: string | null;
   avatar?: string;
   nationalId: string;
-  dateOfBirth: string;
+  dateOfBirth?: string | null;
   gender: 'male' | 'female';
   nationality: string;
-  address: string;
-  emergencyContact: EmergencyContact;
+  address?: string | null;
+  emergencyContact?: EmergencyContact | null;
   departmentId: string;
   departmentName: string;
   positionId: string;
   positionTitle: string;
   chinesePosition?: string;
-  managerId?: string;
-  managerName?: string;
+  managerId?: string | null;
+  managerName?: string | null;
   employmentStatus: EmploymentStatus;
   employmentType: EmploymentType;
   hireDate: string;
-  probationEndDate: string;
-  resignationDate?: string;
+  probationEndDate?: string | null;
+  resignationDate?: string | null;
   workLocation: string;
-  basicSalary: number;
-  housingAllowance: number;
-  transportAllowance: number;
+  basicSalary?: number | null;
+  housingAllowance?: number | null;
+  transportAllowance?: number | null;
   contractStatus: ContractStatus;
   documentCompletenessPercentage: number;
   missingDocumentsCount: number;
@@ -370,13 +373,20 @@ export interface NotificationItem {
     | 'approval_required'
     | 'document_rejected'
     | 'payroll_approval'
+    | 'driver_payout'
     | 'system';
   title: string;
+  titleAr?: string;
+  titleZh?: string;
   message: string;
+  messageAr?: string;
+  messageZh?: string;
   timestamp: string;
+  timestampAr?: string;
   isRead: boolean;
   link?: string;
   priority: 'high' | 'medium' | 'low';
+  category?: 'warning' | 'reminder' | 'security' | 'operations';
 }
 
 export interface UserAccount {
@@ -385,9 +395,10 @@ export interface UserAccount {
   email: string;
   role: RoleType;
   department: string;
-  status: 'active' | 'inactive';
+  status: 'active' | 'inactive' | 'suspended';
   lastLogin: string;
   avatar?: string;
+  gender?: 'male' | 'female';
 }
 
 export interface AuditLogEntry {
@@ -407,6 +418,7 @@ export interface CompanySettings {
   companyName: string;
   companyNameAr: string;
   companyNameZh: string;
+  logo?: string;
   taxRegistrationNumber: string;
   crNumber: string;
   companyEmail: string;

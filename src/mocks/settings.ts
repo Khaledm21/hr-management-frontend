@@ -1,21 +1,23 @@
 import { CompanySettings } from '../types';
+import newHopeLogo from '../assets/new-hope-logo.png';
 
 export const mockCompanySettings: CompanySettings = {
-  companyName: 'Apex Enterprise Solutions Co.',
-  companyNameAr: 'شركة قمة الحلول للمشاريع المحدودة',
-  companyNameZh: '顶峰企业解决方案有限公司',
-  taxRegistrationNumber: '310984729100003',
-  crNumber: '1010892341',
-  companyEmail: 'hr-support@apex-enterprise.com',
-  companyPhone: '+966 11 482 9000',
-  country: 'Saudi Arabia',
-  city: 'Riyadh',
-  address: 'King Fahd Road, Al-Nakheel Tower, Level 18, Riyadh 12381',
+  companyName: 'NEW HOPE EGYPT AQUATIC TECHNOLOGY CO., LTD',
+  companyNameAr: 'نيو هوب ايجيبت اكوتك تكنولوجي المحدودة',
+  companyNameZh: '新希望埃及水产科技有限责任公司',
+  logo: newHopeLogo,
+  taxRegistrationNumber: '542-891-304',
+  crNumber: '421980',
+  companyEmail: 'hr-egypt@newhope.com',
+  companyPhone: '+20 48 260 8888',
+  country: 'Egypt',
+  city: 'Sadat City',
+  address: 'Sadat City, Second Industrial Zone, Block 14, Menofia, Egypt',
   fiscalYearStart: 'January',
-  workingDaysPerWeek: 5,
+  workingDaysPerWeek: 6,
   probationPeriodMonths: 3,
   noticePeriodDays: 60,
-  defaultAnnualLeaveDays: 30,
+  defaultAnnualLeaveDays: 21,
   autoAttendanceCheckout: true,
 };
 

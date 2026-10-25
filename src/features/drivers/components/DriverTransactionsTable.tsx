@@ -37,14 +37,14 @@ export const DriverTransactionsTable: React.FC<DriverTransactionsTableProps> = (
   const { t } = useTranslation();
 
   return (
-    <Card className="border-slate-200 shadow-sm">
-      <CardHeader className="p-4 border-b border-slate-200">
+    <Card className="border-slate-200 dark:border-[#1E293B] shadow-sm bg-white dark:bg-[#151D2E] transition-colors">
+      <CardHeader className="p-4 border-b border-slate-200 dark:border-[#1E293B]">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div>
-            <CardTitle className="text-base font-bold text-slate-900">
+            <CardTitle className="text-base font-bold text-slate-900 dark:text-[#F8FAFC]">
               {t('driverPayouts.transactionsTab', 'سجل الرحلات والعمليات')}
             </CardTitle>
-            <CardDescription className="text-xs text-slate-500">
+            <CardDescription className="text-xs text-slate-500 dark:text-slate-400">
               {t('driverPayouts.transactionsSubtitle', 'كافة الحركات المالية وتفاصيل مشاوير السائقين مع بيان القسم وحالة الدفع')}
             </CardDescription>
           </div>
@@ -58,14 +58,14 @@ export const DriverTransactionsTable: React.FC<DriverTransactionsTableProps> = (
                 placeholder={t('driverPayouts.searchPlaceholder', 'بحث باسم السائق، البيان، اللوحة...')}
                 value={search}
                 onChange={e => onSearchChange(e.target.value)}
-                className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl pr-8 rtl:pr-8 pl-3 py-1.5 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full text-xs bg-slate-50 dark:bg-[#0B0F19] border border-slate-200 dark:border-[#1E293B] text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 rounded-xl pr-8 rtl:pr-8 pl-3 py-1.5 focus:bg-white dark:focus:bg-[#0B0F19] focus:outline-none focus:ring-2 focus:ring-brand-500 transition-colors"
               />
             </div>
 
             <select
               value={driverFilter}
               onChange={e => onDriverFilterChange(e.target.value)}
-              className="text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 font-medium"
+              className="text-xs bg-slate-50 dark:bg-[#0B0F19] border border-slate-200 dark:border-[#1E293B] text-slate-800 dark:text-slate-200 [&>option]:bg-white [&>option]:dark:bg-[#151D2E] rounded-xl px-3 py-1.5 font-medium transition-colors"
             >
               <option value="all">{t('common.all', 'الكل')}</option>
               {drivers.map(d => (
@@ -78,7 +78,7 @@ export const DriverTransactionsTable: React.FC<DriverTransactionsTableProps> = (
             <select
               value={categoryFilter}
               onChange={e => onCategoryFilterChange(e.target.value)}
-              className="text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 font-medium"
+              className="text-xs bg-slate-50 dark:bg-[#0B0F19] border border-slate-200 dark:border-[#1E293B] text-slate-800 dark:text-slate-200 [&>option]:bg-white [&>option]:dark:bg-[#151D2E] rounded-xl px-3 py-1.5 font-medium transition-colors"
             >
               <option value="all">{t('common.all', 'الكل')}</option>
               <option value="management">{t('driverPayouts.managementCategory')}</option>
@@ -96,7 +96,7 @@ export const DriverTransactionsTable: React.FC<DriverTransactionsTableProps> = (
       <CardContent className="p-0">
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
-            <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-[11px]">
+            <thead className="bg-slate-50 dark:bg-[#0B0F19] border-b border-slate-200 dark:border-[#1E293B] text-slate-500 dark:text-slate-400 font-bold uppercase text-[11px] transition-colors">
               <tr>
                 <th className="py-3 px-4">#</th>
                 <th className="py-3 px-4">{t('driverPayouts.driverName')}</th>
@@ -109,25 +109,25 @@ export const DriverTransactionsTable: React.FC<DriverTransactionsTableProps> = (
                 <th className="py-3 px-4 text-center">{t('common.actions', 'الإجراءات')}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-200">
+            <tbody className="divide-y divide-slate-200 dark:divide-[#1E293B] transition-colors">
               {transactions.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-12 text-center text-slate-400">
+                  <td colSpan={9} className="py-12 text-center text-slate-400 dark:text-slate-500">
                     {t('driverPayouts.noTransactions')}
                   </td>
                 </tr>
               ) : (
                 transactions.map(tx => (
-                  <tr key={tx.id} className="hover:bg-slate-50/70 transition-colors">
-                    <td className="py-3 px-4 font-mono font-bold text-slate-700">
+                  <tr key={tx.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
+                    <td className="py-3 px-4 font-mono font-bold text-slate-700 dark:text-slate-300">
                       {tx.receiptNumber || 'REC-001'}
                     </td>
-                    <td className="py-3 px-4 font-bold text-slate-900">{tx.driverName}</td>
+                    <td className="py-3 px-4 font-bold text-slate-900 dark:text-[#F8FAFC]">{tx.driverName}</td>
                     <td className="py-3 px-4">
                       <span
                         className={cn(
                           'font-black text-sm',
-                          tx.category === 'management' ? 'text-rose-600' : 'text-slate-900'
+                          tx.category === 'management' ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-[#F8FAFC]'
                         )}
                       >
                         {tx.amount.toLocaleString()} {t('driverPayouts.egp')}
@@ -144,13 +144,13 @@ export const DriverTransactionsTable: React.FC<DriverTransactionsTableProps> = (
                         </Badge>
                       )}
                     </td>
-                    <td className="py-3 px-4 text-slate-500">{tx.date}</td>
-                    <td className="py-3 px-4 text-slate-700 max-w-xs truncate" title={tx.description}>
+                    <td className="py-3 px-4 text-slate-500 dark:text-slate-400">{tx.date}</td>
+                    <td className="py-3 px-4 text-slate-700 dark:text-slate-300 max-w-xs truncate" title={tx.description}>
                       {tx.description || '-'}
                     </td>
-                    <td className="py-3 px-4 text-slate-500">{tx.vehiclePlate || '-'}</td>
+                    <td className="py-3 px-4 text-slate-500 dark:text-slate-400">{tx.vehiclePlate || '-'}</td>
                     <td className="py-3 px-4">
-                      <span className="text-[11px] font-medium text-slate-600">
+                      <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400">
                         {tx.paymentMethod === 'cash'
                           ? t('driverPayouts.paymentCash')
                           : tx.paymentMethod === 'transfer'
@@ -162,14 +162,14 @@ export const DriverTransactionsTable: React.FC<DriverTransactionsTableProps> = (
                       <div className="flex items-center justify-center gap-1.5">
                         <button
                           onClick={() => onEditTx(tx)}
-                          className="p-1.5 text-slate-500 hover:text-brand-600 hover:bg-slate-100 rounded-lg"
+                          className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
                           title={t('driverPayouts.edit')}
                         >
                           <Edit2 className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => onDeleteTx(tx)}
-                          className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg"
+                          className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-colors"
                           title={t('driverPayouts.delete')}
                         >
                           <Trash2 className="w-3.5 h-3.5" />

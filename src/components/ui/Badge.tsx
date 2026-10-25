@@ -23,23 +23,23 @@ export const Badge: React.FC<BadgeProps> = ({
   ...props
 }) => {
   const variants = {
-    default: 'bg-brand-50 text-brand-700 border-brand-200',
-    success: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    warning: 'bg-amber-50 text-amber-700 border-amber-200',
-    danger: 'bg-rose-50 text-rose-700 border-rose-200',
-    info: 'bg-sky-50 text-sky-700 border-sky-200',
-    secondary: 'bg-slate-100 text-slate-700 border-slate-200',
-    outline: 'bg-transparent text-slate-700 border-slate-300',
+    default: 'bg-[#E8F3FF] dark:bg-[#1E293B] text-[#0878D1] dark:text-[#38BDF8] border-[#BFDBFE] dark:border-[#38BDF8]/30',
+    success: 'bg-[#ECFDF5] dark:bg-emerald-950/40 text-[#059669] dark:text-emerald-400 border-[#A7F3D0] dark:border-emerald-800/40',
+    warning: 'bg-[#FFFBEB] dark:bg-amber-950/40 text-[#D97706] dark:text-amber-400 border-[#FDE68A] dark:border-amber-800/40',
+    danger: 'bg-[#FFF1F2] dark:bg-rose-950/40 text-[#E11D48] dark:text-rose-400 border-[#FECDD3] dark:border-rose-800/40',
+    info: 'bg-[#F0F9FF] dark:bg-sky-950/40 text-[#0284C7] dark:text-sky-400 border-[#BAE6FD] dark:border-sky-800/40',
+    secondary: 'bg-[#F1F5F9] dark:bg-[#1E293B] text-[#64748B] dark:text-[#94A3B8] border-[#E2E8F0] dark:border-[#334155]',
+    outline: 'bg-transparent text-[#64748B] dark:text-[#94A3B8] border-[#E2E8F0] dark:border-[#334155]',
   };
 
   const dotColors = {
-    default: 'bg-brand-500',
-    success: 'bg-emerald-500',
-    warning: 'bg-amber-500',
-    danger: 'bg-rose-500',
-    info: 'bg-sky-500',
-    secondary: 'bg-slate-500',
-    outline: 'bg-slate-400',
+    default: 'bg-[#0878D1]',
+    success: 'bg-[#059669]',
+    warning: 'bg-[#D97706]',
+    danger: 'bg-[#E11D48]',
+    info: 'bg-[#0284C7]',
+    secondary: 'bg-[#64748B]',
+    outline: 'bg-[#94A3B8]',
   };
 
   return (

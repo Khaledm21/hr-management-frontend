@@ -30,7 +30,6 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ isOpen, on
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
-        // Toggle or open
       }
       if (e.key === 'Escape' && isOpen) {
         onClose();
@@ -102,7 +101,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ isOpen, on
       documents: matchedDocuments,
       drivers: matchedDrivers,
     };
-  }, [query]);
+  }, [query, loadedDrivers]);
 
   const hasAnyResults =
     results.employees.length > 0 ||
@@ -117,23 +116,23 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ isOpen, on
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 px-4">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity"
+        className="fixed inset-0 bg-slate-900/60 dark:bg-black/75 backdrop-blur-sm transition-opacity"
         onClick={onClose}
       />
 
-      <div className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-slate-200 z-10 overflow-hidden transform transition-all">
+      <div className="relative w-full max-w-2xl bg-white dark:bg-[#151D2E] rounded-2xl shadow-2xl border border-slate-200 dark:border-[#1E293B] z-10 overflow-hidden transform transition-all">
         {/* Search Input Bar */}
-        <div className="p-4 border-b border-slate-200 flex items-center gap-3 bg-slate-50/50">
-          <Search className="w-5 h-5 text-slate-400 shrink-0" />
+        <div className="p-4 border-b border-slate-200 dark:border-[#1E293B] flex items-center gap-3 bg-slate-50/50 dark:bg-[#0B0F19]/60">
+          <Search className="w-5 h-5 text-slate-400 dark:text-slate-500 shrink-0" />
           <input
             type="text"
             autoFocus
             value={query}
             onChange={e => setQuery(e.target.value)}
             placeholder="Search employees, IDs, departments, contracts, documents..."
-            className="w-full bg-transparent border-none text-sm text-slate-900 placeholder-slate-400 focus:outline-none"
+            className="w-full bg-transparent border-none text-sm text-slate-900 dark:text-[#F8FAFC] placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none"
           />
-          <kbd className="hidden sm:inline-block px-2 py-0.5 text-[10px] font-semibold text-slate-500 bg-slate-200/70 border border-slate-300 rounded">
+          <kbd className="hidden sm:inline-block px-2 py-0.5 text-[10px] font-semibold text-slate-500 dark:text-slate-400 bg-slate-200/70 dark:bg-[#0B0F19] border border-slate-300 dark:border-[#1E293B] rounded">
             ESC
           </kbd>
         </div>
@@ -141,19 +140,19 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ isOpen, on
         {/* Results Container */}
         <div className="max-h-[60vh] overflow-y-auto p-4 space-y-4">
           {!query.trim() ? (
-            <div className="py-8 text-center text-xs text-slate-400">
+            <div className="py-8 text-center text-xs text-slate-400 dark:text-slate-500">
               Type at least 2 characters to search across workforce, documents, and contracts.
             </div>
           ) : !hasAnyResults ? (
-            <div className="py-8 text-center text-xs text-slate-500">
-              No results found for <span className="font-semibold text-slate-800">"{query}"</span>
+            <div className="py-8 text-center text-xs text-slate-500 dark:text-slate-400">
+              No results found for <span className="font-semibold text-slate-800 dark:text-slate-200">"{query}"</span>
             </div>
           ) : (
             <>
               {/* Employees Group */}
               {results.employees.length > 0 && (
                 <div>
-                  <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                  <div className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
                     <User className="w-3.5 h-3.5" />
                     <span>Employees ({results.employees.length})</span>
                   </div>
@@ -165,29 +164,29 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ isOpen, on
                           navigate(`/employees/${emp.id}`);
                           onClose();
                         }}
-                        className="flex items-center justify-between p-2.5 rounded-lg hover:bg-slate-50 cursor-pointer border border-transparent hover:border-slate-200 transition-colors"
+                        className="flex items-center justify-between p-2.5 rounded-lg hover:bg-slate-50 dark:hover:bg-[#1E293B]/70 cursor-pointer border border-transparent hover:border-slate-200 dark:hover:border-[#1E293B] transition-colors"
                       >
                         <div className="flex items-center gap-3">
                           <img
                             src={emp.avatar}
                             alt=""
-                            className="w-8 h-8 rounded-full bg-slate-100"
+                            className="w-8 h-8 rounded-full bg-slate-100 dark:bg-[#0B0F19]"
                           />
                           <div>
-                            <div className="text-xs font-semibold text-slate-900 flex items-center gap-2">
+                            <div className="text-xs font-semibold text-slate-900 dark:text-[#F8FAFC] flex items-center gap-2">
                               <span>
                                 {emp.firstName} {emp.lastName}
                               </span>
-                              <span className="text-[10px] text-brand-600 bg-brand-50 px-1.5 py-0.2 rounded font-mono">
+                              <span className="text-[10px] text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-950/40 px-1.5 py-0.5 rounded font-mono">
                                 {emp.employeeId}
                               </span>
                             </div>
-                            <div className="text-[11px] text-slate-500">
+                            <div className="text-[11px] text-slate-500 dark:text-slate-400">
                               {emp.positionTitle} • {emp.departmentName}
                             </div>
                           </div>
                         </div>
-                        <ArrowRight className="w-4 h-4 text-slate-400" />
+                        <ArrowRight className="w-4 h-4 text-slate-400 rtl:rotate-180" />
                       </div>
                     ))}
                   </div>
@@ -197,7 +196,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ isOpen, on
               {/* Departments Group */}
               {results.departments.length > 0 && (
                 <div>
-                  <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                  <div className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
                     <Building2 className="w-3.5 h-3.5" />
                     <span>Departments ({results.departments.length})</span>
                   </div>
@@ -209,15 +208,15 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ isOpen, on
                           navigate('/departments');
                           onClose();
                         }}
-                        className="flex items-center justify-between p-2.5 rounded-lg hover:bg-slate-50 cursor-pointer border border-transparent hover:border-slate-200 transition-colors"
+                        className="flex items-center justify-between p-2.5 rounded-lg hover:bg-slate-50 dark:hover:bg-[#1E293B]/70 cursor-pointer border border-transparent hover:border-slate-200 dark:hover:border-[#1E293B] transition-colors"
                       >
                         <div>
-                          <div className="text-xs font-semibold text-slate-900">{dept.name}</div>
-                          <div className="text-[11px] text-slate-500">
+                          <div className="text-xs font-semibold text-slate-900 dark:text-[#F8FAFC]">{dept.name}</div>
+                          <div className="text-[11px] text-slate-500 dark:text-slate-400">
                             {dept.code} • {dept.employeeCount} Staff • Manager: {dept.managerName}
                           </div>
                         </div>
-                        <ArrowRight className="w-4 h-4 text-slate-400" />
+                        <ArrowRight className="w-4 h-4 text-slate-400 rtl:rotate-180" />
                       </div>
                     ))}
                   </div>
@@ -227,7 +226,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ isOpen, on
               {/* Contracts Group */}
               {results.contracts.length > 0 && (
                 <div>
-                  <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                  <div className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
                     <FileCheck className="w-3.5 h-3.5" />
                     <span>Contracts ({results.contracts.length})</span>
                   </div>
@@ -239,17 +238,17 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ isOpen, on
                           navigate('/contracts');
                           onClose();
                         }}
-                        className="flex items-center justify-between p-2.5 rounded-lg hover:bg-slate-50 cursor-pointer border border-transparent hover:border-slate-200 transition-colors"
+                        className="flex items-center justify-between p-2.5 rounded-lg hover:bg-slate-50 dark:hover:bg-[#1E293B]/70 cursor-pointer border border-transparent hover:border-slate-200 dark:hover:border-[#1E293B] transition-colors"
                       >
                         <div>
-                          <div className="text-xs font-semibold text-slate-900 font-mono">
+                          <div className="text-xs font-semibold text-slate-900 dark:text-[#F8FAFC] font-mono">
                             {cnt.contractNumber} - {cnt.employeeName}
                           </div>
-                          <div className="text-[11px] text-slate-500">
+                          <div className="text-[11px] text-slate-500 dark:text-slate-400">
                             {cnt.type.toUpperCase()} • Status: {cnt.status}
                           </div>
                         </div>
-                        <ArrowRight className="w-4 h-4 text-slate-400" />
+                        <ArrowRight className="w-4 h-4 text-slate-400 rtl:rotate-180" />
                       </div>
                     ))}
                   </div>
@@ -259,7 +258,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ isOpen, on
               {/* Documents Group */}
               {results.documents.length > 0 && (
                 <div>
-                  <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                  <div className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
                     <FileText className="w-3.5 h-3.5" />
                     <span>Documents ({results.documents.length})</span>
                   </div>
@@ -271,15 +270,15 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ isOpen, on
                           navigate('/documents');
                           onClose();
                         }}
-                        className="flex items-center justify-between p-2.5 rounded-lg hover:bg-slate-50 cursor-pointer border border-transparent hover:border-slate-200 transition-colors"
+                        className="flex items-center justify-between p-2.5 rounded-lg hover:bg-slate-50 dark:hover:bg-[#1E293B]/70 cursor-pointer border border-transparent hover:border-slate-200 dark:hover:border-[#1E293B] transition-colors"
                       >
                         <div>
-                          <div className="text-xs font-semibold text-slate-900">{doc.title}</div>
-                          <div className="text-[11px] text-slate-500">
+                          <div className="text-xs font-semibold text-slate-900 dark:text-[#F8FAFC]">{doc.title}</div>
+                          <div className="text-[11px] text-slate-500 dark:text-slate-400">
                             {doc.employeeName} • {doc.fileName} • Status: {doc.status}
                           </div>
                         </div>
-                        <ArrowRight className="w-4 h-4 text-slate-400" />
+                        <ArrowRight className="w-4 h-4 text-slate-400 rtl:rotate-180" />
                       </div>
                     ))}
                   </div>
@@ -289,7 +288,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ isOpen, on
               {/* Drivers Group */}
               {results.drivers.length > 0 && (
                 <div>
-                  <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                  <div className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
                     <Truck className="w-3.5 h-3.5 text-amber-500" />
                     <span>سجل وقبض السواقين ({results.drivers.length})</span>
                   </div>
@@ -301,20 +300,20 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ isOpen, on
                           navigate('/driver-payouts');
                           onClose();
                         }}
-                        className="flex items-center justify-between p-2.5 rounded-lg hover:bg-amber-50/50 cursor-pointer border border-transparent hover:border-amber-200 transition-colors"
+                        className="flex items-center justify-between p-2.5 rounded-lg hover:bg-amber-50/50 dark:hover:bg-amber-950/20 cursor-pointer border border-transparent hover:border-amber-200 dark:hover:border-amber-800/40 transition-colors"
                       >
                         <div className="flex items-center gap-2.5">
-                          <div className="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-600 font-bold flex items-center justify-center text-xs">
+                          <div className="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold flex items-center justify-center text-xs">
                             <Truck className="w-3.5 h-3.5" />
                           </div>
                           <div>
-                            <div className="text-xs font-bold text-slate-900">{drv.name}</div>
-                            <div className="text-[11px] text-slate-500">
+                            <div className="text-xs font-bold text-slate-900 dark:text-[#F8FAFC]">{drv.name}</div>
+                            <div className="text-[11px] text-slate-500 dark:text-slate-400">
                               {drv.code} • {drv.vehicleType} ({drv.vehicleNumber}) • {drv.defaultCategory === 'management' ? 'إدارة' : 'إنتاج'}
                             </div>
                           </div>
                         </div>
-                        <ArrowRight className="w-4 h-4 text-slate-400" />
+                        <ArrowRight className="w-4 h-4 text-slate-400 rtl:rotate-180" />
                       </div>
                     ))}
                   </div>
@@ -327,3 +326,4 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ isOpen, on
     </div>
   );
 };
+export default GlobalSearchModal;

@@ -1,5 +1,6 @@
 import { DocumentRecord, DocumentType, DocumentStatus } from '../types';
 import { apiClient } from './apiClient';
+import { insuranceService } from './insuranceService';
 
 const STORAGE_KEY = 'hr_documents_clean_v1';
 const CLEARED_FLAG = 'hr_documents_cleared_v1';
@@ -233,6 +234,23 @@ export const documentService = {
     documentsState.unshift(newDoc);
     persistItem(STORAGE_KEY, documentsState);
     localStorage.removeItem(CLEARED_FLAG);
+
+    // Local fallback sync with insurance checklist
+    try {
+      const typeMap: Record<string, 'qualificationCert' | 'birthCert' | 'idCard' | 'contract'> = {
+        qualification: 'qualificationCert',
+        birth_certificate: 'birthCert',
+        national_id: 'idCard',
+        contract: 'contract',
+      };
+      const field = typeMap[data.type];
+      if (field) {
+        insuranceService.toggleDocumentStatus(data.employeeId, field).catch(() => {});
+      }
+    } catch {
+      // ignore
+    }
+
     return newDoc;
   },
 

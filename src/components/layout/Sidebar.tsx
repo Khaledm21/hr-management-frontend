@@ -3,12 +3,14 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useDirection } from '../../context/DirectionContext';
 import { useAuth } from '../../context/AuthContext';
+import { useCompany } from '../../context/CompanyContext';
 import {
   LayoutDashboard,
   Users,
   Building2,
   Briefcase,
   FileText,
+  Files,
   ShieldCheck,
   FileCheck,
   History,
@@ -56,6 +58,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCollapsed }
   const location = useLocation();
   const { isRtl } = useDirection();
   const { can } = useAuth();
+  const { companyName, logo } = useCompany();
 
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
     people: true,
@@ -70,14 +73,25 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCollapsed }
     setExpandedGroups(prev => ({ ...prev, [groupId]: !prev[groupId] }));
   };
 
+  const handleNavClick = () => {
+    onClose();
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    const mainEl = document.querySelector('main');
+    if (mainEl) {
+      mainEl.scrollTop = 0;
+    }
+  };
+
   const navGroups: NavGroup[] = [
     {
       id: 'people',
       labelKey: 'nav.people',
       items: [
         { to: '/employees', labelKey: 'nav.employees', icon: <Users className="w-4 h-4" />, module: 'employees' },
-        { to: '/departments', labelKey: 'nav.departments', icon: <Building2 className="w-4 h-4" /> },
-        { to: '/positions', labelKey: 'nav.positions', icon: <Briefcase className="w-4 h-4" /> },
+        { to: '/departments', labelKey: 'nav.departments', icon: <Building2 className="w-4 h-4" />, module: 'employees' },
+        { to: '/positions', labelKey: 'nav.positions', icon: <Briefcase className="w-4 h-4" />, module: 'employees' },
       ],
     },
     {
@@ -85,6 +99,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCollapsed }
       labelKey: 'nav.documents',
       items: [
         { to: '/documents', labelKey: 'nav.employeeDocuments', icon: <FileText className="w-4 h-4" />, module: 'documents' },
+        { to: '/forms-templates', labelKey: 'nav.formTemplates', icon: <Files className="w-4 h-4" />, module: 'documents' },
         { to: '/insurance', labelKey: 'nav.insurance', icon: <ShieldCheck className="w-4 h-4" />, module: 'insurance' },
       ],
     },
@@ -93,7 +108,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCollapsed }
       labelKey: 'nav.employment',
       items: [
         { to: '/contracts', labelKey: 'nav.contracts', icon: <FileCheck className="w-4 h-4" />, module: 'contracts' },
-        { to: '/employment-history', labelKey: 'nav.history', icon: <History className="w-4 h-4" /> },
+        { to: '/employment-history', labelKey: 'nav.history', icon: <History className="w-4 h-4" />, module: 'contracts' },
       ],
     },
     {
@@ -139,51 +154,66 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCollapsed }
       {/* Sidebar Container */}
       <aside
         className={cn(
-          'fixed inset-y-0 z-40 flex flex-col bg-slate-900 text-slate-300 transition-all duration-300 ease-in-out border-slate-800 shadow-xl lg:static',
+          'fixed inset-y-0 z-40 flex flex-col bg-white dark:bg-[#0F172A] text-[#172033] dark:text-[#F8FAFC] transition-all duration-300 ease-in-out border-[#E2E8F0] dark:border-[#1E293B] shadow-sm lg:static',
           isRtl ? 'right-0 border-l' : 'left-0 border-r',
           isCollapsed ? 'w-20' : 'w-64',
           isOpen ? 'translate-x-0' : isRtl ? 'translate-x-full lg:translate-x-0' : '-translate-x-full lg:translate-x-0'
         )}
       >
         {/* Brand Header */}
-        <div className="flex h-16 shrink-0 items-center justify-between px-5 border-b border-slate-800/80 bg-slate-950/40">
-          <div className="flex items-center gap-3 overflow-hidden">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-600 text-white shadow-md shadow-brand-500/20 font-bold">
-              <Building className="w-5 h-5" />
+        <div className="flex h-16 shrink-0 items-center justify-between px-3.5 border-b border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A]">
+          <div className="flex items-center gap-2.5 overflow-hidden">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white dark:bg-[#1E293B] p-1 shadow-2xs border border-[#E2E8F0] dark:border-[#334155] overflow-hidden">
+              <img
+                src={logo}
+                alt="New Hope Logo"
+                className="h-full w-full object-contain"
+              />
             </div>
             {!isCollapsed && (
-              <div className="truncate">
-                <span className="block text-sm font-bold text-white tracking-tight">ApexHR</span>
-                <span className="block text-[10px] text-slate-400 font-medium">Enterprise Suite</span>
+              <div className="truncate min-w-0" title={companyName}>
+                <span className="block text-xs font-bold text-[#172033] dark:text-[#F8FAFC] tracking-tight truncate leading-tight">
+                  {companyName}
+                </span>
+                <span className="block text-[10px] text-[#0878D1] dark:text-[#38BDF8] font-bold tracking-wide uppercase mt-0.5">
+                  {isRtl ? 'إدارة الموارد البشرية' : 'Enterprise HR Suite'}
+                </span>
               </div>
             )}
           </div>
           <button
             onClick={onClose}
-            className="lg:hidden text-slate-400 hover:text-white p-1 rounded-lg"
+            className="lg:hidden text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1 rounded-lg cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Navigation List */}
-        <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
+        <div className="flex-1 overflow-y-auto px-3 py-4 space-y-5">
           {/* Main Dashboard item */}
           <div>
             <NavLink
               to="/dashboard"
-              onClick={onClose}
+              onClick={handleNavClick}
               className={({ isActive }) =>
                 cn(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold transition-all',
+                  'flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all group relative',
                   isActive
-                    ? 'bg-brand-600 text-white shadow-sm shadow-brand-600/30'
-                    : 'text-slate-300 hover:bg-slate-800/70 hover:text-white'
+                    ? 'bg-[#E8F3FF] dark:bg-[#1E293B] text-[#0878D1] dark:text-[#38BDF8] shadow-2xs font-bold'
+                    : 'text-[#172033] dark:text-[#94A3B8] hover:bg-[#F8FAFC] dark:hover:bg-[#1E293B]/60 hover:text-[#0878D1] dark:hover:text-[#F8FAFC]'
                 )
               }
             >
-              <LayoutDashboard className="w-4 h-4 shrink-0" />
-              {!isCollapsed && <span>{t('nav.dashboard')}</span>}
+              {({ isActive }) => (
+                <>
+                  <LayoutDashboard className={cn('w-4 h-4 shrink-0 transition-colors', isActive ? 'text-[#0878D1] dark:text-[#38BDF8]' : 'text-[#94A3B8] dark:text-[#64748B] group-hover:text-[#0878D1] dark:group-hover:text-[#38BDF8]')} />
+                  {!isCollapsed && <span>{t('nav.dashboard')}</span>}
+                  {isActive && !isCollapsed && (
+                    <span className={cn('absolute top-2 bottom-2 w-1 bg-[#0878D1] dark:bg-[#38BDF8] rounded-full', isRtl ? 'right-0' : 'left-0')} />
+                  )}
+                </>
+              )}
             </NavLink>
           </div>
 
@@ -202,7 +232,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCollapsed }
                 {!isCollapsed ? (
                   <button
                     onClick={() => toggleGroup(group.id)}
-                    className="flex w-full items-center justify-between px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 hover:text-slate-200 transition-colors"
+                    className="flex w-full items-center justify-between px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] dark:text-[#64748B] hover:text-[#64748B] dark:hover:text-[#94A3B8] transition-colors"
                   >
                     <span>{t(group.labelKey)}</span>
                     <ChevronDown
@@ -213,32 +243,37 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCollapsed }
                     />
                   </button>
                 ) : (
-                  <div className="h-px bg-slate-800 my-2" />
+                  <div className="h-px bg-[#E2E8F0] dark:bg-[#1E293B] my-2" />
                 )}
 
                 {(isExpanded || isCollapsed) && (
-                  <div className="space-y-1">
+                  <div className="space-y-0.5">
                     {visibleItems.map(item => {
                       const isActive = location.pathname === item.to || location.pathname.startsWith(`${item.to}/`);
                       return (
                         <NavLink
                           key={item.to}
                           to={item.to}
-                          onClick={onClose}
+                          onClick={handleNavClick}
                           title={isCollapsed ? t(item.labelKey) : undefined}
                           className={cn(
-                            'flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition-colors',
+                            'flex items-center gap-3 px-3 py-2 rounded-xl text-xs transition-all group relative',
                             isActive
-                              ? 'bg-brand-600 text-white shadow-sm'
-                              : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                              ? 'bg-[#E8F3FF] dark:bg-[#1E293B] text-[#0878D1] dark:text-[#38BDF8] font-bold shadow-2xs'
+                              : 'text-[#172033] dark:text-[#94A3B8] hover:bg-[#F8FAFC] dark:hover:bg-[#1E293B]/60 hover:text-[#0878D1] dark:hover:text-[#F8FAFC] font-medium'
                           )}
                         >
-                          <span className="shrink-0">{item.icon}</span>
+                          <span className={cn('shrink-0 transition-colors', isActive ? 'text-[#0878D1] dark:text-[#38BDF8]' : 'text-[#94A3B8] dark:text-[#64748B] group-hover:text-[#0878D1] dark:group-hover:text-[#38BDF8]')}>
+                            {item.icon}
+                          </span>
                           {!isCollapsed && <span className="truncate">{t(item.labelKey)}</span>}
                           {!isCollapsed && item.badge && (
-                            <span className="ml-auto rtl:ml-0 rtl:mr-auto px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-slate-700 text-slate-200">
+                            <span className="ml-auto rtl:ml-0 rtl:mr-auto px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-[#E8F3FF] dark:bg-[#1E293B] text-[#0878D1] dark:text-[#38BDF8] border border-[#BFDBFE] dark:border-[#334155]">
                               {item.badge}
                             </span>
+                          )}
+                          {isActive && !isCollapsed && (
+                            <span className={cn('absolute top-1.5 bottom-1.5 w-1 bg-[#0878D1] dark:bg-[#38BDF8] rounded-full', isRtl ? 'right-0' : 'left-0')} />
                           )}
                         </NavLink>
                       );
@@ -250,47 +285,67 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isCollapsed }
           })}
 
           {/* Workflow & Reports */}
-          <div className="space-y-1">
-            {!isCollapsed && (
-              <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                {t('nav.workflow')}
-              </div>
-            )}
-            <NavLink
-              to="/approvals"
-              onClick={onClose}
-              className={({ isActive }) =>
-                cn(
-                  'flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition-colors',
-                  isActive ? 'bg-brand-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                )
-              }
-            >
-              <CheckSquare className="w-4 h-4 shrink-0" />
-              {!isCollapsed && <span>{t('nav.approvals')}</span>}
-            </NavLink>
-            <NavLink
-              to="/reports"
-              onClick={onClose}
-              className={({ isActive }) =>
-                cn(
-                  'flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition-colors',
-                  isActive ? 'bg-brand-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                )
-              }
-            >
-              <BarChart3 className="w-4 h-4 shrink-0" />
-              {!isCollapsed && <span>{t('nav.reports')}</span>}
-            </NavLink>
-          </div>
+          {(can('approvals', 'view') || can('reports', 'view')) && (
+            <div className="space-y-1">
+              {!isCollapsed && (
+                <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-[#94A3B8] dark:text-[#64748B]">
+                  {t('nav.workflow')}
+                </div>
+              )}
+              {can('approvals', 'view') && (
+                <NavLink
+                  to="/approvals"
+                  onClick={handleNavClick}
+                  className={({ isActive }) =>
+                    cn(
+                      'flex items-center gap-3 px-3 py-2 rounded-xl text-xs transition-all group relative',
+                      isActive ? 'bg-[#E8F3FF] dark:bg-[#1E293B] text-[#0878D1] dark:text-[#38BDF8] font-bold shadow-2xs' : 'text-[#172033] dark:text-[#94A3B8] hover:bg-[#F8FAFC] dark:hover:bg-[#1E293B]/60 hover:text-[#0878D1] dark:hover:text-[#F8FAFC] font-medium'
+                    )
+                  }
+                >
+                  {({ isActive }) => (
+                    <>
+                      <CheckSquare className={cn('w-4 h-4 shrink-0 transition-colors', isActive ? 'text-[#0878D1] dark:text-[#38BDF8]' : 'text-[#94A3B8] dark:text-[#64748B] group-hover:text-[#0878D1] dark:group-hover:text-[#38BDF8]')} />
+                      {!isCollapsed && <span>{t('nav.approvals')}</span>}
+                      {isActive && !isCollapsed && (
+                        <span className={cn('absolute top-1.5 bottom-1.5 w-1 bg-[#0878D1] dark:bg-[#38BDF8] rounded-full', isRtl ? 'right-0' : 'left-0')} />
+                      )}
+                    </>
+                  )}
+                </NavLink>
+              )}
+              {can('reports', 'view') && (
+                <NavLink
+                  to="/reports"
+                  onClick={handleNavClick}
+                  className={({ isActive }) =>
+                    cn(
+                      'flex items-center gap-3 px-3 py-2 rounded-xl text-xs transition-all group relative',
+                      isActive ? 'bg-[#E8F3FF] dark:bg-[#1E293B] text-[#0878D1] dark:text-[#38BDF8] font-bold shadow-2xs' : 'text-[#172033] dark:text-[#94A3B8] hover:bg-[#F8FAFC] dark:hover:bg-[#1E293B]/60 hover:text-[#0878D1] dark:hover:text-[#F8FAFC] font-medium'
+                    )
+                  }
+                >
+                  {({ isActive }) => (
+                    <>
+                      <BarChart3 className={cn('w-4 h-4 shrink-0 transition-colors', isActive ? 'text-[#0878D1] dark:text-[#38BDF8]' : 'text-[#94A3B8] dark:text-[#64748B] group-hover:text-[#0878D1] dark:group-hover:text-[#38BDF8]')} />
+                      {!isCollapsed && <span>{t('nav.reports')}</span>}
+                      {isActive && !isCollapsed && (
+                        <span className={cn('absolute top-1.5 bottom-1.5 w-1 bg-[#0878D1] dark:bg-[#38BDF8] rounded-full', isRtl ? 'right-0' : 'left-0')} />
+                      )}
+                    </>
+                  )}
+                </NavLink>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Footer info in sidebar */}
         {!isCollapsed && (
-          <div className="p-3.5 border-t border-slate-800/80 bg-slate-950/40 text-[11px] text-slate-400 flex items-center justify-between">
+          <div className="p-3.5 border-t border-[#E2E8F0] dark:border-[#1E293B] bg-[#F8FAFC] dark:bg-[#0B0F19] text-[11px] text-[#64748B] dark:text-[#94A3B8] flex items-center justify-between">
             <div>
-              <span className="block font-semibold text-slate-300">Apex Enterprise Co.</span>
-              <span className="text-[10px] text-slate-500">v2.4.0 (Frontend Only)</span>
+              <span className="block font-bold text-[#172033] dark:text-[#F8FAFC] truncate" title={companyName}>{companyName}</span>
+              <span className="text-[10px] text-[#94A3B8] dark:text-[#64748B]">v2.5.0 (Live Connected)</span>
             </div>
             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" title="System Operational" />
           </div>

@@ -204,15 +204,27 @@ export const employeeService = {
   async createEmployee(data: Partial<Employee>): Promise<Employee> {
     if (apiClient.isBackendAvailable()) {
       try {
-        return await apiClient.post<Employee>('/employees', data);
-      } catch (err) {
-        console.warn('Backend unavailable for createEmployee, falling back to mock data:', err);
+        const response = await apiClient.post<any>('/employees', data);
+        const created = response?.data || response;
+        if (created && created.id) {
+          employeesState.unshift(created);
+          persistEmployees(employeesState);
+        }
+        return created;
+      } catch (err: any) {
+        console.error('Backend createEmployee failed:', err);
+        const errorMsg =
+          err?.response?.data?.message ||
+          (err?.response?.data?.errors && err.response.data.errors.map((e: any) => `${e.path?.join('.')}: ${e.message}`).join(', ')) ||
+          err?.message ||
+          'فشل في حفظ بيانات الموظف في قاعدة البيانات';
+        throw new Error(errorMsg);
       }
     }
 
     await new Promise(res => setTimeout(res, 100));
     const newId = `emp-${String(employeesState.length + 1).padStart(4, '0')}`;
-    const newEmployeeId = data.employeeId || `180301${String(employeesState.length + 1).padStart(3, '0')}`;
+    const newEmployeeId = data.employeeId || `160301${String(employeesState.length + 1).padStart(3, '0')}`;
 
     const newEmp: Employee = {
       id: newId,
@@ -275,8 +287,14 @@ export const employeeService = {
           persistEmployees(employeesState);
         }
         return updated;
-      } catch (err) {
-        console.warn('Backend unavailable for updateEmployee, falling back to mock data:', err);
+      } catch (err: any) {
+        console.error('Backend updateEmployee failed:', err);
+        const errorMsg =
+          err?.response?.data?.message ||
+          (err?.response?.data?.errors && err.response.data.errors.map((e: any) => `${e.path?.join('.')}: ${e.message}`).join(', ')) ||
+          err?.message ||
+          'فشل في تحديث بيانات الموظف في قاعدة البيانات';
+        throw new Error(errorMsg);
       }
     }
 

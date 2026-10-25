@@ -203,13 +203,13 @@ export function DataTable<T extends Record<string, any>>({
   };
 
   return (
-    <div className="w-full bg-white rounded-xl border border-slate-200/90 shadow-sm overflow-hidden flex flex-col">
+    <div className="w-full bg-white dark:bg-[#151D2E] rounded-xl border border-slate-200/90 dark:border-[#1E293B] shadow-sm overflow-hidden flex flex-col">
       {/* Table Toolbar */}
-      <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-50/40">
+      <div className="p-4 border-b border-slate-100 dark:border-[#1E293B] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-50/40 dark:bg-[#111827]/60">
         <div className="flex flex-1 flex-wrap items-center gap-2.5">
           {searchable && (
             <div className="relative min-w-[220px] max-w-sm flex-1">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 rtl:left-auto rtl:right-3 pointer-events-none" />
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 rtl:left-auto rtl:right-3 pointer-events-none" />
               <input
                 type="text"
                 value={searchTerm}
@@ -218,7 +218,7 @@ export function DataTable<T extends Record<string, any>>({
                   setCurrentPage(1);
                 }}
                 placeholder={searchPlaceholder || t('common.search')}
-                className="w-full pl-9 pr-3 rtl:pl-3 rtl:pr-9 py-1.5 text-xs rounded-lg border border-slate-300 bg-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-brand-500 focus:border-brand-500"
+                className="w-full pl-9 pr-3 rtl:pl-3 rtl:pr-9 py-1.5 text-xs rounded-lg border border-slate-300 dark:border-[#1E293B] bg-white dark:bg-[#0B0F19] text-slate-900 dark:text-[#F8FAFC] placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-brand-500 focus:border-brand-500 dark:focus:ring-[#38BDF8] dark:focus:border-[#38BDF8]"
               />
             </div>
           )}
@@ -231,21 +231,21 @@ export function DataTable<T extends Record<string, any>>({
           <div className="relative">
             <button
               onClick={() => setShowColumnPicker(!showColumnPicker)}
-              className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 transition-colors"
+              className="p-1.5 rounded-lg border border-slate-200 dark:border-[#1E293B] text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#1E293B] transition-colors"
               title="Columns"
             >
               <SlidersHorizontal className="w-4 h-4" />
             </button>
             {showColumnPicker && (
-              <div className="absolute right-0 rtl:right-auto rtl:left-0 top-full mt-1.5 w-52 bg-white rounded-xl shadow-xl border border-slate-200 p-2 z-30 animate-in fade-in zoom-in-95">
-                <div className="text-[11px] font-semibold text-slate-500 uppercase px-2 py-1">
+              <div className="absolute right-0 rtl:right-auto rtl:left-0 top-full mt-1.5 w-52 bg-white dark:bg-[#151D2E] rounded-xl shadow-xl border border-slate-200 dark:border-[#1E293B] p-2 z-30 animate-in fade-in zoom-in-95">
+                <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase px-2 py-1">
                   Toggle Columns
                 </div>
                 <div className="max-h-56 overflow-y-auto space-y-1">
                   {columns.map(col => (
                     <label
                       key={col.key}
-                      className="flex items-center gap-2 px-2 py-1.5 text-xs text-slate-700 hover:bg-slate-50 rounded cursor-pointer"
+                      className="flex items-center gap-2 px-2 py-1.5 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#1E293B] rounded cursor-pointer"
                     >
                       <input
                         type="checkbox"
@@ -272,7 +272,7 @@ export function DataTable<T extends Record<string, any>>({
           {exportFilename && (
             <button
               onClick={handleExport}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 shadow-sm transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-slate-200 dark:border-[#1E293B] bg-white dark:bg-[#151D2E] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#1E293B] shadow-sm transition-colors"
             >
               <Download className="w-3.5 h-3.5" />
               <span>{t('common.export')}</span>
@@ -285,20 +285,20 @@ export function DataTable<T extends Record<string, any>>({
 
       {/* Bulk actions banner */}
       {selectable && selectedIds.length > 0 && bulkActions && (
-        <div className="px-4 py-2.5 bg-brand-50 border-b border-brand-100 flex flex-wrap items-center justify-between gap-3 text-xs text-brand-900 animate-in fade-in">
+        <div className="px-4 py-2.5 bg-brand-50 dark:bg-brand-950/40 border-b border-brand-100 dark:border-brand-900/50 flex flex-wrap items-center justify-between gap-3 text-xs text-brand-900 dark:text-brand-200 animate-in fade-in">
           <div className="flex items-center gap-2">
             <span className="font-semibold">
               {allFilteredSelected
-                ? `تم تحديد جميع العناصر (${filteredData.length})`
-                : `تم تحديد ${selectedIds.length} من أصل ${filteredData.length}`}
+                ? t('table.allSelected', { count: filteredData.length })
+                : t('table.selectedCountOf', { count: selectedIds.length, total: filteredData.length })}
             </span>
             {!allFilteredSelected && filteredData.length > paginatedData.length && (
               <button
                 type="button"
                 onClick={() => onSelectionChange?.(filteredData.map(r => keyExtractor(r)))}
-                className="text-brand-700 underline font-semibold hover:text-brand-900 cursor-pointer"
+                className="text-brand-700 dark:text-brand-400 underline font-semibold hover:text-brand-900 cursor-pointer"
               >
-                تحديد جميع الـ {filteredData.length} سجل
+                {t('table.selectAllRecords', { count: filteredData.length })}
               </button>
             )}
           </div>
@@ -312,7 +312,7 @@ export function DataTable<T extends Record<string, any>>({
       <div className="overflow-x-auto min-h-[300px] flex-1">
         <table className="w-full text-left rtl:text-right border-collapse">
           <thead>
-            <tr className="border-b border-slate-200 bg-slate-50/80 text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
+            <tr className="border-b border-slate-200 dark:border-[#1E293B] bg-slate-50/80 dark:bg-[#111827] text-[11px] font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
               {selectable && (
                 <th className="w-10 px-4 py-3 text-center">
                   <button
@@ -320,10 +320,10 @@ export function DataTable<T extends Record<string, any>>({
                     type="button"
                     title={
                       selectAllAcrossPages
-                        ? (allFilteredSelected ? t('common.clearSelection', 'إلغاء التحديد') : `تحديد الكل (${filteredData.length})`)
-                        : (allCurrentSelected ? t('common.clearSelection', 'إلغاء التحديد') : 'تحديد الكل')
+                        ? (allFilteredSelected ? t('common.clearSelection') : t('table.selectAllCount', { count: filteredData.length }))
+                        : (allCurrentSelected ? t('common.clearSelection') : t('table.selectAll'))
                     }
-                    className="text-slate-500 hover:text-slate-900 focus:outline-none transition-colors cursor-pointer"
+                    className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white focus:outline-none transition-colors cursor-pointer"
                   >
                     {isHeaderChecked ? (
                       <CheckSquare className="w-4 h-4 text-brand-600" />
@@ -345,7 +345,7 @@ export function DataTable<T extends Record<string, any>>({
                     style={{ width: col.width }}
                     className={cn(
                       'px-4 py-3 whitespace-nowrap transition-colors select-none',
-                      col.sortable && 'cursor-pointer hover:bg-slate-100/70',
+                      col.sortable && 'cursor-pointer hover:bg-slate-100/70 dark:hover:bg-[#1E293B]',
                       col.align === 'center' && 'text-center',
                       col.align === 'right' && 'text-right'
                     )}
@@ -378,7 +378,7 @@ export function DataTable<T extends Record<string, any>>({
             </tr>
           </thead>
 
-          <tbody className="divide-y divide-slate-100 text-xs text-slate-700 font-normal">
+          <tbody className="divide-y divide-slate-100 dark:divide-[#1E293B] text-xs text-slate-700 dark:text-slate-300 font-normal">
             {isLoading ? (
               // Loading skeletons
               Array.from({ length: 5 }).map((_, i) => (
@@ -421,14 +421,14 @@ export function DataTable<T extends Record<string, any>>({
                     key={rowId}
                     onClick={() => onRowClick?.(row)}
                     className={cn(
-                      'hover:bg-slate-50/70 transition-colors',
+                      'hover:bg-slate-50/70 dark:hover:bg-[#1E293B]/40 transition-colors',
                       onRowClick && 'cursor-pointer',
-                      isSelected && 'bg-brand-50/40'
+                      isSelected && 'bg-brand-50/40 dark:bg-brand-950/30'
                     )}
                   >
                     {selectable && (
                       <td className="w-10 px-4 py-3 text-center" onClick={e => toggleRowSelect(rowId, e)}>
-                        <button className="text-slate-400 hover:text-slate-700">
+                        <button className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200">
                           {isSelected ? (
                             <CheckSquare className="w-4 h-4 text-brand-600" />
                           ) : (

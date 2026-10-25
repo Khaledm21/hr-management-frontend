@@ -88,7 +88,7 @@ export const PositionsPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.code.trim() || !form.title.trim() || !form.departmentId) {
-      toastError('يرجى إدخال الكود، المسمى، وتحديد القسم');
+      toastError(t('positions.validationError'));
       return;
     }
 
@@ -110,28 +110,41 @@ export const PositionsPage: React.FC = () => {
 
       if (editingPos) {
         await updateMutation.mutateAsync({ id: editingPos.id, data: payload });
-        success('تم تحديث المسمى الوظيفي بنجاح');
+        success(t('positions.updateSuccess'));
       } else {
         await createMutation.mutateAsync(payload);
-        success('تمت إضافة المسمى الوظيفي بنجاح');
+        success(t('positions.createSuccess'));
       }
 
       setIsModalOpen(false);
     } catch (err: any) {
-      toastError(err?.message || 'فشل حفظ المسمى الوظيفي');
+      toastError(err?.message || t('positions.saveError'));
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleDelete = async (id: string, title: string) => {
-    if (window.confirm(`هل أنت متأكد من حذف المسمى الوظيفي "${title}"؟`)) {
+    if (window.confirm(t('positions.confirmDelete', { title }))) {
       try {
         await deleteMutation.mutateAsync(id);
-        success('تم حذف المسمى الوظيفي بنجاح');
+        success(t('positions.deleteSuccess'));
       } catch {
-        toastError('فشل حذف المسمى الوظيفي');
+        toastError(t('positions.deleteError'));
       }
+    }
+  };
+
+  const getLevelLabel = (lvl: string) => {
+    switch (lvl) {
+      case 'Junior': return t('positions.levelJunior');
+      case 'Mid': return t('positions.levelMid');
+      case 'Senior': return t('positions.levelSenior');
+      case 'Lead': return t('positions.levelLead');
+      case 'Manager': return t('positions.levelManager');
+      case 'Director': return t('positions.levelDirector');
+      case 'Executive': return t('positions.levelExecutive');
+      default: return lvl;
     }
   };
 
@@ -139,38 +152,38 @@ export const PositionsPage: React.FC = () => {
     () => [
       {
         key: 'code',
-        header: 'كود المسمى',
+        header: t('positions.code'),
         sortable: true,
         width: '120px',
         render: row => (
-          <span className="font-mono font-bold text-brand-700 bg-brand-50 px-2 py-0.5 rounded text-xs">
+          <span className="font-mono font-bold text-brand-700 dark:text-[#38BDF8] bg-brand-50 dark:bg-brand-950/40 px-2 py-0.5 rounded text-xs">
             {row.code}
           </span>
         ),
       },
       {
         key: 'title',
-        header: 'المسمى الوظيفي',
+        header: t('positions.jobTitle'),
         sortable: true,
         render: row => {
           const displayTitle = language === 'ar' ? (row.titleAr || row.title) : language === 'zh-CN' ? (row.titleZh || row.title) : row.title;
           return (
             <div>
-              <div className="font-bold text-slate-900">{displayTitle}</div>
-              <div className="text-[11px] text-slate-400">{row.title}</div>
+              <div className="font-bold text-slate-900 dark:text-[#F8FAFC]">{displayTitle}</div>
+              <div className="text-[11px] text-slate-400 dark:text-slate-500">{row.title}</div>
             </div>
           );
         },
       },
       {
         key: 'departmentName',
-        header: 'القسم التابع له',
+        header: t('positions.department'),
         sortable: true,
-        render: row => <span className="font-semibold text-slate-700">{row.departmentName}</span>,
+        render: row => <span className="font-semibold text-slate-700 dark:text-slate-300">{row.departmentName}</span>,
       },
       {
         key: 'level',
-        header: 'المستوى الوظيفي',
+        header: t('positions.level'),
         sortable: true,
         render: row => (
           <Badge
@@ -184,38 +197,38 @@ export const PositionsPage: React.FC = () => {
                 : 'default'
             }
           >
-            {row.level}
+            {getLevelLabel(row.level)}
           </Badge>
         ),
       },
       {
         key: 'salaryBand',
-        header: 'نطاق الراتب (جنيه)',
+        header: t('positions.salaryBand'),
         sortable: true,
         accessor: row => row.minSalary,
         render: row => (
-          <span className="font-bold text-slate-800">
-            {row.minSalary.toLocaleString()} - {row.maxSalary.toLocaleString()} جنيه
+          <span className="font-bold text-slate-800 dark:text-slate-200">
+            {row.minSalary.toLocaleString()} - {row.maxSalary.toLocaleString()} {t('common.egp')}
           </span>
         ),
       },
       {
         key: 'actions',
-        header: 'الإجراءات',
+        header: t('common.actions'),
         width: '100px',
         render: row => (
           <div className="flex items-center gap-1">
             <button
               onClick={() => handleOpenEditModal(row)}
-              className="p-1.5 text-slate-400 hover:text-brand-600 rounded-lg hover:bg-slate-100 transition-colors"
-              title="تعديل"
+              className="p-1.5 text-slate-400 hover:text-brand-600 dark:hover:text-[#38BDF8] rounded-lg hover:bg-slate-100 dark:hover:bg-[#1E293B] transition-colors"
+              title={t('common.edit')}
             >
               <Edit2 className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={() => handleDelete(row.id, row.title)}
-              className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors"
-              title="حذف"
+              className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+              title={t('common.delete')}
             >
               <Trash2 className="w-3.5 h-3.5" />
             </button>
@@ -223,7 +236,7 @@ export const PositionsPage: React.FC = () => {
         ),
       },
     ],
-    [language]
+    [language, t]
   );
 
   return (
@@ -231,11 +244,11 @@ export const PositionsPage: React.FC = () => {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-            {t('nav.positions', 'المسميات الوظيفية والدرجات')}
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-[#F8FAFC] tracking-tight">
+            {t('positions.title')}
           </h1>
-          <p className="text-xs text-slate-500 mt-1">
-            دليل التوصيف الوظيفي، الدرجات، ونطاقات الرواتب المعتمدة (مربوط بالباك إند مباشرة)
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            {t('positions.subtitle')}
           </p>
         </div>
 
@@ -248,7 +261,7 @@ export const PositionsPage: React.FC = () => {
             disabled={isLoading}
           >
             <RefreshCw className={`w-3.5 h-3.5 mr-1.5 rtl:ml-1.5 rtl:mr-0 ${isLoading ? 'animate-spin' : ''}`} />
-            تحديث
+            {t('common.refresh')}
           </Button>
           <Button
             variant="primary"
@@ -257,7 +270,7 @@ export const PositionsPage: React.FC = () => {
             className="text-xs font-bold shadow-md shadow-brand-500/20"
           >
             <Plus className="w-4 h-4 mr-1.5 rtl:ml-1.5 rtl:mr-0" />
-            إضافة مسمى وظيفي
+            {t('positions.addPosition')}
           </Button>
         </div>
       </div>
@@ -267,15 +280,15 @@ export const PositionsPage: React.FC = () => {
         data={positions}
         keyExtractor={row => row.id}
         searchable
-        searchPlaceholder="بحث في المسميات الوظيفية أو الكود..."
+        searchPlaceholder={t('positions.searchPlaceholder')}
         exportFilename="Company_Job_Positions_List"
         filtersSlot={
           <select
             value={selectedDept}
             onChange={e => setSelectedDept(e.target.value)}
-            className="text-xs rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-slate-700 focus:outline-none focus:ring-1 focus:ring-brand-500 cursor-pointer font-semibold"
+            className="text-xs rounded-xl border border-slate-300 dark:border-[#1E293B] bg-white dark:bg-[#0B0F19] px-3 py-1.5 text-slate-700 dark:text-[#F8FAFC] focus:outline-none focus:ring-1 focus:ring-brand-500 cursor-pointer font-semibold"
           >
-            <option value="all">جميع الأقسام</option>
+            <option value="all">{t('positions.allDepartments')}</option>
             {departments.map(d => (
               <option key={d.id} value={d.id}>
                 {language === 'ar' ? (d.nameAr || d.name) : d.name}
@@ -289,28 +302,28 @@ export const PositionsPage: React.FC = () => {
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title={editingPos ? 'تعديل مسمى وظيفي' : 'إضافة مسمى وظيفي جديد'}
+        title={editingPos ? t('positions.editModalTitle') : t('positions.addModalTitle')}
       >
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block font-bold text-slate-700 mb-1">كود المسمى *</label>
+              <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">{t('positions.codeLabel')}</label>
               <Input
                 value={form.code}
                 onChange={e => setForm({ ...form, code: e.target.value })}
-                placeholder="مثال: POS-01, DEV-02"
+                placeholder={t('positions.codePlaceholder')}
                 required
               />
             </div>
             <div>
-              <label className="block font-bold text-slate-700 mb-1">القسم التابع له *</label>
+              <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">{t('positions.deptLabel')}</label>
               <select
                 value={form.departmentId}
                 onChange={e => setForm({ ...form, departmentId: e.target.value })}
-                className="w-full text-xs rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-700 focus:outline-none focus:ring-1 focus:ring-brand-500 cursor-pointer font-medium"
+                className="w-full text-xs rounded-xl border border-slate-300 dark:border-[#1E293B] bg-white dark:bg-[#0B0F19] px-3 py-2 text-slate-700 dark:text-[#F8FAFC] focus:outline-none focus:ring-1 focus:ring-brand-500 cursor-pointer font-medium"
                 required
               >
-                <option value="">اختر القسم</option>
+                <option value="">{t('positions.selectDept')}</option>
                 {departments.map(d => (
                   <option key={d.id} value={d.id}>
                     {language === 'ar' ? (d.nameAr || d.name) : d.name}
@@ -322,51 +335,51 @@ export const PositionsPage: React.FC = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
-              <label className="block font-bold text-slate-700 mb-1">المسمى (بالإنجليزية) *</label>
+              <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">{t('positions.titleEn')}</label>
               <Input
                 value={form.title}
                 onChange={e => setForm({ ...form, title: e.target.value })}
-                placeholder="مثال: Logistics Coordinator"
+                placeholder={t('positions.titleEnPlaceholder')}
                 required
               />
             </div>
             <div>
-              <label className="block font-bold text-slate-700 mb-1">المسمى (بالعربية)</label>
+              <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">{t('positions.titleAr')}</label>
               <Input
                 value={form.titleAr}
                 onChange={e => setForm({ ...form, titleAr: e.target.value })}
-                placeholder="مثال: منسق حركة ولوجستيات"
+                placeholder={t('positions.titleArPlaceholder')}
               />
             </div>
             <div>
-              <label className="block font-bold text-slate-700 mb-1">المسمى (بالصينية)</label>
+              <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">{t('positions.titleZh')}</label>
               <Input
                 value={form.titleZh}
                 onChange={e => setForm({ ...form, titleZh: e.target.value })}
-                placeholder="مثال: 后勤协调员"
+                placeholder={t('positions.titleZhPlaceholder')}
               />
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
-              <label className="block font-bold text-slate-700 mb-1">المستوى الوظيفي</label>
+              <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">{t('positions.levelLabel')}</label>
               <select
                 value={form.level}
                 onChange={e => setForm({ ...form, level: e.target.value })}
-                className="w-full text-xs rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-700 focus:outline-none focus:ring-1 focus:ring-brand-500 cursor-pointer"
+                className="w-full text-xs rounded-xl border border-slate-300 dark:border-[#1E293B] bg-white dark:bg-[#0B0F19] px-3 py-2 text-slate-700 dark:text-[#F8FAFC] focus:outline-none focus:ring-1 focus:ring-brand-500 cursor-pointer"
               >
-                <option value="Junior">Junior (مبتدئ)</option>
-                <option value="Mid">Mid (متوسط)</option>
-                <option value="Senior">Senior (أول)</option>
-                <option value="Lead">Lead (رئيس فريق)</option>
-                <option value="Manager">Manager (مدير)</option>
-                <option value="Director">Director (مدير إدارة)</option>
-                <option value="Executive">Executive (تنفيذي)</option>
+                <option value="Junior">{t('positions.levelJunior')}</option>
+                <option value="Mid">{t('positions.levelMid')}</option>
+                <option value="Senior">{t('positions.levelSenior')}</option>
+                <option value="Lead">{t('positions.levelLead')}</option>
+                <option value="Manager">{t('positions.levelManager')}</option>
+                <option value="Director">{t('positions.levelDirector')}</option>
+                <option value="Executive">{t('positions.levelExecutive')}</option>
               </select>
             </div>
             <div>
-              <label className="block font-bold text-slate-700 mb-1">الحد الأدنى للراتب (جنيه)</label>
+              <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">{t('positions.minSalary')}</label>
               <Input
                 type="number"
                 value={form.minSalary}
@@ -375,7 +388,7 @@ export const PositionsPage: React.FC = () => {
               />
             </div>
             <div>
-              <label className="block font-bold text-slate-700 mb-1">الحد الأقصى للراتب (جنيه)</label>
+              <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1">{t('positions.maxSalary')}</label>
               <Input
                 type="number"
                 value={form.maxSalary}
@@ -385,12 +398,12 @@ export const PositionsPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-100">
+          <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-100 dark:border-[#1E293B]">
             <Button type="button" variant="ghost" size="sm" onClick={() => setIsModalOpen(false)}>
-              إلغاء
+              {t('common.cancel')}
             </Button>
             <Button type="submit" variant="primary" size="sm" disabled={isSubmitting}>
-              {isSubmitting ? 'جاري الحفظ...' : editingPos ? 'تحديث المسمى' : 'إضافة المسمى'}
+              {isSubmitting ? t('common.saving') : editingPos ? t('positions.updateBtn') : t('positions.createBtn')}
             </Button>
           </div>
         </form>

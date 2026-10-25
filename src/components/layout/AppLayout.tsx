@@ -8,7 +8,7 @@ export const AppLayout: React.FC = () => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
+    <div className="min-h-screen bg-[#F5F7FB] dark:bg-[#0B0F19] text-[#172033] dark:text-[#F8FAFC] transition-colors duration-200 flex">
       {/* Sidebar */}
       <Sidebar
         isOpen={isSidebarOpen}

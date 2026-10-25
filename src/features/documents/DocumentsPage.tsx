@@ -20,6 +20,7 @@ import { Modal } from '../../components/ui/Modal';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
+import { EmployeeSearchSelect } from '../../components/ui/EmployeeSearchSelect';
 import { DocumentRecord, DocumentType, DocumentStatus } from '../../types';
 import {
   useEmployees,
@@ -62,15 +63,15 @@ export const DocumentsPage: React.FC = () => {
 
   // Live employees for upload association
   const { data: employeesRes } = useEmployees({ pageSize: 300 });
+  const employeesList = useMemo(() => employeesRes?.data ?? [], [employeesRes]);
   const employeeOptions = useMemo(() => {
-    const list = employeesRes?.data ?? [];
-    return list.map(e => ({
+    return employeesList.map(e => ({
       value: e.id,
       label: `${e.arabicName || `${e.firstName} ${e.lastName}`} (${e.employeeId})`,
       department: e.departmentName,
       name: e.arabicName || `${e.firstName} ${e.lastName}`,
     }));
-  }, [employeesRes]);
+  }, [employeesList]);
 
   // Selection & Deletion State
   const [selectedDocIds, setSelectedDocIds] = useState<string[]>([]);
@@ -110,7 +111,7 @@ export const DocumentsPage: React.FC = () => {
     const selectedRows = documents.filter(d => selectedDocIds.includes(d.id));
     if (selectedRows.length > 0) {
       downloadCSV('Selected_Enterprise_Documents', selectedRows);
-      success(`تم تصدير ${selectedRows.length} مستند بنجاح.`);
+      success(t('documents.exportSuccess', { count: selectedRows.length }));
     }
   };
 
@@ -118,11 +119,11 @@ export const DocumentsPage: React.FC = () => {
     setIsDeleting(true);
     try {
       const count = await deleteAllMutation.mutateAsync();
-      success(t('documents.deleteAllSuccess', { count }) || `تم حذف جميع المستندات (${count} مستند) بنجاح.`);
+      success(t('documents.deleteAllSuccess', { count }));
       setSelectedDocIds([]);
       setIsDeleteAllModalOpen(false);
     } catch (err: any) {
-      toastError(err?.message || 'فشل حذف المستندات.');
+      toastError(err?.message || t('documents.deleteAllError'));
     } finally {
       setIsDeleting(false);
     }
@@ -132,11 +133,11 @@ export const DocumentsPage: React.FC = () => {
     setIsDeleting(true);
     try {
       const count = await bulkDeleteMutation.mutateAsync(selectedDocIds);
-      success(t('documents.bulkDeleteSuccess', { count }) || `تم حذف ${count} مستند محدد بنجاح.`);
+      success(t('documents.bulkDeleteSuccess', { count }));
       setSelectedDocIds([]);
       setIsBulkDeleteModalOpen(false);
     } catch (err: any) {
-      toastError(err?.message || 'فشل حذف المستندات المحددة.');
+      toastError(err?.message || t('documents.bulkDeleteError'));
     } finally {
       setIsDeleting(false);
     }
@@ -147,11 +148,11 @@ export const DocumentsPage: React.FC = () => {
     setIsDeleting(true);
     try {
       await deleteMutation.mutateAsync(deletingDoc.id);
-      success(`تم حذف المستند "${deletingDoc.title}" بنجاح.`);
+      success(t('documents.singleDeleteSuccess', { title: deletingDoc.title }));
       setSelectedDocIds(prev => prev.filter(id => id !== deletingDoc.id));
       setDeletingDoc(null);
     } catch (err: any) {
-      toastError(err?.message || 'فشل حذف المستند.');
+      toastError(err?.message || t('documents.singleDeleteError'));
     } finally {
       setIsDeleting(false);
     }
@@ -160,9 +161,9 @@ export const DocumentsPage: React.FC = () => {
   const handleVerify = async (doc: DocumentRecord) => {
     try {
       await verifyMutation.mutateAsync({ id: doc.id });
-      success(`Document "${doc.title}" verified successfully.`, 'Verification Recorded');
+      success(t('documents.verifySuccess', { title: doc.title }), t('documents.verifyRecorded'));
     } catch (err: any) {
-      toastError(err?.message || 'فشل توثيق المستند');
+      toastError(err?.message || t('documents.verifyError'));
     }
   };
 
@@ -170,32 +171,37 @@ export const DocumentsPage: React.FC = () => {
     if (!rejectingDoc || !rejectionReason.trim()) return;
     try {
       await rejectMutation.mutateAsync({ id: rejectingDoc.id, rejectionReason });
-      toastError(`Document marked as rejected: ${rejectionReason}`, 'Document Rejected');
+      toastError(t('documents.rejectSuccess', { reason: rejectionReason }), t('documents.rejectRecorded'));
       setRejectingDoc(null);
       setRejectionReason('');
     } catch (err: any) {
-      toastError(err?.message || 'فشل رفض المستند');
+      toastError(err?.message || t('documents.rejectError'));
     }
   };
 
   const handleUploadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const chosenEmp = employeeOptions.find(item => item.value === selectedUploadEmployeeId);
+    if (!selectedUploadEmployeeId && employeesList.length > 0) {
+      toastError('يرجى اختيار الموظف صاحب المستند بالبحث عنه أولاً', 'تنبيه');
+      return;
+    }
+    const chosenEmp = employeesList.find(item => item.id === selectedUploadEmployeeId);
     try {
       await uploadMutation.mutateAsync({
         file: selectedUploadFile || undefined,
-        employeeId: selectedUploadEmployeeId || (employeeOptions[0]?.value ?? 'emp-1'),
-        employeeName: chosenEmp?.name || uploadEmployeeName,
-        department: chosenEmp?.department || uploadDept,
+        employeeId: selectedUploadEmployeeId || (employeesList[0]?.id ?? 'emp-1'),
+        employeeName: chosenEmp ? (chosenEmp.arabicName || `${chosenEmp.firstName} ${chosenEmp.lastName}`) : uploadEmployeeName,
+        department: chosenEmp ? chosenEmp.departmentName : uploadDept,
         type: uploadType,
         title: uploadTitle || (selectedUploadFile ? selectedUploadFile.name.replace(/\.[^/.]+$/, '') : uploadFileName),
       });
-      success(`تم رفع وتوثيق المستند في النظام بنجاح.`, 'تم الرفع');
+      success(t('documents.uploadSuccess'), t('documents.uploadSuccessTitle'));
       setIsUploadOpen(false);
       setSelectedUploadFile(null);
       setUploadTitle('');
+      setSelectedUploadEmployeeId('');
     } catch (err: any) {
-      toastError(err?.message || 'فشل رفع المستند');
+      toastError(err?.message || t('documents.uploadError'));
     }
   };
 
@@ -256,7 +262,7 @@ export const DocumentsPage: React.FC = () => {
             <span className="text-slate-600 text-xs block">{row.uploadedAt || '-'}</span>
             {(row.verificationDate || row.verifiedAt) && (
               <span className="text-[10px] text-emerald-600 block font-medium">
-                موثق: {row.verificationDate || row.verifiedAt}
+                {t('documents.verifiedPrefix')} {row.verificationDate || row.verifiedAt}
               </span>
             )}
           </div>
@@ -264,23 +270,23 @@ export const DocumentsPage: React.FC = () => {
       },
       {
         key: 'notes',
-        header: t('documents.colNotes', 'Verification Notes / Details'),
+        header: t('documents.colNotes'),
         render: row => (
           <span className="text-slate-500 text-[11px] line-clamp-1 max-w-xs">
-            {row.rejectionReason ? `Reason: ${row.rejectionReason}` : row.notes || '-'}
+            {row.rejectionReason ? `${t('documents.reasonPrefix')} ${row.rejectionReason}` : row.notes || '-'}
           </span>
         ),
       },
       {
         key: 'actions',
-        header: t('common.actions', 'Actions'),
+        header: t('common.actions'),
         align: 'right',
         render: row => (
           <div className="flex items-center justify-end gap-1.5">
             <button
               onClick={() => setPreviewDoc(row)}
               className="p-1.5 rounded-lg text-slate-500 hover:text-brand-600 hover:bg-slate-100 transition-colors"
-              title={t('documents.previewTooltip', 'Preview Document')}
+              title={t('documents.previewTooltip')}
             >
               <Eye className="w-4 h-4" />
             </button>
@@ -290,7 +296,7 @@ export const DocumentsPage: React.FC = () => {
                 <button
                   onClick={() => handleVerify(row)}
                   className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 transition-colors"
-                  title={t('documents.verifyTooltip', 'Approve / Verify')}
+                  title={t('documents.verifyTooltip')}
                 >
                   <CheckCircle2 className="w-4 h-4" />
                 </button>
@@ -300,7 +306,7 @@ export const DocumentsPage: React.FC = () => {
                     setRejectionReason('');
                   }}
                   className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 transition-colors"
-                  title={t('documents.rejectTooltip', 'Reject')}
+                  title={t('documents.rejectTooltip')}
                 >
                   <XCircle className="w-4 h-4" />
                 </button>
@@ -310,7 +316,7 @@ export const DocumentsPage: React.FC = () => {
             <button
               onClick={() => setDeletingDoc(row)}
               className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
-              title={t('documents.deleteSingle', 'حذف المستند')}
+              title={t('documents.deleteSingle')}
             >
               <Trash2 className="w-4 h-4" />
             </button>
@@ -340,7 +346,7 @@ export const DocumentsPage: React.FC = () => {
               onClick={() => setIsDeleteAllModalOpen(true)}
               className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 border-rose-200"
             >
-              {t('documents.deleteAll', 'حذف جميع المستندات')}
+              {t('documents.deleteAll')}
             </Button>
           )}
 
@@ -361,7 +367,7 @@ export const DocumentsPage: React.FC = () => {
         keyExtractor={row => row.id}
         isLoading={isLoading}
         searchable
-        searchPlaceholder={t('documents.searchDocsPlaceholder', 'Search document name, filename, or employee...')}
+        searchPlaceholder={t('documents.searchDocsPlaceholder')}
         exportFilename="Apex_Enterprise_Compliance_Documents"
         selectable
         selectAllAcrossPages
@@ -375,7 +381,7 @@ export const DocumentsPage: React.FC = () => {
               onClick={() => setSelectedDocIds(documents.map(d => d.id))}
               disabled={ids.length === documents.length}
             >
-              {t('documents.selectAll', 'تحديد الكل')} ({documents.length})
+              {t('documents.selectAll')} ({documents.length})
             </Button>
             <Button
               variant="outline"
@@ -383,7 +389,7 @@ export const DocumentsPage: React.FC = () => {
               leftIcon={<Download className="w-3.5 h-3.5" />}
               onClick={handleExportSelectedDocs}
             >
-              {t('documents.exportSelected', 'تصدير المحدد')} ({ids.length})
+              {t('documents.exportSelected')} ({ids.length})
             </Button>
             <Button
               variant="danger"
@@ -398,26 +404,25 @@ export const DocumentsPage: React.FC = () => {
               }}
             >
               {ids.length === documents.length
-                ? t('documents.deleteAll', 'حذف جميع المستندات')
-                : t('documents.deleteSelected', { count: ids.length }) || `حذف المحدد (${ids.length})`}
+                ? t('documents.deleteAll')
+                : t('documents.deleteSelected', { count: ids.length })}
             </Button>
             <Button variant="ghost" size="sm" onClick={clear}>
-              {t('documents.clearSelection', 'إلغاء التحديد')}
+              {t('documents.clearSelection')}
             </Button>
           </div>
         )}
         filtersSlot={
           <div className="flex flex-wrap items-center gap-2">
-            {/* خانة تحديد كل المستندات */}
             <label
-              title={isAllDocsSelected ? t('documents.clearSelection', 'إلغاء التحديد') : t('documents.selectAll', 'تحديد الكل')}
+              title={isAllDocsSelected ? t('documents.clearSelection') : t('documents.selectAll')}
               className={cn(
                 'inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-semibold cursor-pointer transition-all shadow-sm select-none',
                 isAllDocsSelected
-                  ? 'bg-brand-50 border-brand-400 text-brand-800 ring-1 ring-brand-300'
+                  ? 'bg-brand-50 dark:bg-brand-950/40 border-brand-400 dark:border-brand-800/40 text-brand-800 dark:text-[#38BDF8] ring-1 ring-brand-300'
                   : isSomeDocsSelected
-                  ? 'bg-amber-50/70 border-amber-300 text-amber-900'
-                  : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50 hover:border-slate-400'
+                  ? 'bg-amber-50/70 dark:bg-amber-950/30 border-amber-300 dark:border-amber-800/40 text-amber-900 dark:text-amber-300'
+                  : 'bg-white dark:bg-[#0B0F19] border-slate-300 dark:border-[#1E293B] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#1E293B] hover:border-slate-400'
               )}
             >
               <input
@@ -427,41 +432,41 @@ export const DocumentsPage: React.FC = () => {
                   if (el) el.indeterminate = isSomeDocsSelected && !isAllDocsSelected;
                 }}
                 onChange={handleToggleSelectAllDocs}
-                className="w-4 h-4 rounded text-brand-600 focus:ring-brand-500 border-slate-300 cursor-pointer accent-brand-600"
+                className="w-4 h-4 rounded text-brand-600 focus:ring-brand-500 border-slate-300 dark:border-[#1E293B] cursor-pointer accent-brand-600"
               />
               <span className="whitespace-nowrap">
                 {isAllDocsSelected
-                  ? t('documents.allSelectedCount', { count: documents.length }) || `تم تحديد كل المستندات (${documents.length})`
+                  ? t('documents.allSelectedCount', { count: documents.length })
                   : isSomeDocsSelected
-                  ? t('documents.selectedCountOf', { selected: selectedDocIds.length, total: documents.length }) || `محدد (${selectedDocIds.length} من ${documents.length})`
-                  : t('documents.selectAllCount', { count: documents.length }) || `تحديد كل المستندات (${documents.length})`}
+                  ? t('documents.selectedCountOf', { selected: selectedDocIds.length, total: documents.length })
+                  : t('documents.selectAllCount', { count: documents.length })}
               </span>
             </label>
 
             <select
               value={selectedType}
               onChange={e => setSelectedType(e.target.value)}
-              className="text-xs rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-slate-700 focus:outline-none focus:ring-1 focus:ring-brand-500 cursor-pointer"
+              className="text-xs rounded-lg border border-slate-300 dark:border-[#1E293B] bg-white dark:bg-[#0B0F19] px-2.5 py-1.5 text-slate-700 dark:text-[#F8FAFC] focus:outline-none focus:ring-1 focus:ring-brand-500 cursor-pointer"
             >
-              <option value="all">{t('documents.allTypes', 'All Document Types')}</option>
-              <option value="national_id">{t('insurance.nationalId', 'National ID / Iqama')}</option>
-              <option value="qualification">{t('insurance.qualification', 'Academic Degree')}</option>
-              <option value="contract">{t('insurance.contract', 'Labor Contract')}</option>
-              <option value="insurance">{t('insurance.title', 'Insurance Document')}</option>
-              <option value="birth_certificate">{t('insurance.birthCert', 'Birth Certificate')}</option>
+              <option value="all">{t('documents.allTypes')}</option>
+              <option value="national_id">{t('documents.typeNationalId')}</option>
+              <option value="qualification">{t('documents.typeQualification')}</option>
+              <option value="contract">{t('documents.typeContract')}</option>
+              <option value="insurance">{t('documents.typeInsurance')}</option>
+              <option value="birth_certificate">{t('documents.typeBirthCert')}</option>
             </select>
 
             <select
               value={selectedStatus}
               onChange={e => setSelectedStatus(e.target.value)}
-              className="text-xs rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-slate-700 focus:outline-none focus:ring-1 focus:ring-brand-500 cursor-pointer"
+              className="text-xs rounded-lg border border-slate-300 dark:border-[#1E293B] bg-white dark:bg-[#0B0F19] px-2.5 py-1.5 text-slate-700 dark:text-[#F8FAFC] focus:outline-none focus:ring-1 focus:ring-brand-500 cursor-pointer"
             >
-              <option value="all">{t('documents.allStatuses', 'All Statuses')}</option>
-              <option value="verified">{t('documents.statusVerified', 'Verified')}</option>
-              <option value="under_review">{t('documents.statusUnderReview', 'Under Review')}</option>
-              <option value="missing">{t('documents.statusMissing', 'Missing')}</option>
-              <option value="rejected">{t('documents.statusRejected', 'Rejected')}</option>
-              <option value="expired">{t('documents.statusExpired', 'Expired')}</option>
+              <option value="all">{t('documents.allStatuses')}</option>
+              <option value="verified">{t('documents.statusVerified')}</option>
+              <option value="under_review">{t('documents.statusUnderReview')}</option>
+              <option value="missing">{t('documents.statusMissing')}</option>
+              <option value="rejected">{t('documents.statusRejected')}</option>
+              <option value="expired">{t('documents.statusExpired')}</option>
             </select>
           </div>
         }
@@ -473,49 +478,49 @@ export const DocumentsPage: React.FC = () => {
           isOpen={!!previewDoc}
           onClose={() => setPreviewDoc(null)}
           size="lg"
-          title={`Document Preview: ${previewDoc.title}`}
-          description={`Employee: ${previewDoc.employeeName} (${previewDoc.department})`}
+          title={t('documents.previewModalTitleWithDoc', { title: previewDoc.title })}
+          description={t('documents.previewEmployeeDesc', { name: previewDoc.employeeName, department: previewDoc.department })}
           footer={
             <div className="flex items-center justify-between w-full">
-              <span className="text-xs text-slate-500">File ID: {previewDoc.id}</span>
+              <span className="text-xs text-slate-500 dark:text-slate-400">{t('documents.fileId', { id: previewDoc.id })}</span>
               <Button
                 variant="primary"
                 size="sm"
                 leftIcon={<Download className="w-3.5 h-3.5" />}
                 onClick={() => {
-                  success(`Downloading ${previewDoc.fileName}...`);
+                  success(t('documents.downloading', { fileName: previewDoc.fileName }));
                   setPreviewDoc(null);
                 }}
               >
-                Download PDF
+                {t('documents.downloadPDF')}
               </Button>
             </div>
           }
         >
           <div className="space-y-4">
-            <div className="bg-slate-100 rounded-xl p-8 border border-slate-200 flex flex-col items-center justify-center text-center">
-              <FileText className="w-16 h-16 text-slate-400 mb-3" />
-              <h4 className="text-sm font-semibold text-slate-800">{previewDoc.fileName}</h4>
-              <p className="text-xs text-slate-500 mt-1">
-                Simulated Enterprise PDF Document • {previewDoc.fileSize}
+            <div className="bg-slate-100 dark:bg-[#0B0F19] rounded-xl p-8 border border-slate-200 dark:border-[#1E293B] flex flex-col items-center justify-center text-center">
+              <FileText className="w-16 h-16 text-slate-400 dark:text-slate-500 mb-3" />
+              <h4 className="text-sm font-semibold text-slate-800 dark:text-[#F8FAFC]">{previewDoc.fileName}</h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                {t('documents.simulatedDoc', { fileSize: previewDoc.fileSize })}
               </p>
               <div className="mt-4 flex gap-2">
                 {getStatusBadge(previewDoc.status)}
               </div>
             </div>
 
-            <div className="rounded-xl border border-slate-200 p-4 bg-slate-50/60 text-xs space-y-2">
+            <div className="rounded-xl border border-slate-200 dark:border-[#1E293B] p-4 bg-slate-50/60 dark:bg-[#111827]/60 text-xs space-y-2">
               <div className="flex justify-between">
-                <span className="text-slate-500">Verification Stamp:</span>
-                <span className="font-semibold text-slate-800">{previewDoc.verifiedBy || 'Pending verification'}</span>
+                <span className="text-slate-500 dark:text-slate-400">{t('documents.verificationStamp')}</span>
+                <span className="font-semibold text-slate-800 dark:text-slate-200">{previewDoc.verifiedBy || t('documents.pendingVerification')}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">Expiry Horizon:</span>
-                <span className="font-semibold text-slate-800">{previewDoc.expiryDate || 'No expiration set'}</span>
+                <span className="text-slate-500 dark:text-slate-400">{t('documents.expiryHorizon')}</span>
+                <span className="font-semibold text-slate-800 dark:text-slate-200">{previewDoc.expiryDate || t('documents.noExpirySet')}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">Compliance Notes:</span>
-                <span className="font-medium text-slate-800">{previewDoc.notes || 'No annotations recorded.'}</span>
+                <span className="text-slate-500 dark:text-slate-400">{t('documents.complianceNotes')}</span>
+                <span className="font-medium text-slate-800 dark:text-slate-200">{previewDoc.notes || t('documents.noAnnotations')}</span>
               </div>
             </div>
           </div>
@@ -528,12 +533,12 @@ export const DocumentsPage: React.FC = () => {
           isOpen={!!rejectingDoc}
           onClose={() => setRejectingDoc(null)}
           size="md"
-          title="Reject Document"
-          description={`Rejecting ${rejectingDoc.title} for ${rejectingDoc.employeeName}`}
+          title={t('documents.rejectModalTitle')}
+          description={t('documents.rejectModalDesc', { title: rejectingDoc.title, employeeName: rejectingDoc.employeeName })}
           footer={
             <>
               <Button variant="outline" size="sm" onClick={() => setRejectingDoc(null)}>
-                Cancel
+                {t('common.cancel')}
               </Button>
               <Button
                 variant="danger"
@@ -541,22 +546,22 @@ export const DocumentsPage: React.FC = () => {
                 disabled={!rejectionReason.trim()}
                 onClick={handleConfirmReject}
               >
-                Confirm Rejection
+                {t('documents.rejectConfirmBtn')}
               </Button>
             </>
           }
         >
           <div className="space-y-3">
-            <label className="block text-xs font-semibold text-slate-700">
-              Mandatory Rejection Reason *
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-200">
+              {t('documents.mandatoryRejectReason')}
             </label>
             <textarea
               rows={3}
               required
               value={rejectionReason}
               onChange={e => setRejectionReason(e.target.value)}
-              placeholder="e.g. Scanned copy is illegible, signature missing on page 2, or document expired..."
-              className="w-full text-xs rounded-lg border border-slate-300 p-3 text-slate-900 focus:outline-none focus:ring-1 focus:ring-rose-500 focus:border-rose-500"
+              placeholder={t('documents.rejectPlaceholder')}
+              className="w-full text-xs rounded-lg border border-slate-300 dark:border-[#1E293B] bg-white dark:bg-[#0B0F19] p-3 text-slate-900 dark:text-[#F8FAFC] placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-rose-500 focus:border-rose-500"
             />
           </div>
         </Modal>
@@ -568,52 +573,70 @@ export const DocumentsPage: React.FC = () => {
           isOpen={isUploadOpen}
           onClose={() => setIsUploadOpen(false)}
           size="md"
-          title="رفع وتوثيق مستند جديد"
-          description="ارفع مستنداً رسمياً لربطه بملف الموظف والتوثيق المالي والقانوني"
+          title={t('documents.uploadModalTitle')}
+          description={t('documents.uploadModalDesc')}
         >
           <form onSubmit={handleUploadSubmit} className="space-y-4 text-xs">
-            {employeeOptions.length > 0 ? (
-              <Select
-                label="الموظف صاحب المستند"
+            {employeesList.length > 0 ? (
+              <EmployeeSearchSelect
+                label={t('documents.docOwnerEmployee', 'الموظف صاحب المستند')}
                 required
-                value={selectedUploadEmployeeId || employeeOptions[0]?.value}
-                onChange={e => setSelectedUploadEmployeeId(e.target.value)}
-                options={employeeOptions.map(e => ({ value: e.value, label: e.label }))}
+                employees={employeesList}
+                selectedEmployeeId={selectedUploadEmployeeId}
+                onSelectEmployee={emp => {
+                  if (emp) {
+                    setSelectedUploadEmployeeId(emp.id);
+                    setUploadEmployeeName(emp.arabicName || `${emp.firstName} ${emp.lastName}`);
+                    setUploadDept(emp.departmentName);
+                  } else {
+                    setSelectedUploadEmployeeId('');
+                  }
+                }}
+                placeholder="ابحث باسم الموظف، الرقم القومي، الرقم الوظيفي، أو القسم..."
               />
             ) : (
               <Input
-                label="اسم الموظف"
+                label={t('documents.employeeNameLabel')}
                 required
                 value={uploadEmployeeName}
                 onChange={e => setUploadEmployeeName(e.target.value)}
               />
             )}
 
-            <Select
-              label="نوع وتصنيف المستند"
-              required
-              value={uploadType}
-              onChange={e => setUploadType(e.target.value as DocumentType)}
-              options={[
-                { value: 'national_id', label: 'بطاقة الرقم القومي (National ID)' },
-                { value: 'qualification', label: 'المؤهل الدراسي (Degree Certificate)' },
-                { value: 'contract', label: 'عقد العمل الموقع (Signed Contract)' },
-                { value: 'insurance', label: 'استمارة وسجل التأمينات (Insurance Form)' },
-                { value: 'birth_certificate', label: 'شهادة الميلاد (Birth Certificate)' },
-                { value: 'medical', label: 'الكشف الطبي وفيش جنائي (Medical / Clearance)' },
-                { value: 'other', label: 'مستند رسمي آخر (Other Document)' },
-              ]}
-            />
+            <div className="space-y-1">
+              <Select
+                label={t('documents.docCategoryLabel', 'نوع المستند / مسوغ التعيين')}
+                required
+                value={uploadType}
+                onChange={e => setUploadType(e.target.value as DocumentType)}
+                options={[
+                  { value: 'qualification', label: '🎓 أصل المؤهل الدراسي' },
+                  { value: 'birth_certificate', label: '📄 شهادة الميلاد (كمبيوتر)' },
+                  { value: 'national_id', label: '🪪 صورة بطاقة الرقم القومي (سارية)' },
+                  { value: 'contract', label: '📑 عقد العمل المعتمد' },
+                  { value: 'insurance', label: '🛡️ استمارة 1 / برنت تأميني' },
+                  { value: 'military_service', label: '🪖 شهادة الموقف من التجنيد' },
+                  { value: 'labor_permit', label: '💼 كعب العمل (مكتب التشغيل)' },
+                  { value: 'criminal_record', label: '⚖️ صحيفة الحالة الجنائية (فيش جنائي)' },
+                  { value: 'medical', label: '🏥 الشهادة الصحية / الفحص الطبي' },
+                  { value: 'other', label: '📂 مستند رسمي آخر' },
+                ]}
+              />
+              <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1 mt-1">
+                <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span>المستند المرفوع سيحدّث تلقائياً شيت مسوغات التعيين والتأمينات ويتحول من ناقص إلى كامل.</span>
+              </p>
+            </div>
 
             <Input
-              label="عنوان أو وصف المستند"
+              label={t('documents.docTitleLabel')}
               required
-              placeholder="مثال: بطاقة الرقم القومي - وجهين، عقد 2026..."
+              placeholder={t('documents.docTitlePlaceholder')}
               value={uploadTitle}
               onChange={e => setUploadTitle(e.target.value)}
             />
 
-            <div className="border-2 border-dashed border-slate-300 rounded-xl p-5 text-center bg-slate-50 hover:bg-slate-100 transition-colors">
+            <div className="border-2 border-dashed border-slate-300 dark:border-[#1E293B] rounded-xl p-5 text-center bg-slate-50 dark:bg-[#0B0F19] hover:bg-slate-100 dark:hover:bg-[#1E293B]/40 transition-colors">
               <input
                 type="file"
                 id="doc-file-input"
@@ -629,18 +652,18 @@ export const DocumentsPage: React.FC = () => {
                 }}
               />
               <label htmlFor="doc-file-input" className="cursor-pointer block">
-                <Upload className="w-8 h-8 text-brand-600 mx-auto mb-2" />
+                <Upload className="w-8 h-8 text-brand-600 dark:text-[#38BDF8] mx-auto mb-2" />
                 {selectedUploadFile ? (
                   <div>
-                    <p className="text-xs font-bold text-slate-800">{selectedUploadFile.name}</p>
-                    <p className="text-[11px] text-emerald-600 mt-1">
-                      تم اختيار الملف ({(selectedUploadFile.size / (1024 * 1024)).toFixed(2)} MB)
+                    <p className="text-xs font-bold text-slate-800 dark:text-[#F8FAFC]">{selectedUploadFile.name}</p>
+                    <p className="text-[11px] text-emerald-600 dark:text-emerald-400 mt-1">
+                      {t('documents.fileSelected', { size: (selectedUploadFile.size / (1024 * 1024)).toFixed(2) })}
                     </p>
                   </div>
                 ) : (
                   <div>
-                    <p className="text-xs font-semibold text-slate-700">اضغط هنا لاختيار ملف من جهازك</p>
-                    <p className="text-[11px] text-slate-400 mt-0.5">يدعم PDF, PNG, JPG حتى 15MB</p>
+                    <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">{t('documents.clickToChooseFile')}</p>
+                    <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">{t('documents.supportedFileFormats')}</p>
                   </div>
                 )}
               </label>
@@ -648,10 +671,10 @@ export const DocumentsPage: React.FC = () => {
 
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="secondary" size="sm" type="button" onClick={() => setIsUploadOpen(false)}>
-                إلغاء
+                {t('common.cancel')}
               </Button>
               <Button variant="primary" size="sm" type="submit">
-                رفع وحفظ المستند
+                {t('documents.uploadAndSave')}
               </Button>
             </div>
           </form>
@@ -663,10 +686,10 @@ export const DocumentsPage: React.FC = () => {
         isOpen={isDeleteAllModalOpen}
         onClose={() => setIsDeleteAllModalOpen(false)}
         onConfirm={handleConfirmDeleteAllDocs}
-        title={t('documents.confirmDeleteAllTitle', 'تأكيد حذف جميع المستندات')}
+        title={t('documents.confirmDeleteAllTitle')}
         message={t('documents.confirmDeleteAllMessage', { count: documents.length })}
-        confirmLabel={t('documents.confirmDeleteAllButton', 'نعم، حذف جميع المستندات نهائياً')}
-        cancelLabel={t('common.cancel', 'إلغاء')}
+        confirmLabel={t('documents.confirmDeleteAllButton')}
+        cancelLabel={t('common.cancel')}
         isLoading={isDeleting}
         isDestructive
       />
@@ -676,10 +699,10 @@ export const DocumentsPage: React.FC = () => {
         isOpen={isBulkDeleteModalOpen}
         onClose={() => setIsBulkDeleteModalOpen(false)}
         onConfirm={handleConfirmBulkDeleteDocs}
-        title={t('documents.confirmBulkDeleteTitle', 'تأكيد حذف المستندات المحددة')}
+        title={t('documents.confirmBulkDeleteTitle')}
         message={t('documents.confirmBulkDeleteMessage', { count: selectedDocIds.length })}
-        confirmLabel={t('documents.confirmBulkDeleteButton', 'حذف المحدد نهائياً')}
-        cancelLabel={t('common.cancel', 'إلغاء')}
+        confirmLabel={t('documents.confirmBulkDeleteButton')}
+        cancelLabel={t('common.cancel')}
         isLoading={isDeleting}
         isDestructive
       />
@@ -689,10 +712,10 @@ export const DocumentsPage: React.FC = () => {
         isOpen={!!deletingDoc}
         onClose={() => setDeletingDoc(null)}
         onConfirm={handleConfirmSingleDeleteDoc}
-        title={t('documents.confirmSingleDeleteTitle', 'تأكيد حذف المستند')}
+        title={t('documents.confirmSingleDeleteTitle')}
         message={t('documents.confirmSingleDeleteMessage', { name: deletingDoc?.title || deletingDoc?.fileName || '' })}
-        confirmLabel={t('documents.confirmSingleDeleteButton', 'حذف نهائي')}
-        cancelLabel={t('common.cancel', 'إلغاء')}
+        confirmLabel={t('documents.confirmSingleDeleteButton')}
+        cancelLabel={t('common.cancel')}
         isLoading={isDeleting}
         isDestructive
       />

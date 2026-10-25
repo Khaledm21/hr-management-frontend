@@ -69,19 +69,6 @@ export const PayrollPage: React.FC = () => {
     }
   }, [selectedPeriod, selectedDept, selectedStatus]);
 
-  if (!can('payroll', 'view')) {
-    return (
-      <div className="text-center py-16 bg-white rounded-2xl border border-slate-200">
-        <Lock className="w-12 h-12 text-amber-500 mx-auto mb-3" />
-        <h3 className="text-base font-bold text-slate-900">Restricted Payroll Domain</h3>
-        <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
-          {t('payroll.restrictedNotice')} Current persona ({role}) has no payroll access permissions.
-          Please switch to HR Manager or System Admin in the top header.
-        </p>
-      </div>
-    );
-  }
-
   const handleLockAndApprove = async () => {
     await payrollService.updatePeriodStatus(selectedPeriod, 'locked', 'Sarah Al-Ghamdi (HR Director)');
     success(`Payroll for period ${selectedPeriod} has been successfully locked and authorized for bank WPS disbursement.`, 'Payroll Locked');
@@ -107,8 +94,8 @@ export const PayrollPage: React.FC = () => {
         sortable: true,
         render: row => (
           <div>
-            <span className="font-semibold text-slate-900 block">{row.employeeName}</span>
-            <span className="text-[11px] font-mono text-slate-400">{row.employeeCode}</span>
+            <span className="font-semibold text-slate-900 dark:text-[#F8FAFC] block">{row.employeeName}</span>
+            <span className="text-[11px] font-mono text-slate-400 dark:text-slate-500">{row.employeeCode}</span>
           </div>
         ),
       },
@@ -116,14 +103,14 @@ export const PayrollPage: React.FC = () => {
         key: 'department',
         header: 'Department',
         sortable: true,
-        render: row => <span className="text-slate-600 font-medium">{row.department}</span>,
+        render: row => <span className="text-slate-600 dark:text-slate-400 font-medium">{row.department}</span>,
       },
       {
         key: 'basicSalary',
         header: t('payroll.basicSalary'),
         sortable: true,
         render: row => (
-          <span className="font-mono text-slate-700">SAR {row.basicSalary.toLocaleString()}</span>
+          <span className="font-mono text-slate-700 dark:text-slate-300">SAR {row.basicSalary.toLocaleString()}</span>
         ),
       },
       {
@@ -132,7 +119,7 @@ export const PayrollPage: React.FC = () => {
         sortable: true,
         accessor: row => row.housingAllowance + row.transportAllowance + row.otherAllowances,
         render: row => (
-          <span className="font-mono text-slate-700">
+          <span className="font-mono text-slate-700 dark:text-slate-300">
             SAR {(row.housingAllowance + row.transportAllowance + row.otherAllowances).toLocaleString()}
           </span>
         ),
@@ -142,7 +129,7 @@ export const PayrollPage: React.FC = () => {
         header: t('payroll.deductions'),
         sortable: true,
         render: row => (
-          <span className="font-mono text-rose-600 font-medium">
+          <span className="font-mono text-rose-600 dark:text-rose-400 font-medium">
             - SAR {row.totalDeductions.toLocaleString()}
           </span>
         ),
@@ -152,7 +139,7 @@ export const PayrollPage: React.FC = () => {
         header: t('payroll.netSalary'),
         sortable: true,
         render: row => (
-          <span className="font-mono font-bold text-emerald-700">
+          <span className="font-mono font-bold text-emerald-700 dark:text-emerald-400">
             SAR {row.netSalary.toLocaleString()}
           </span>
         ),
@@ -181,14 +168,27 @@ export const PayrollPage: React.FC = () => {
     [navigate, t]
   );
 
+  if (!can('payroll', 'view')) {
+    return (
+      <div className="text-center py-16 bg-white dark:bg-[#151D2E] rounded-2xl border border-slate-200 dark:border-[#1E293B]">
+        <Lock className="w-12 h-12 text-amber-500 mx-auto mb-3" />
+        <h3 className="text-base font-bold text-slate-900 dark:text-[#F8FAFC]">Restricted Payroll Domain</h3>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-md mx-auto">
+          {t('payroll.restrictedNotice')} Current persona ({role}) has no payroll access permissions.
+          Please switch to HR Manager or System Admin in the top header.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-[#F8FAFC] tracking-tight">
             {t('payroll.title')}
           </h1>
-          <p className="text-xs text-slate-500 mt-1">{t('payroll.subtitle')}</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{t('payroll.subtitle')}</p>
         </div>
 
         <div className="flex items-center gap-2">
@@ -196,7 +196,7 @@ export const PayrollPage: React.FC = () => {
           <select
             value={selectedPeriod}
             onChange={e => setSelectedPeriod(e.target.value)}
-            className="text-xs font-semibold rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-800 shadow-sm focus:outline-none focus:ring-1 focus:ring-brand-500 cursor-pointer"
+            className="text-xs font-semibold rounded-lg border border-slate-300 dark:border-[#1E293B] bg-white dark:bg-[#0B0F19] px-3 py-2 text-slate-800 dark:text-[#F8FAFC] shadow-sm focus:outline-none focus:ring-1 focus:ring-brand-500 dark:focus:ring-[#38BDF8] cursor-pointer"
           >
             {summaries.map(s => (
               <option key={s.period} value={s.period}>
@@ -223,13 +223,13 @@ export const PayrollPage: React.FC = () => {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <Card>
             <CardContent className="p-4 sm:p-5">
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
                 {t('payroll.currentPeriod')}
               </span>
-              <span className="text-xl font-bold text-slate-900 mt-1 block">
+              <span className="text-xl font-bold text-slate-900 dark:text-[#F8FAFC] mt-1 block">
                 {currentSummary.period}
               </span>
-              <span className="text-[11px] text-slate-400">
+              <span className="text-[11px] text-slate-400 dark:text-slate-500">
                 {currentSummary.totalEmployees} Active Salaried
               </span>
             </CardContent>
@@ -237,37 +237,37 @@ export const PayrollPage: React.FC = () => {
 
           <Card>
             <CardContent className="p-4 sm:p-5">
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
                 {t('payroll.grossPayroll')}
               </span>
-              <span className="text-xl font-bold text-slate-900 mt-1 block">
+              <span className="text-xl font-bold text-slate-900 dark:text-[#F8FAFC] mt-1 block">
                 SAR {(currentSummary.grossTotal / 1000).toLocaleString()}k
               </span>
-              <span className="text-[11px] text-slate-400">Basic + Housing + Transport</span>
+              <span className="text-[11px] text-slate-400 dark:text-slate-500">Basic + Housing + Transport</span>
             </CardContent>
           </Card>
 
           <Card>
             <CardContent className="p-4 sm:p-5">
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
                 {t('payroll.deductions')}
               </span>
-              <span className="text-xl font-bold text-rose-600 mt-1 block">
+              <span className="text-xl font-bold text-rose-600 dark:text-rose-400 mt-1 block">
                 - SAR {(currentSummary.deductionsTotal / 1000).toLocaleString()}k
               </span>
-              <span className="text-[11px] text-slate-400">GOSI & Advance deductions</span>
+              <span className="text-[11px] text-slate-400 dark:text-slate-500">GOSI & Advance deductions</span>
             </CardContent>
           </Card>
 
           <Card>
             <CardContent className="p-4 sm:p-5">
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
                 {t('payroll.netPayroll')}
               </span>
-              <span className="text-xl font-bold text-emerald-600 mt-1 block">
+              <span className="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-1 block">
                 SAR {(currentSummary.netTotal / 1000).toLocaleString()}k
               </span>
-              <span className="text-[11px] text-emerald-700 font-medium">
+              <span className="text-[11px] text-emerald-700 dark:text-emerald-400 font-medium">
                 WPS Disbursement Total
               </span>
             </CardContent>
@@ -289,7 +289,7 @@ export const PayrollPage: React.FC = () => {
             <select
               value={selectedDept}
               onChange={e => setSelectedDept(e.target.value)}
-              className="text-xs rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-slate-700 focus:outline-none focus:ring-1 focus:ring-brand-500 cursor-pointer"
+              className="text-xs rounded-lg border border-slate-300 dark:border-[#1E293B] bg-white dark:bg-[#0B0F19] px-2.5 py-1.5 text-slate-700 dark:text-[#F8FAFC] focus:outline-none focus:ring-1 focus:ring-brand-500 dark:focus:ring-[#38BDF8] cursor-pointer"
             >
               <option value="all">All Departments</option>
               {mockDepartments.map(d => (
@@ -302,7 +302,7 @@ export const PayrollPage: React.FC = () => {
             <select
               value={selectedStatus}
               onChange={e => setSelectedStatus(e.target.value)}
-              className="text-xs rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-slate-700 focus:outline-none focus:ring-1 focus:ring-brand-500 cursor-pointer"
+              className="text-xs rounded-lg border border-slate-300 dark:border-[#1E293B] bg-white dark:bg-[#0B0F19] px-2.5 py-1.5 text-slate-700 dark:text-[#F8FAFC] focus:outline-none focus:ring-1 focus:ring-brand-500 dark:focus:ring-[#38BDF8] cursor-pointer"
             >
               <option value="all">All Statuses</option>
               <option value="under_review">Under Review</option>
