@@ -1,10 +1,23 @@
 import { AdvanceItem, AdvanceStatus } from '../types';
 import { mockAdvances } from '../mocks/advances';
+import { apiClient } from './apiClient';
 
 let advancesState = [...mockAdvances];
 
 export const advanceService = {
   async getAdvances(status?: AdvanceStatus | 'all', search?: string): Promise<AdvanceItem[]> {
+    if (apiClient.isBackendAvailable()) {
+      try {
+        const res = await apiClient.get<any>('/advances', { params: { status: status !== 'all' ? status : undefined, search } });
+        const list: AdvanceItem[] = Array.isArray(res) ? res : res?.data || [];
+        if (list.length > 0) {
+          advancesState = list;
+          return list;
+        }
+      } catch (err) {
+        console.warn('Backend unavailable for getAdvances, using fallback data:', err);
+      }
+    }
     await new Promise(res => setTimeout(res, 50));
     let list = [...advancesState];
 

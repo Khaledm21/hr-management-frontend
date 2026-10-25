@@ -7,6 +7,7 @@ import {
   DocRequirementRule,
 } from '../mocks/settings';
 import { auditService } from './auditService';
+import { apiClient } from './apiClient';
 
 const STORAGE_KEY = 'new_hope_company_settings';
 
@@ -39,6 +40,18 @@ let reqsState = [...mockDocumentRequirements];
 
 export const settingsService = {
   async getCompanySettings(): Promise<CompanySettings> {
+    if (apiClient.isBackendAvailable()) {
+      try {
+        const res = await apiClient.get<any>('/settings');
+        const data = res?.data || res;
+        if (data && (data.companyName || data.companyNameAr)) {
+          settingsState = { ...settingsState, ...data };
+          return { ...settingsState };
+        }
+      } catch (err) {
+        console.warn('Backend /settings unavailable, using local settings:', err);
+      }
+    }
     await new Promise(res => setTimeout(res, 20));
     return { ...settingsState };
   },
@@ -48,6 +61,13 @@ export const settingsService = {
   },
 
   async updateCompanySettings(updates: Partial<CompanySettings>): Promise<CompanySettings> {
+    if (apiClient.isBackendAvailable()) {
+      try {
+        await apiClient.put('/settings', updates);
+      } catch (err) {
+        console.warn('Backend PUT /settings failed, saved locally:', err);
+      }
+    }
     await new Promise(res => setTimeout(res, 40));
     settingsState = { ...settingsState, ...updates };
     try {

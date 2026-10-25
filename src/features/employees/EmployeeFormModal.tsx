@@ -8,7 +8,7 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { useToast } from '../../components/ui/Toast';
-import { useDepartments, usePositions } from '../../hooks/queries';
+import { useDepartments, usePositionsQuery } from '../../hooks/queries';
 import { Employee } from '../../types';
 import {
   Check,
@@ -146,7 +146,7 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
   });
 
   const { data: departments = [] } = useDepartments();
-  const { data: allPositions = [] } = usePositions();
+  const { data: allPositions = [] } = usePositionsQuery();
 
   // Populate ALL form fields whenever initialData changes or the modal opens!
   useEffect(() => {
@@ -232,7 +232,28 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
   }, [isOpen, initialData, reset, departments, allPositions]);
 
   const selectedDeptId = watch('departmentId');
-  const availablePositions = allPositions.filter(p => !selectedDeptId || p.departmentId === selectedDeptId);
+
+  // Dynamic positions list based on selected department:
+  // 1. If positions match the selected department, show them.
+  // 2. If the department has no positions assigned yet, show all positions from the module so the user can always pick!
+  const availablePositions = useMemo(() => {
+    if (!selectedDeptId) return allPositions;
+    const matching = allPositions.filter(p => p.departmentId === selectedDeptId);
+    return matching.length > 0 ? matching : allPositions;
+  }, [allPositions, selectedDeptId]);
+
+  // When department changes, sync position to the first available position in that department
+  useEffect(() => {
+    if (selectedDeptId && allPositions.length > 0) {
+      const currentPosId = watch('positionId');
+      const matching = allPositions.filter(p => p.departmentId === selectedDeptId);
+      if (matching.length > 0) {
+        if (!currentPosId || !matching.some(p => p.id === currentPosId)) {
+          setValue('positionId', matching[0].id);
+        }
+      }
+    }
+  }, [selectedDeptId, allPositions, setValue, watch]);
 
   const steps = [
     { number: 1, title: t('employees.step1Title', 'البيانات الشخصية') },
@@ -317,9 +338,10 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
             }
           : undefined,
         departmentId: data.departmentId,
-        departmentName: selectedDept?.name || 'Department',
+        departmentName: selectedDept?.nameAr || selectedDept?.name || 'Department',
         positionId: data.positionId,
-        positionTitle: selectedPos?.title || 'Position',
+        positionTitle: selectedPos?.titleAr || selectedPos?.title || 'Position',
+        chinesePosition: selectedPos?.titleZh || undefined,
         employmentType: data.employmentType,
         employmentStatus: data.employmentStatus,
         hireDate: data.hireDate,
@@ -591,13 +613,19 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
                 label={t('employees.departmentLabel', 'القسم / الإدارة')}
                 required
                 {...register('departmentId')}
-                options={departments.map(d => ({ value: d.id, label: `${d.name} (${d.code})` }))}
+                options={departments.map(d => ({
+                  value: d.id,
+                  label: `${d.nameAr || d.name}${d.code ? ` (${d.code})` : ''}`,
+                }))}
               />
               <Select
                 label={t('employees.positionLabel', 'المسمى الوظيفي')}
                 required
                 {...register('positionId')}
-                options={availablePositions.map(p => ({ value: p.id, label: `${p.title} (${p.level})` }))}
+                options={availablePositions.map(p => ({
+                  value: p.id,
+                  label: `${p.titleAr || p.title}${p.level ? ` (${p.level})` : ''}`,
+                }))}
               />
               <Select
                 label={t('employees.employmentTypeLabel', 'نوع التوظيف')}
@@ -852,13 +880,13 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
                   <div>
                     <span className="text-slate-500 dark:text-slate-400 block text-[11px]">{t('employees.departmentLabel', 'الإدارة / القسم')}:</span>
                     <span className="font-semibold text-slate-800 dark:text-slate-200">
-                      {departments.find(d => d.id === formValues.departmentId)?.name || t('common.department', 'القسم')}
+                      {departments.find(d => d.id === formValues.departmentId)?.nameAr || departments.find(d => d.id === formValues.departmentId)?.name || t('common.department', 'القسم')}
                     </span>
                   </div>
                   <div>
                     <span className="text-slate-500 dark:text-slate-400 block text-[11px]">{t('employees.positionLabel', 'المسمى الوظيفي')}:</span>
                     <span className="font-semibold text-slate-800 dark:text-slate-200">
-                      {allPositions.find(p => p.id === formValues.positionId)?.title || t('common.position', 'الوظيفة')}
+                      {allPositions.find(p => p.id === formValues.positionId)?.titleAr || allPositions.find(p => p.id === formValues.positionId)?.title || t('common.position', 'الوظيفة')}
                     </span>
                   </div>
                   <div>

@@ -1,5 +1,6 @@
 import { LeaveRequest, LeaveBalance, LeaveStatus, LeaveType } from '../types';
 import { mockLeaveRequests, mockLeaveBalances } from '../mocks/leave';
+import { apiClient } from './apiClient';
 
 let requestsState = [...mockLeaveRequests];
 let balancesState = [...mockLeaveBalances];
@@ -13,6 +14,18 @@ export interface LeaveFilterParams {
 
 export const leaveService = {
   async getLeaveRequests(params: LeaveFilterParams = {}): Promise<LeaveRequest[]> {
+    if (apiClient.isBackendAvailable()) {
+      try {
+        const res = await apiClient.get<any>('/leave-requests', { params });
+        const list: LeaveRequest[] = Array.isArray(res) ? res : res?.data || [];
+        if (list.length > 0) {
+          requestsState = list;
+          return list;
+        }
+      } catch (err) {
+        console.warn('Backend unavailable for getLeaveRequests, using fallback data:', err);
+      }
+    }
     await new Promise(res => setTimeout(res, 50));
     let filtered = [...requestsState];
 

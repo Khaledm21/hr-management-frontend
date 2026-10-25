@@ -46,8 +46,22 @@ function openDB(): Promise<IDBDatabase> {
   });
 }
 
+import { apiClient } from '../../../services/apiClient';
+
 export const customTemplatesStorage = {
   async getAll(): Promise<CustomFormTemplate[]> {
+    if (apiClient.isBackendAvailable()) {
+      try {
+        const res = await apiClient.get<any>('/custom-templates');
+        const list = Array.isArray(res) ? res : res?.data;
+        if (Array.isArray(list) && list.length > 0) {
+          return list;
+        }
+      } catch (err) {
+        console.warn('Backend /custom-templates unavailable, falling back to local storage:', err);
+      }
+    }
+
     try {
       const db = await openDB();
       return new Promise((resolve, reject) => {
@@ -69,6 +83,14 @@ export const customTemplatesStorage = {
   },
 
   async save(template: CustomFormTemplate): Promise<void> {
+    if (apiClient.isBackendAvailable()) {
+      try {
+        await apiClient.post('/custom-templates', template);
+      } catch (err) {
+        console.warn('Backend POST /custom-templates failed, saving locally:', err);
+      }
+    }
+
     try {
       const db = await openDB();
       await new Promise<void>((resolve, reject) => {
@@ -92,6 +114,14 @@ export const customTemplatesStorage = {
   },
 
   async delete(id: string): Promise<void> {
+    if (apiClient.isBackendAvailable()) {
+      try {
+        await apiClient.delete(`/custom-templates/${id}`);
+      } catch (err) {
+        console.warn('Backend DELETE /custom-templates failed, deleting locally:', err);
+      }
+    }
+
     try {
       const db = await openDB();
       await new Promise<void>((resolve, reject) => {

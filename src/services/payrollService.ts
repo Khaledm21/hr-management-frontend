@@ -1,5 +1,6 @@
 import { PayrollItem, PayrollPeriodSummary, PayrollStatus } from '../types';
 import { mockPayrollSummaries, generatePayrollItems } from '../mocks/payroll';
+import { apiClient } from './apiClient';
 
 let summariesState = [...mockPayrollSummaries];
 const payrollItemsCache: Record<string, PayrollItem[]> = {
@@ -17,6 +18,18 @@ export interface PayrollFilterParams {
 
 export const payrollService = {
   async getPayrollSummaries(): Promise<PayrollPeriodSummary[]> {
+    if (apiClient.isBackendAvailable()) {
+      try {
+        const res = await apiClient.get<any>('/payroll/summaries');
+        const list: PayrollPeriodSummary[] = Array.isArray(res) ? res : res?.data || [];
+        if (list.length > 0) {
+          summariesState = list;
+          return list;
+        }
+      } catch (err) {
+        console.warn('Backend unavailable for getPayrollSummaries, using fallback data:', err);
+      }
+    }
     await new Promise(res => setTimeout(res, 40));
     return [...summariesState];
   },

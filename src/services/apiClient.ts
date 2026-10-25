@@ -4,7 +4,17 @@
  * Supports graceful fallback to in-memory mock data when backend server is offline or in development mode.
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const getDefaultApiUrl = () => {
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+    return 'https://hr-management-backend-ud5v.onrender.com/api';
+  }
+  return 'http://localhost:5000/api';
+};
+
+const API_BASE_URL = getDefaultApiUrl();
 const FORCE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
 
 export interface ApiResponse<T = any> {
@@ -61,8 +71,9 @@ class ApiClient {
   }
 
   private buildUrl(endpoint: string, params?: Record<string, any>): string {
+    const base = this.baseURL.replace(/\/+$/, '');
     const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-    const url = new URL(`${this.baseURL}${cleanEndpoint}`);
+    const url = new URL(`${base}${cleanEndpoint}`);
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
         if (value !== undefined && value !== null && value !== '') {

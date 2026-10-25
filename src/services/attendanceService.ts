@@ -1,5 +1,6 @@
 import { AttendanceRecord, AttendanceStatus } from '../types';
 import { mockAttendanceRecords } from '../mocks/attendance';
+import { apiClient } from './apiClient';
 
 let attendanceState = [...mockAttendanceRecords];
 
@@ -12,6 +13,18 @@ export interface AttendanceFilterParams {
 
 export const attendanceService = {
   async getAttendance(params: AttendanceFilterParams = {}): Promise<AttendanceRecord[]> {
+    if (apiClient.isBackendAvailable()) {
+      try {
+        const res = await apiClient.get<any>('/attendance', { params });
+        const list: AttendanceRecord[] = Array.isArray(res) ? res : res?.data || [];
+        if (list.length > 0) {
+          attendanceState = list;
+          return list;
+        }
+      } catch (err) {
+        console.warn('Backend unavailable for getAttendance, using fallback data:', err);
+      }
+    }
     await new Promise(res => setTimeout(res, 50));
     let filtered = [...attendanceState];
 

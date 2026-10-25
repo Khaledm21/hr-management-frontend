@@ -19,14 +19,17 @@ export const useDepartments = () => {
   });
 };
 
+import { positionService } from '../../services/positionService';
+import { positionKeys } from './usePositionQueries';
+
 /**
- * Fetch positions by department ID
+ * Fetch positions with caching, fully unified with positions module
  */
 export const usePositions = (departmentId?: string) => {
   return useQuery({
-    queryKey: departmentKeys.positions(departmentId),
-    queryFn: () => departmentService.getPositions(departmentId),
-    staleTime: 10 * 60 * 1000,
+    queryKey: positionKeys.list(departmentId && departmentId !== 'all' ? { departmentId } : {}),
+    queryFn: () => positionService.getPositions(departmentId && departmentId !== 'all' ? { departmentId } : {}),
+    staleTime: 5 * 60 * 1000,
   });
 };
 
