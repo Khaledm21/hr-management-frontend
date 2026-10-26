@@ -338,9 +338,9 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
             }
           : undefined,
         departmentId: data.departmentId,
-        departmentName: selectedDept?.nameAr || selectedDept?.name || 'Department',
+        departmentName: selectedDept?.name || selectedDept?.nameAr || 'Department',
         positionId: data.positionId,
-        positionTitle: selectedPos?.titleAr || selectedPos?.title || 'Position',
+        positionTitle: selectedPos?.title || selectedPos?.titleAr || 'Position',
         chinesePosition: selectedPos?.titleZh || undefined,
         employmentType: data.employmentType,
         employmentStatus: data.employmentStatus,
@@ -615,7 +615,7 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
                 {...register('departmentId')}
                 options={departments.map(d => ({
                   value: d.id,
-                  label: `${d.nameAr || d.name}${d.code ? ` (${d.code})` : ''}`,
+                  label: `${d.name || d.nameAr}${d.code ? ` (${d.code})` : ''}`,
                 }))}
               />
               <Select
@@ -624,7 +624,7 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
                 {...register('positionId')}
                 options={availablePositions.map(p => ({
                   value: p.id,
-                  label: `${p.titleAr || p.title}${p.level ? ` (${p.level})` : ''}`,
+                  label: `${p.title || p.titleAr}${p.level ? ` (${p.level})` : ''}`,
                 }))}
               />
               <Select
@@ -880,13 +880,13 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
                   <div>
                     <span className="text-slate-500 dark:text-slate-400 block text-[11px]">{t('employees.departmentLabel', 'الإدارة / القسم')}:</span>
                     <span className="font-semibold text-slate-800 dark:text-slate-200">
-                      {departments.find(d => d.id === formValues.departmentId)?.nameAr || departments.find(d => d.id === formValues.departmentId)?.name || t('common.department', 'القسم')}
+                      {departments.find(d => d.id === formValues.departmentId)?.name || departments.find(d => d.id === formValues.departmentId)?.nameAr || t('common.department', 'القسم')}
                     </span>
                   </div>
                   <div>
                     <span className="text-slate-500 dark:text-slate-400 block text-[11px]">{t('employees.positionLabel', 'المسمى الوظيفي')}:</span>
                     <span className="font-semibold text-slate-800 dark:text-slate-200">
-                      {allPositions.find(p => p.id === formValues.positionId)?.titleAr || allPositions.find(p => p.id === formValues.positionId)?.title || t('common.position', 'الوظيفة')}
+                      {allPositions.find(p => p.id === formValues.positionId)?.title || allPositions.find(p => p.id === formValues.positionId)?.titleAr || t('common.position', 'الوظيفة')}
                     </span>
                   </div>
                   <div>

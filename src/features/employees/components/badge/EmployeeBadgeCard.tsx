@@ -13,6 +13,54 @@ export interface EmployeeBadgeCardProps {
   printMode?: boolean;
 }
 
+const ARABIC_DEPT_TRANSLATIONS: Record<string, string> = {
+  'الموارد البشرية والشؤون الإدارية': 'HUMAN RESOURCES',
+  'قطاع الإنتاج والتشغيل': 'PRODUCTION UNIT',
+  'مبيعات قطاع الأسماك': 'SALES DEPT - FISH',
+  'مبيعات قطاع الدواجن': 'SALES DEPT - POULTRY',
+  'الإدارة المالية والحسابات': 'FINANCE DEPARTMENT',
+  'رقابة الجودة والمعامل': 'QUALITY CONTROL',
+  'إدارة إنتاج الأسماك': 'PRODUCTION DEPT - FISH',
+  'إدارة إنتاج الدواجن': 'PRODUCTION DEPT - POULTRY',
+  'إدارة الإنتاج والتصنيع': 'PRODUCTION DEPARTMENT',
+};
+
+const ARABIC_POS_TRANSLATIONS: Record<string, string> = {
+  'مسؤول توظيف وتعيينات 2': 'Recruitment Specialist 2',
+  'مشرف إداري 1': 'Supervisor 1',
+  'كاتب شؤون إدارية 2': 'Administrative Clerk 2',
+  'مشرف حركة وسائقين': 'Driver Team Leader',
+  'مشرف أمن وحراسة': 'Security Team Leader',
+  'مشرف وردية أمن': 'Security Supervisor',
+  'فرد أمن وحراسة': 'Security Guard',
+  'عامل خدمات ونظافة': 'Cleaner',
+  'مساعد خدمات مطبخ': 'Kitchen Assistant',
+  'فرد حراسة خارجية': 'External Security Guard',
+  'موظف من ذوي الهمم (نسبة 5%)': 'Employee with Disability',
+  'محامي ومستشار شؤون قانونية': 'Lawyer',
+  'مستشار إداري وقانوني': 'Consultant',
+};
+
+function resolveEnglishDepartment(dept?: string): string {
+  if (!dept) return 'OPERATIONS';
+  const trimmed = dept.trim();
+  if (ARABIC_DEPT_TRANSLATIONS[trimmed]) return ARABIC_DEPT_TRANSLATIONS[trimmed];
+  for (const [ar, en] of Object.entries(ARABIC_DEPT_TRANSLATIONS)) {
+    if (trimmed.includes(ar)) return en;
+  }
+  return trimmed.toUpperCase();
+}
+
+function resolveEnglishPosition(pos?: string): string {
+  if (!pos) return 'Specialist';
+  const trimmed = pos.trim();
+  if (ARABIC_POS_TRANSLATIONS[trimmed]) return ARABIC_POS_TRANSLATIONS[trimmed];
+  for (const [ar, en] of Object.entries(ARABIC_POS_TRANSLATIONS)) {
+    if (trimmed.includes(ar)) return en;
+  }
+  return trimmed;
+}
+
 export const EmployeeBadgeCard: React.FC<EmployeeBadgeCardProps> = ({
   employee,
   orientation = 'vertical',
@@ -25,9 +73,9 @@ export const EmployeeBadgeCard: React.FC<EmployeeBadgeCardProps> = ({
 
   const fullNameEn = `${employee.firstName} ${employee.lastName}`.trim().toUpperCase();
   const chineseName = employee.chineseName || '';
-  const positionTitle = employee.positionTitle || 'Specialist';
+  const positionTitle = resolveEnglishPosition(employee.positionTitle);
   const chinesePosition = employee.chinesePosition || '';
-  const departmentName = employee.departmentName || 'Operations';
+  const departmentName = resolveEnglishDepartment(employee.departmentName);
   const employeeCode = employee.employeeId || 'NH-001';
 
   useEffect(() => {
