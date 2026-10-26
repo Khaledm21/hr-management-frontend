@@ -90,10 +90,10 @@ export const DocumentsPage: React.FC = () => {
   const [selectedUploadEmployeeId, setSelectedUploadEmployeeId] = useState<string>('');
   const [selectedUploadFile, setSelectedUploadFile] = useState<File | null>(null);
   const [uploadTitle, setUploadTitle] = useState<string>('');
-  const [uploadEmployeeName, setUploadEmployeeName] = useState('Mohammed Al-Ghamdi');
-  const [uploadDept, setUploadDept] = useState('Engineering & Technology');
+  const [uploadEmployeeName, setUploadEmployeeName] = useState<string>('');
+  const [uploadDept, setUploadDept] = useState<string>('');
   const [uploadType, setUploadType] = useState<DocumentType>('national_id');
-  const [uploadFileName, setUploadFileName] = useState('National_ID_Scan_2026.pdf');
+  const [uploadFileName, setUploadFileName] = useState<string>('');
 
   // Selection Helpers
   const isAllDocsSelected = documents.length > 0 && documents.every(d => selectedDocIds.includes(d.id));

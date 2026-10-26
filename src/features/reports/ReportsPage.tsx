@@ -15,6 +15,8 @@ import {
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { reportService, availableReports, ReportConfig } from '../../services/reportService';
+import { departmentService } from '../../services/departmentService';
+import { Department } from '../../types';
 import {
   BarChart,
   Bar,
@@ -33,6 +35,7 @@ export const ReportsPage: React.FC = () => {
 
   const [selectedReportId, setSelectedReportId] = useState<string>('rep-headcount');
   const [selectedDept, setSelectedDept] = useState<string>('all');
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [reportData, setReportData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -47,6 +50,10 @@ export const ReportsPage: React.FC = () => {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    departmentService.getDepartments().then(setDepartments).catch(() => {});
+  }, []);
 
   useEffect(() => {
     generateReport();
@@ -140,7 +147,7 @@ export const ReportsPage: React.FC = () => {
                 className="text-xs rounded-lg border border-slate-300 dark:border-[#1E293B] bg-white dark:bg-[#0B0F19] px-2.5 py-1.5 text-slate-800 dark:text-[#F8FAFC] focus:outline-none focus:ring-1 focus:ring-brand-500 cursor-pointer shadow-xs [&>option]:bg-white [&>option]:dark:bg-[#151D2E]"
               >
                 <option value="all">{t('reports.allDepartments', 'جميع الإدارات (على مستوى الشركة)')}</option>
-                {mockDepartments.map(d => (
+                {departments.map(d => (
                   <option key={d.id} value={d.id}>
                     {d.name}
                   </option>

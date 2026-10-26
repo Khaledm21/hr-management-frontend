@@ -16,7 +16,8 @@ import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { attendanceService } from '../../services/attendanceService';
-import { AttendanceRecord, AttendanceStatus } from '../../types';
+import { departmentService } from '../../services/departmentService';
+import { AttendanceRecord, AttendanceStatus, Department } from '../../types';
 
 export const AttendancePage: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -35,9 +36,14 @@ export const AttendancePage: React.FC = () => {
   const [selectedDept, setSelectedDept] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [selectedDate, setSelectedDate] = useState<string>('2026-03-30');
+  const [departments, setDepartments] = useState<Department[]>([]);
+
+  useEffect(() => {
+    departmentService.getDepartments().then(setDepartments).catch(() => {});
+  }, []);
 
   const getDeptName = (deptName: string) => {
-    const d = mockDepartments.find(
+    const d = departments.find(
       item => item.name === deptName || item.nameAr === deptName || item.code === deptName
     );
     if (!d) return deptName;
@@ -262,7 +268,7 @@ export const AttendancePage: React.FC = () => {
         isLoading={isLoading}
         searchable
         searchPlaceholder={t('attendance.searchPlaceholder')}
-        exportFilename={`Apex_Attendance_Log_${selectedDate}`}
+        exportFilename={`Attendance_Log_${selectedDate}`}
         filtersSlot={
           <div className="flex flex-wrap items-center gap-2">
             <select
@@ -271,7 +277,7 @@ export const AttendancePage: React.FC = () => {
               className="text-xs rounded-lg border border-slate-300 dark:border-[#1E293B] bg-white dark:bg-[#0B0F19] px-2.5 py-1.5 text-slate-700 dark:text-[#F8FAFC] focus:outline-none focus:ring-1 focus:ring-brand-500 dark:focus:ring-[#38BDF8] cursor-pointer"
             >
               <option value="all">{t('attendance.allDepartments')}</option>
-              {mockDepartments.map(d => (
+              {departments.map(d => (
                 <option key={d.id} value={d.name}>
                   {i18n.language === 'ar' ? (d.nameAr || d.name) : (i18n.language.startsWith('zh') ? (d.nameZh || d.name) : d.name)}
                 </option>

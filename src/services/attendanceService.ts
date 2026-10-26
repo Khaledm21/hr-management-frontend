@@ -1,8 +1,7 @@
 import { AttendanceRecord, AttendanceStatus } from '../types';
-import { mockAttendanceRecords } from '../mocks/attendance';
 import { apiClient } from './apiClient';
 
-let attendanceState = [...mockAttendanceRecords];
+let attendanceState: AttendanceRecord[] = [];
 
 export interface AttendanceFilterParams {
   search?: string;
@@ -22,10 +21,10 @@ export const attendanceService = {
           return list;
         }
       } catch (err) {
-        console.warn('Backend unavailable for getAttendance, using fallback data:', err);
+        console.warn('Backend unavailable for getAttendance:', err);
       }
     }
-    await new Promise(res => setTimeout(res, 50));
+    await new Promise(res => setTimeout(res, 30));
     let filtered = [...attendanceState];
 
     if (params.search) {
@@ -53,7 +52,7 @@ export const attendanceService = {
   },
 
   async getAttendanceStats() {
-    await new Promise(res => setTimeout(res, 30));
+    await new Promise(res => setTimeout(res, 20));
     const total = attendanceState.length;
     const present = attendanceState.filter(a => a.status === 'present').length;
     const late = attendanceState.filter(a => a.status === 'late').length;
@@ -66,7 +65,7 @@ export const attendanceService = {
       late,
       absent,
       onLeave,
-      attendanceRate: Math.round(((present + late) / (total || 1)) * 100),
+      attendanceRate: total > 0 ? Math.round(((present + late) / total) * 100) : 100,
     };
   },
 
@@ -83,13 +82,13 @@ export const attendanceService = {
         console.warn('Backend recordAttendance failed, applying locally:', err);
       }
     }
-    await new Promise(res => setTimeout(res, 50));
+    await new Promise(res => setTimeout(res, 30));
     const newRecord: AttendanceRecord = {
       id: `att-${Date.now()}`,
-      employeeId: data.employeeId || 'emp-1',
-      employeeName: data.employeeName || 'Employee',
-      employeeCode: data.employeeCode || '160301001',
-      department: data.department || 'Operations',
+      employeeId: data.employeeId || '',
+      employeeName: data.employeeName || '',
+      employeeCode: data.employeeCode || '',
+      department: data.department || '',
       date: data.date || new Date().toISOString().split('T')[0],
       checkIn: data.checkIn || '08:30',
       checkOut: data.checkOut,

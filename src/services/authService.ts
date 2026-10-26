@@ -13,24 +13,10 @@ export const demoAccounts: { role: RoleType; name: string; email: string; label:
   },
   {
     role: 'hr_manager',
-    name: 'Sarah Al-Ghamdi',
-    email: 'sarah.ghamdi@enterprise.com',
-    label: 'HR Manager',
+    name: 'Khaled Ashraf',
+    email: 'khaled.ashraf@enterprise.com',
+    label: 'Recruitment & HR Specialist',
     desc: 'Full workforce, approvals, payroll, contracts, leave & policy sign-offs',
-  },
-  {
-    role: 'hr_staff',
-    name: 'Noura Al-Shehri',
-    email: 'noura.shehri@enterprise.com',
-    label: 'HR Staff / Specialist',
-    desc: 'Employee directory, document verification, leave entry (no payroll)',
-  },
-  {
-    role: 'dept_manager',
-    name: 'Tariq Al-Mansoor',
-    email: 'tariq.mansoor@enterprise.com',
-    label: 'Department Manager (Engineering)',
-    desc: 'Team attendance, approval inbox for department leaves & contract requests',
   },
 ];
 

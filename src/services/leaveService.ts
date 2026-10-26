@@ -1,9 +1,8 @@
 import { LeaveRequest, LeaveBalance, LeaveStatus, LeaveType } from '../types';
-import { mockLeaveRequests, mockLeaveBalances } from '../mocks/leave';
 import { apiClient } from './apiClient';
 
-let requestsState = [...mockLeaveRequests];
-let balancesState = [...mockLeaveBalances];
+let requestsState: LeaveRequest[] = [];
+let balancesState: LeaveBalance[] = [];
 
 export interface LeaveFilterParams {
   search?: string;
@@ -23,10 +22,10 @@ export const leaveService = {
           return list;
         }
       } catch (err) {
-        console.warn('Backend unavailable for getLeaveRequests, using fallback data:', err);
+        console.warn('Backend unavailable for getLeaveRequests:', err);
       }
     }
-    await new Promise(res => setTimeout(res, 50));
+    await new Promise(res => setTimeout(res, 30));
     let filtered = [...requestsState];
 
     if (params.search) {
@@ -55,7 +54,7 @@ export const leaveService = {
   },
 
   async getLeaveBalances(search?: string, department?: string): Promise<LeaveBalance[]> {
-    await new Promise(res => setTimeout(res, 50));
+    await new Promise(res => setTimeout(res, 30));
     let filtered = [...balancesState];
 
     if (search) {
@@ -89,7 +88,7 @@ export const leaveService = {
       }
     }
 
-    await new Promise(res => setTimeout(res, 60));
+    await new Promise(res => setTimeout(res, 30));
     const req = requestsState.find(r => r.id === id);
     if (!req) throw new Error('Leave request not found');
 
@@ -114,7 +113,7 @@ export const leaveService = {
       }
     }
 
-    await new Promise(res => setTimeout(res, 60));
+    await new Promise(res => setTimeout(res, 30));
     const req = requestsState.find(r => r.id === id);
     if (!req) throw new Error('Leave request not found');
 
@@ -138,7 +137,7 @@ export const leaveService = {
       }
     }
 
-    await new Promise(res => setTimeout(res, 80));
+    await new Promise(res => setTimeout(res, 30));
     const newReq: LeaveRequest = {
       ...data,
       id: `lr-${Date.now()}`,

@@ -20,19 +20,21 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Ca
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { payrollService } from '../../services/payrollService';
-import { PayrollItem, PayrollPeriodSummary, PayrollStatus } from '../../types';
+import { departmentService } from '../../services/departmentService';
+import { PayrollItem, PayrollPeriodSummary, PayrollStatus, Department } from '../../types';
 import { formatCurrency } from '../../lib/utils';
 import { useToast } from '../../components/ui/Toast';
 
 export const PayrollPage: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { can, role } = useAuth();
+  const { can, role, user } = useAuth();
   const { success } = useToast();
 
   const [summaries, setSummaries] = useState<PayrollPeriodSummary[]>([]);
   const [selectedPeriod, setSelectedPeriod] = useState<string>('2026-03');
   const [items, setItems] = useState<PayrollItem[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedDept, setSelectedDept] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
@@ -68,8 +70,12 @@ export const PayrollPage: React.FC = () => {
     }
   }, [selectedPeriod, selectedDept, selectedStatus]);
 
+  useEffect(() => {
+    departmentService.getDepartments().then(setDepartments).catch(() => {});
+  }, []);
+
   const handleLockAndApprove = async () => {
-    await payrollService.updatePeriodStatus(selectedPeriod, 'locked', 'Sarah Al-Ghamdi (HR Director)');
+    await payrollService.updatePeriodStatus(selectedPeriod, 'locked', user?.name || 'HR Director');
     success(`Payroll for period ${selectedPeriod} has been successfully locked and authorized for bank WPS disbursement.`, 'Payroll Locked');
     await fetchPayroll();
   };
@@ -282,7 +288,7 @@ export const PayrollPage: React.FC = () => {
         isLoading={isLoading}
         searchable
         searchPlaceholder="Search employee name or code in payroll..."
-        exportFilename={`Apex_Payroll_Period_${selectedPeriod}`}
+        exportFilename={`Payroll_Period_${selectedPeriod}`}
         filtersSlot={
           <div className="flex flex-wrap items-center gap-2">
             <select
@@ -291,7 +297,7 @@ export const PayrollPage: React.FC = () => {
               className="text-xs rounded-lg border border-slate-300 dark:border-[#1E293B] bg-white dark:bg-[#0B0F19] px-2.5 py-1.5 text-slate-700 dark:text-[#F8FAFC] focus:outline-none focus:ring-1 focus:ring-brand-500 dark:focus:ring-[#38BDF8] cursor-pointer"
             >
               <option value="all">All Departments</option>
-              {mockDepartments.map(d => (
+              {departments.map(d => (
                 <option key={d.id} value={d.name}>
                   {d.name}
                 </option>

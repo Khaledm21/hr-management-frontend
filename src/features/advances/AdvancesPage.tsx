@@ -28,11 +28,11 @@ export const AdvancesPage: React.FC = () => {
   const [isRequestOpen, setIsRequestOpen] = useState(false);
 
   // New advance form
-  const [empName, setEmpName] = useState('Mohammed Al-Ghamdi');
-  const [empDept, setEmpDept] = useState('Engineering & Technology');
-  const [amount, setAmount] = useState(15000);
-  const [installments, setInstallments] = useState(6);
-  const [purpose, setPurpose] = useState('Annual residential lease payment');
+  const [empName, setEmpName] = useState<string>('');
+  const [empDept, setEmpDept] = useState<string>('');
+  const [amount, setAmount] = useState<number>(0);
+  const [installments, setInstallments] = useState<number>(1);
+  const [purpose, setPurpose] = useState<string>('');
 
   const fetchAdvances = async () => {
     setIsLoading(true);

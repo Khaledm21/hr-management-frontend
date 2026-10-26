@@ -18,7 +18,8 @@ import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/Card';
 import { leaveService } from '../../services/leaveService';
-import { LeaveRequest, LeaveBalance, LeaveType, LeaveStatus } from '../../types';
+import { departmentService } from '../../services/departmentService';
+import { LeaveRequest, LeaveBalance, LeaveType, LeaveStatus, Department } from '../../types';
 import { useToast } from '../../components/ui/Toast';
 
 export const LeavePage: React.FC = () => {
@@ -28,6 +29,7 @@ export const LeavePage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'requests' | 'balances'>('requests');
   const [requests, setRequests] = useState<LeaveRequest[]>([]);
   const [balances, setBalances] = useState<LeaveBalance[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Filters
@@ -43,16 +45,16 @@ export const LeavePage: React.FC = () => {
   const [approvalComment, setApprovalComment] = useState('');
 
   // New Request Form
-  const [newEmployeeName, setNewEmployeeName] = useState('Mohammed Al-Ghamdi');
-  const [newDept, setNewDept] = useState('Engineering & Technology');
+  const [newEmployeeName, setNewEmployeeName] = useState('');
+  const [newDept, setNewDept] = useState('');
   const [newType, setNewType] = useState<LeaveType>('annual');
-  const [newStartDate, setNewStartDate] = useState('2026-04-10');
-  const [newEndDate, setNewEndDate] = useState('2026-04-15');
-  const [newDays, setNewDays] = useState(5);
-  const [newReason, setNewReason] = useState('Family annual vacation');
+  const [newStartDate, setNewStartDate] = useState(new Date().toISOString().split('T')[0]);
+  const [newEndDate, setNewEndDate] = useState(new Date().toISOString().split('T')[0]);
+  const [newDays, setNewDays] = useState(1);
+  const [newReason, setNewReason] = useState('');
 
   const getDeptName = (deptName: string) => {
-    const d = mockDepartments.find(
+    const d = departments.find(
       item => item.name === deptName || item.nameAr === deptName || item.code === deptName
     );
     if (!d) return deptName;
@@ -94,6 +96,10 @@ export const LeavePage: React.FC = () => {
   };
 
   useEffect(() => {
+    departmentService.getDepartments().then(setDepartments).catch(() => {});
+  }, []);
+
+  useEffect(() => {
     fetchLeaveData();
   }, [selectedDept, selectedStatus, selectedType]);
 
@@ -133,7 +139,7 @@ export const LeavePage: React.FC = () => {
       endDate: newEndDate,
       days: newDays,
       reason: newReason,
-      approverName: 'Sarah Al-Ghamdi',
+      approverName: 'HR Operations',
     });
     success(t('leave.createSuccess'), t('leave.createSuccessTitle'));
     setIsNewRequestOpen(false);
@@ -340,7 +346,7 @@ export const LeavePage: React.FC = () => {
           isLoading={isLoading}
           searchable
           searchPlaceholder={t('leave.searchRequestsPlaceholder')}
-          exportFilename="Apex_Enterprise_Leave_Requests"
+          exportFilename="Enterprise_Leave_Requests"
           filtersSlot={
             <div className="flex flex-wrap items-center gap-2">
               <select
@@ -349,7 +355,7 @@ export const LeavePage: React.FC = () => {
                 className="text-xs rounded-lg border border-slate-300 dark:border-[#1E293B] bg-white dark:bg-[#0B0F19] px-2.5 py-1.5 text-slate-700 dark:text-[#F8FAFC] focus:outline-none focus:ring-1 focus:ring-brand-500 dark:focus:ring-[#38BDF8] cursor-pointer"
               >
                 <option value="all">{t('leave.allDepartments')}</option>
-                {mockDepartments.map(d => (
+                {departments.map(d => (
                   <option key={d.id} value={d.name}>
                     {i18n.language === 'ar' ? (d.nameAr || d.name) : (i18n.language.startsWith('zh') ? (d.nameZh || d.name) : d.name)}
                   </option>

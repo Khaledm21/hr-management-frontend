@@ -21,7 +21,7 @@ import { Select } from '../../components/ui/Select';
 import { Tabs } from '../../components/ui/Tabs';
 import { settingsService } from '../../services/settingsService';
 import { CompanySettings, RoleType } from '../../types';
-import { LeavePolicyRule, DocRequirementRule } from '../../mocks/settings';
+import { LeavePolicyRule, DocRequirementRule } from '../../services/settingsService';
 import { useToast } from '../../components/ui/Toast';
 import { useDirection, LanguageCode } from '../../context/DirectionContext';
 import { useCompany } from '../../context/CompanyContext';

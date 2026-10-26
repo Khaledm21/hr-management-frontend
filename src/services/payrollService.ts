@@ -1,13 +1,8 @@
 import { PayrollItem, PayrollPeriodSummary, PayrollStatus } from '../types';
-import { mockPayrollSummaries, generatePayrollItems } from '../mocks/payroll';
 import { apiClient } from './apiClient';
 
-let summariesState = [...mockPayrollSummaries];
-const payrollItemsCache: Record<string, PayrollItem[]> = {
-  '2026-03': generatePayrollItems('2026-03'),
-  '2026-02': generatePayrollItems('2026-02'),
-  '2026-01': generatePayrollItems('2026-01'),
-};
+let summariesState: PayrollPeriodSummary[] = [];
+const payrollItemsCache: Record<string, PayrollItem[]> = {};
 
 export interface PayrollFilterParams {
   period?: string;
@@ -27,15 +22,15 @@ export const payrollService = {
           return list;
         }
       } catch (err) {
-        console.warn('Backend unavailable for getPayrollSummaries, using fallback data:', err);
+        console.warn('Backend unavailable for getPayrollSummaries:', err);
       }
     }
-    await new Promise(res => setTimeout(res, 40));
+    await new Promise(res => setTimeout(res, 20));
     return [...summariesState];
   },
 
   async getPayrollSummary(period: string): Promise<PayrollPeriodSummary | null> {
-    await new Promise(res => setTimeout(res, 40));
+    await new Promise(res => setTimeout(res, 20));
     return summariesState.find(s => s.period === period) || null;
   },
 
@@ -48,17 +43,13 @@ export const payrollService = {
           return list;
         }
       } catch (err) {
-        console.warn('Backend unavailable for getPayrollItems, using fallback data:', err);
+        console.warn('Backend unavailable for getPayrollItems:', err);
       }
     }
 
-    await new Promise(res => setTimeout(res, 60));
+    await new Promise(res => setTimeout(res, 30));
     const period = params.period || '2026-03';
-    if (!payrollItemsCache[period]) {
-      payrollItemsCache[period] = generatePayrollItems(period);
-    }
-
-    let list = [...payrollItemsCache[period]];
+    let list = [...(payrollItemsCache[period] || [])];
 
     if (params.search) {
       const q = params.search.toLowerCase().trim();
@@ -95,14 +86,14 @@ export const payrollService = {
       }
     }
 
-    await new Promise(res => setTimeout(res, 70));
+    await new Promise(res => setTimeout(res, 30));
     const summary = summariesState.find(s => s.period === period);
     if (!summary) throw new Error('Payroll period not found');
 
     summary.status = status;
     if (status === 'locked') {
       summary.lockedAt = new Date().toISOString();
-      summary.approvedBy = approvedBy || 'Finance Director';
+      summary.approvedBy = approvedBy || 'Authorized Officer';
     }
 
     if (payrollItemsCache[period]) {

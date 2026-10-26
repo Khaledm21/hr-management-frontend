@@ -161,7 +161,7 @@ export const documentService = {
     if (!doc) throw new Error('Document not found');
     doc.status = 'verified';
     doc.verifiedAt = new Date().toISOString().split('T')[0];
-    doc.verifiedBy = 'Sarah Al-Ghamdi (HR Ops)';
+    doc.verifiedBy = 'HR Specialist';
     if (notes) doc.notes = notes;
     persistItem(STORAGE_KEY, documentsState);
     return { ...doc };

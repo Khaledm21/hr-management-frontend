@@ -17,7 +17,8 @@ import { Modal } from '../../components/ui/Modal';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { userService } from '../../services/userService';
-import { UserAccount, RoleType } from '../../types';
+import { departmentService } from '../../services/departmentService';
+import { UserAccount, RoleType, Department } from '../../types';
 import { useToast } from '../../components/ui/Toast';
 import { useAuth } from '../../context/AuthContext';
 
@@ -38,6 +39,7 @@ export const UsersPage: React.FC = () => {
   const { can, user: currentUser } = useAuth();
 
   const [users, setUsers] = useState<UserAccount[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Add User Modal State
@@ -80,6 +82,7 @@ export const UsersPage: React.FC = () => {
   };
 
   useEffect(() => {
+    departmentService.getDepartments().then(setDepartments).catch(() => {});
     if (can('users', 'view')) {
       fetchUsers();
     } else {
@@ -467,7 +470,7 @@ export const UsersPage: React.FC = () => {
                 onChange={e => setDept(e.target.value)}
                 className="w-full text-xs rounded-lg border border-slate-300 dark:border-[#1E293B] p-2.5 text-slate-800 dark:text-[#F8FAFC] bg-white dark:bg-[#0B0F19] focus:outline-none focus:ring-1 focus:ring-brand-500 cursor-pointer shadow-xs [&>option]:bg-white [&>option]:dark:bg-[#151D2E]"
               >
-                {mockDepartments.map(d => (
+                {departments.map(d => (
                   <option key={d.id} value={d.name}>
                     {d.name}
                   </option>
@@ -603,7 +606,7 @@ export const UsersPage: React.FC = () => {
                 onChange={e => setEditDept(e.target.value)}
                 className="w-full text-xs rounded-lg border border-slate-300 dark:border-[#1E293B] p-2.5 text-slate-800 dark:text-[#F8FAFC] bg-white dark:bg-[#0B0F19] focus:outline-none focus:ring-1 focus:ring-brand-500 cursor-pointer shadow-xs [&>option]:bg-white [&>option]:dark:bg-[#151D2E]"
               >
-                {mockDepartments.map(d => (
+                {departments.map(d => (
                   <option key={d.id} value={d.name}>
                     {d.name}
                   </option>

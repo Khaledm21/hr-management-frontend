@@ -1,8 +1,7 @@
 import { AdvanceItem, AdvanceStatus } from '../types';
-import { mockAdvances } from '../mocks/advances';
 import { apiClient } from './apiClient';
 
-let advancesState = [...mockAdvances];
+let advancesState: AdvanceItem[] = [];
 
 export const advanceService = {
   async getAdvances(status?: AdvanceStatus | 'all', search?: string): Promise<AdvanceItem[]> {
@@ -15,10 +14,10 @@ export const advanceService = {
           return list;
         }
       } catch (err) {
-        console.warn('Backend unavailable for getAdvances, using fallback data:', err);
+        console.warn('Backend unavailable for getAdvances:', err);
       }
     }
-    await new Promise(res => setTimeout(res, 50));
+    await new Promise(res => setTimeout(res, 20));
     let list = [...advancesState];
 
     if (search) {
@@ -53,7 +52,7 @@ export const advanceService = {
       }
     }
 
-    await new Promise(res => setTimeout(res, 60));
+    await new Promise(res => setTimeout(res, 30));
     const adv = advancesState.find(a => a.id === id);
     if (!adv) throw new Error('Advance not found');
     adv.status = 'approved';
@@ -76,7 +75,7 @@ export const advanceService = {
       }
     }
 
-    await new Promise(res => setTimeout(res, 60));
+    await new Promise(res => setTimeout(res, 30));
     const adv = advancesState.find(a => a.id === id);
     if (!adv) throw new Error('Advance not found');
     adv.status = 'rejected';
@@ -105,7 +104,7 @@ export const advanceService = {
       }
     }
 
-    await new Promise(res => setTimeout(res, 80));
+    await new Promise(res => setTimeout(res, 30));
     const newAdv: AdvanceItem = {
       id: `adv-${Date.now()}`,
       advanceNumber: `ADV-2026-${String(advancesState.length + 101).padStart(4, '0')}`,

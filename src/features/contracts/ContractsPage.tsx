@@ -16,7 +16,8 @@ import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
 import { Input } from '../../components/ui/Input';
 import { contractService } from '../../services/contractService';
-import { ContractRecord, ContractStatus, ContractType } from '../../types';
+import { departmentService } from '../../services/departmentService';
+import { ContractRecord, ContractStatus, ContractType, Department } from '../../types';
 import { useToast } from '../../components/ui/Toast';
 
 export const ContractsPage: React.FC = () => {
@@ -25,6 +26,7 @@ export const ContractsPage: React.FC = () => {
 
   const [contracts, setContracts] = useState<ContractRecord[]>([]);
   const [expiringList, setExpiringList] = useState<ContractRecord[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Filters
@@ -55,6 +57,10 @@ export const ContractsPage: React.FC = () => {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    departmentService.getDepartments().then(setDepartments).catch(() => {});
+  }, []);
 
   useEffect(() => {
     fetchContracts();
@@ -226,7 +232,7 @@ export const ContractsPage: React.FC = () => {
         isLoading={isLoading}
         searchable
         searchPlaceholder={t('contracts.searchPlaceholder')}
-        exportFilename="Apex_Enterprise_Employment_Contracts"
+        exportFilename="Enterprise_Employment_Contracts"
         filtersSlot={
           <div className="flex flex-wrap items-center gap-2">
             <select
@@ -235,7 +241,7 @@ export const ContractsPage: React.FC = () => {
               className="text-xs rounded-lg border border-slate-300 dark:border-[#1E293B] bg-white dark:bg-[#0B0F19] px-2.5 py-1.5 text-slate-700 dark:text-[#F8FAFC] focus:outline-none focus:ring-1 focus:ring-brand-500 dark:focus:ring-[#38BDF8] cursor-pointer"
             >
               <option value="all">{t('contracts.allDepartments')}</option>
-              {mockDepartments.map(d => (
+              {departments.map(d => (
                 <option key={d.id} value={d.name}>
                   {d.name}
                 </option>

@@ -1,8 +1,7 @@
 import { ApprovalItem, ApprovalCategory, ApprovalStatus } from '../types';
-import { mockApprovals } from '../mocks/approvals';
 import { apiClient } from './apiClient';
 
-let approvalsState = [...mockApprovals];
+let approvalsState: ApprovalItem[] = [];
 
 export interface ApprovalFilterParams {
   category?: ApprovalCategory | 'all';
@@ -21,11 +20,11 @@ export const approvalService = {
           return list;
         }
       } catch (err) {
-        console.warn('Backend /approvals endpoint unavailable, using local approvals:', err);
+        console.warn('Backend /approvals endpoint unavailable:', err);
       }
     }
 
-    await new Promise(res => setTimeout(res, 50));
+    await new Promise(res => setTimeout(res, 20));
     let list = [...approvalsState];
 
     if (params.search) {
@@ -64,7 +63,7 @@ export const approvalService = {
       }
     }
 
-    await new Promise(res => setTimeout(res, 60));
+    await new Promise(res => setTimeout(res, 30));
     const item = approvalsState.find(a => a.id === id);
     if (!item) throw new Error('Approval item not found');
 
@@ -96,7 +95,7 @@ export const approvalService = {
       }
     }
 
-    await new Promise(res => setTimeout(res, 60));
+    await new Promise(res => setTimeout(res, 30));
     const item = approvalsState.find(a => a.id === id);
     if (!item) throw new Error('Approval item not found');
 
@@ -115,7 +114,7 @@ export const approvalService = {
   },
 
   async requestChanges(id: string, notes: string, actor: string = 'Current User'): Promise<ApprovalItem> {
-    await new Promise(res => setTimeout(res, 60));
+    await new Promise(res => setTimeout(res, 30));
     const item = approvalsState.find(a => a.id === id);
     if (!item) throw new Error('Approval item not found');
 
