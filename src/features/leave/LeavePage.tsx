@@ -18,7 +18,6 @@ import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/Card';
 import { leaveService } from '../../services/leaveService';
-import { mockDepartments } from '../../mocks/departments';
 import { LeaveRequest, LeaveBalance, LeaveType, LeaveStatus } from '../../types';
 import { useToast } from '../../components/ui/Toast';
 

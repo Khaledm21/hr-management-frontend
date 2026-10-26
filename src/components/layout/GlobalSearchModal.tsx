@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Search, User, FileText, FileCheck, Building2, ArrowRight, Truck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { mockEmployees } from '../../mocks/employees';
-import { mockDepartments } from '../../mocks/departments';
-import { mockContracts } from '../../mocks/contracts';
-import { mockDocuments } from '../../mocks/documents';
+import { employeeService } from '../../services/employeeService';
+import { departmentService } from '../../services/departmentService';
+import { contractService } from '../../services/contractService';
+import { documentService } from '../../services/documentService';
 import { driverPayoutService } from '../../services/driverPayoutService';
+import { Employee, Department, ContractRecord, DocumentRecord } from '../../types';
 import { Driver } from '../../types/driverPayouts';
 import { useDirection } from '../../context/DirectionContext';
 
@@ -16,13 +17,21 @@ interface GlobalSearchModalProps {
 
 export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ isOpen, onClose }) => {
   const [query, setQuery] = useState('');
+  const [loadedEmployees, setLoadedEmployees] = useState<Employee[]>([]);
+  const [loadedDepartments, setLoadedDepartments] = useState<Department[]>([]);
+  const [loadedContracts, setLoadedContracts] = useState<ContractRecord[]>([]);
+  const [loadedDocuments, setLoadedDocuments] = useState<DocumentRecord[]>([]);
   const [loadedDrivers, setLoadedDrivers] = useState<Driver[]>([]);
   const navigate = useNavigate();
   const { isRtl } = useDirection();
 
   useEffect(() => {
     if (isOpen) {
-      driverPayoutService.getDrivers().then(setLoadedDrivers);
+      driverPayoutService.getDrivers().then(setLoadedDrivers).catch(() => []);
+      employeeService.getEmployees({ pageSize: 1000 }).then(res => setLoadedEmployees(res?.data || [])).catch(() => []);
+      departmentService.getDepartments().then(setLoadedDepartments).catch(() => []);
+      contractService.getContracts().then(setLoadedContracts).catch(() => []);
+      documentService.getDocuments().then(setLoadedDocuments).catch(() => []);
     }
   }, [isOpen]);
 
@@ -46,27 +55,27 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ isOpen, on
     }
     const q = query.toLowerCase().trim();
 
-    const matchedEmployees = mockEmployees
+    const matchedEmployees = loadedEmployees
       .filter(
         e =>
           e.firstName.toLowerCase().includes(q) ||
           e.lastName.toLowerCase().includes(q) ||
           e.employeeId.toLowerCase().includes(q) ||
-          e.email.toLowerCase().includes(q) ||
+          (e.email && e.email.toLowerCase().includes(q)) ||
           (e.arabicName && e.arabicName.includes(q))
       )
       .slice(0, 5);
 
-    const matchedDepartments = mockDepartments
+    const matchedDepartments = loadedDepartments
       .filter(
         d =>
           d.name.toLowerCase().includes(q) ||
           d.code.toLowerCase().includes(q) ||
-          d.nameAr.includes(q)
+          (d.nameAr && d.nameAr.includes(q))
       )
       .slice(0, 3);
 
-    const matchedContracts = mockContracts
+    const matchedContracts = loadedContracts
       .filter(
         c =>
           c.contractNumber.toLowerCase().includes(q) ||
@@ -74,7 +83,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ isOpen, on
       )
       .slice(0, 3);
 
-    const matchedDocuments = mockDocuments
+    const matchedDocuments = loadedDocuments
       .filter(
         doc =>
           doc.title.toLowerCase().includes(q) ||
@@ -101,7 +110,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ isOpen, on
       documents: matchedDocuments,
       drivers: matchedDrivers,
     };
-  }, [query, loadedDrivers]);
+  }, [query, loadedEmployees, loadedDepartments, loadedContracts, loadedDocuments, loadedDrivers]);
 
   const hasAnyResults =
     results.employees.length > 0 ||

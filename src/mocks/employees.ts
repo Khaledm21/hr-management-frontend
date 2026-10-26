@@ -1,7 +1,6 @@
 import { Employee, EmploymentStatus, EmploymentType, ContractStatus } from '../types';
 import { mockDepartments } from './departments';
-import { mockPositions } from './positions';
-import { realSeedEmployees } from './realExcelData';
+const realSeedEmployees: any[] = [];
 
 const firstNamesMale = [
   'Mohammed', 'Omar', 'Abdullah', 'Fahad', 'Khalid', 'Tariq', 'Sultan', 'Yousef', 'Ali', 'Majed',

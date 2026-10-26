@@ -16,7 +16,6 @@ import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { attendanceService } from '../../services/attendanceService';
-import { mockDepartments } from '../../mocks/departments';
 import { AttendanceRecord, AttendanceStatus } from '../../types';
 
 export const AttendancePage: React.FC = () => {

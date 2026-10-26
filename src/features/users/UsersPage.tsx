@@ -20,7 +20,6 @@ import { userService } from '../../services/userService';
 import { UserAccount, RoleType } from '../../types';
 import { useToast } from '../../components/ui/Toast';
 import { useAuth } from '../../context/AuthContext';
-import { mockDepartments } from '../../mocks/departments';
 
 // Helper to construct male/female customized DiceBear SVG avatars
 const getAvatarUrl = (nameStr: string, g: 'male' | 'female', seedSuffix = 0) => {

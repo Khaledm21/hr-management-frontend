@@ -16,7 +16,6 @@ import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
 import { Input } from '../../components/ui/Input';
 import { contractService } from '../../services/contractService';
-import { mockDepartments } from '../../mocks/departments';
 import { ContractRecord, ContractStatus, ContractType } from '../../types';
 import { useToast } from '../../components/ui/Toast';
 

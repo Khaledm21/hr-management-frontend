@@ -1,8 +1,7 @@
 import { ContractRecord, ContractStatus, ContractType } from '../types';
-import { mockContracts } from '../mocks/contracts';
 import { apiClient } from './apiClient';
 
-let contractsState = [...mockContracts];
+let contractsState: ContractRecord[] = [];
 
 export interface ContractFilterParams {
   search?: string;

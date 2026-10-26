@@ -1,9 +1,4 @@
 import { InsuranceItem, SocialInsuranceRecord, MissingDocumentRecord } from '../types';
-import {
-  mockInsuranceRecords,
-  mockSocialInsuranceRecords,
-  mockMissingDocumentRecords,
-} from '../mocks/insurance';
 import { apiClient } from './apiClient';
 
 const STORAGE_KEYS = {
@@ -32,9 +27,9 @@ function persistItem<T>(key: string, val: T) {
   }
 }
 
-let insuranceState = getStored<InsuranceItem[]>(STORAGE_KEYS.INSURANCE_AUDIT, [...mockInsuranceRecords]);
-let socialInsuranceState = getStored<SocialInsuranceRecord[]>(STORAGE_KEYS.SOCIAL_INSURANCE, [...mockSocialInsuranceRecords]);
-let missingDocumentsState = getStored<MissingDocumentRecord[]>(STORAGE_KEYS.MISSING_DOCS, [...mockMissingDocumentRecords]);
+let insuranceState = getStored<InsuranceItem[]>(STORAGE_KEYS.INSURANCE_AUDIT, []);
+let socialInsuranceState = getStored<SocialInsuranceRecord[]>(STORAGE_KEYS.SOCIAL_INSURANCE, []);
+let missingDocumentsState = getStored<MissingDocumentRecord[]>(STORAGE_KEYS.MISSING_DOCS, []);
 
 export interface InsuranceFilterParams {
   search?: string;

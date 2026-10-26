@@ -1,10 +1,11 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { mockEmploymentHistory } from '../../mocks/employmentHistory';
-import { mockEmployees } from '../../mocks/employees';
-import { EmploymentHistoryEvent } from '../../types';
+import { employeeService } from '../../services/employeeService';
+import { Employee, EmploymentHistoryEvent } from '../../types';
+
 import { Card, CardContent } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
+
 import { History, TrendingUp, Award, ArrowRight, ArrowLeftRight, FileCheck, UserPlus, Filter } from 'lucide-react';
 
 export const EmploymentHistoryPage: React.FC = () => {
@@ -12,12 +13,16 @@ export const EmploymentHistoryPage: React.FC = () => {
   const isRTL = i18n.language === 'ar';
   const [selectedEventType, setSelectedEventType] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [employees, setEmployees] = useState<Employee[]>([]);
+
+  useEffect(() => {
+    employeeService.getEmployees({ pageSize: 20 }).then(res => setEmployees(res?.data || [])).catch(() => []);
+  }, []);
 
   const allEvents: EmploymentHistoryEvent[] = useMemo(() => {
-    // Generate an aggregated chronological log across employees
-    const list: EmploymentHistoryEvent[] = [...mockEmploymentHistory];
+    const list: EmploymentHistoryEvent[] = [];
 
-    mockEmployees.slice(0, 15).forEach((emp, i) => {
+    employees.forEach((emp, i) => {
       const isSalary = i % 2 === 0;
       const currency = t('insurance.currency') || t('common.egp') || 'EGP';
       list.push({
@@ -44,7 +49,7 @@ export const EmploymentHistoryPage: React.FC = () => {
 
     list.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     return list;
-  }, [t]);
+  }, [t, employees]);
 
   // Statistics for KPI summary
   const stats = useMemo(() => {

@@ -20,7 +20,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Ca
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { payrollService } from '../../services/payrollService';
-import { mockDepartments } from '../../mocks/departments';
 import { PayrollItem, PayrollPeriodSummary, PayrollStatus } from '../../types';
 import { formatCurrency } from '../../lib/utils';
 import { useToast } from '../../components/ui/Toast';

@@ -43,8 +43,7 @@ import { documentService } from '../../services/documentService';
 import { contractService } from '../../services/contractService';
 import { attendanceService } from '../../services/attendanceService';
 import { leaveService } from '../../services/leaveService';
-import { getEmployeeHistory } from '../../mocks/employmentHistory';
-import { mockAuditLogs } from '../../mocks/auditLogs';
+import { auditService } from '../../services/auditService';
 import { Employee, DocumentRecord, ContractRecord, AttendanceRecord, LeaveRequest, EmploymentHistoryEvent } from '../../types';
 import { formatCurrency, formatDate } from '../../lib/utils';
 import { useDirection } from '../../context/DirectionContext';
@@ -69,6 +68,7 @@ export const EmployeeProfilePage: React.FC = () => {
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [leaves, setLeaves] = useState<LeaveRequest[]>([]);
   const [historyEvents, setHistoryEvents] = useState<EmploymentHistoryEvent[]>([]);
+  const [employeeLogs, setEmployeeLogs] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState('overview');
   const [isLoading, setIsLoading] = useState(true);
   const [isInsuranceGuideOpen, setIsInsuranceGuideOpen] = useState(false);
@@ -91,14 +91,15 @@ export const EmployeeProfilePage: React.FC = () => {
         const emp: Employee | null = (rawEmp as any)?.data || rawEmp;
         if (emp && isMounted) {
           setEmployee(emp);
-          setHistoryEvents(getEmployeeHistory(emp.id));
+          setHistoryEvents([]);
 
           try {
-            const [docs, cnts, att, lvs] = await Promise.all([
+            const [docs, cnts, att, lvs, aud] = await Promise.all([
               documentService.getDocuments({ employeeId: emp.id }).catch(() => []),
               contractService.getContracts({ search: emp.employeeId }).catch(() => []),
               attendanceService.getAttendance({ search: emp.employeeId }).catch(() => []),
               leaveService.getLeaveRequests({ search: emp.employeeId }).catch(() => []),
+              auditService.getAuditLogs('employees', emp.employeeId).catch(() => []),
             ]);
 
             if (isMounted) {
@@ -106,6 +107,7 @@ export const EmployeeProfilePage: React.FC = () => {
               setContracts(Array.isArray(cnts) ? cnts : (cnts as any)?.data || []);
               setAttendance(Array.isArray(att) ? att : (att as any)?.data || []);
               setLeaves(Array.isArray(lvs) ? lvs : (lvs as any)?.data || []);
+              setEmployeeLogs(Array.isArray(aud) ? aud : (aud as any)?.data || []);
             }
           } catch (subErr) {
             console.warn('Could not load secondary employee records:', subErr);
@@ -894,20 +896,26 @@ export const EmployeeProfilePage: React.FC = () => {
               <CardTitle>{t('employees.auditLogTitle')}</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3 text-xs">
-                {mockAuditLogs.map(log => (
-                  <div key={log.id} className="p-3 bg-slate-50 dark:bg-[#111827]/60 rounded-xl border border-slate-100 dark:border-[#1E293B] flex items-center justify-between">
-                    <div>
-                      <span className="font-semibold text-slate-900 dark:text-[#F8FAFC]">{log.action}</span>
-                      <span className="text-[11px] text-slate-500 dark:text-slate-400 block">{log.target}</span>
+              {employeeLogs.length === 0 ? (
+                <div className="py-8 text-center text-slate-400 text-xs">
+                  {t('common.noData', 'لا توجد عمليات رقابية مسجلة حديثاً على هذا الموظف')}
+                </div>
+              ) : (
+                <div className="space-y-3 text-xs">
+                  {employeeLogs.map(log => (
+                    <div key={log.id} className="p-3 bg-slate-50 dark:bg-[#111827]/60 rounded-xl border border-slate-100 dark:border-[#1E293B] flex items-center justify-between">
+                      <div>
+                        <span className="font-semibold text-slate-900 dark:text-[#F8FAFC]">{log.action}</span>
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400 block">{log.target}</span>
+                      </div>
+                      <div className="text-right rtl:text-left text-[11px] text-slate-400 dark:text-slate-500">
+                        <span>{log.userName}</span>
+                        <span className="block">{log.timestamp}</span>
+                      </div>
                     </div>
-                    <div className="text-right rtl:text-left text-[11px] text-slate-400 dark:text-slate-500">
-                      <span>{log.userName}</span>
-                      <span className="block">{log.timestamp}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         )}

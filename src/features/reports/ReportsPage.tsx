@@ -15,7 +15,6 @@ import {
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { reportService, availableReports, ReportConfig } from '../../services/reportService';
-import { mockDepartments } from '../../mocks/departments';
 import {
   BarChart,
   Bar,

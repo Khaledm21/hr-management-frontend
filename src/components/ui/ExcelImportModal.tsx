@@ -18,7 +18,6 @@ import { Button } from './Button';
 import { useToast } from './Toast';
 import { employeeService } from '../../services/employeeService';
 import { insuranceService } from '../../services/insuranceService';
-import { realSeedEmployees, realSeedSocialInsurance } from '../../mocks/realExcelData';
 import { parseEgyptianNationalId } from '../../lib/utils';
 
 export type ImportTargetType = 'employees' | 'social_insurance' | 'missing_documents' | 'full_workbook';

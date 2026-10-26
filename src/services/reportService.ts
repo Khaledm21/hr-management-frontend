@@ -1,9 +1,6 @@
-import { mockEmployees } from '../mocks/employees';
-import { mockDepartments } from '../mocks/departments';
 import { mockPayrollSummaries } from '../mocks/payroll';
-import { mockContracts } from '../mocks/contracts';
-import { mockInsuranceRecords } from '../mocks/insurance';
 import { employeeService } from './employeeService';
+import { departmentService } from './departmentService';
 import { insuranceService } from './insuranceService';
 
 export interface ReportConfig {
@@ -149,26 +146,27 @@ export const reportService = {
         };
 
       case 'rep-dept-dist':
-        const deptStats = mockDepartments.map(d => {
-          const count = emps.filter(e => e.departmentId === d.id).length;
+        const realDepts = await departmentService.getDepartments().catch(() => []);
+        const deptStats = realDepts.map(d => {
+          const count = emps.filter(e => e.departmentId === d.id || e.departmentName === d.name).length;
           return {
             department: d.name,
             code: d.code,
             headcount: count,
-            budget: `SAR ${(d.budget / 1000).toLocaleString()}k`,
-            manager: d.managerName,
+            budget: `EGP ${(d.budget / 1000).toLocaleString()}k`,
+            manager: d.managerName || '-',
           };
         });
         return {
           title: 'Employees by Department',
           summary: {
-            totalDepartments: mockDepartments.length,
-            avgPerDept: Math.round(emps.length / mockDepartments.length),
-            largestDept: 'Engineering & Technology',
+            totalDepartments: realDepts.length,
+            avgPerDept: realDepts.length ? Math.round(emps.length / realDepts.length) : 0,
+            largestDept: deptStats.sort((a, b) => b.headcount - a.headcount)[0]?.department || 'General',
           },
-          chartData: mockDepartments.map(d => ({
+          chartData: realDepts.map(d => ({
             name: d.code,
-            headcount: emps.filter(e => e.departmentId === d.id).length,
+            headcount: emps.filter(e => e.departmentId === d.id || e.departmentName === d.name).length,
           })),
           tableRows: deptStats,
         };
