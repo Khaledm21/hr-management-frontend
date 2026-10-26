@@ -9,6 +9,8 @@ import {
   Edit2,
   RefreshCw,
   UserCheck,
+  Search,
+  X,
 } from 'lucide-react';
 import { DataTable, Column } from '../../components/ui/DataTable';
 import { Button } from '../../components/ui/Button';
@@ -44,6 +46,10 @@ export const UsersPage: React.FC = () => {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [empSearchQuery, setEmpSearchQuery] = useState('');
+  const [isEmpDropdownOpen, setIsEmpDropdownOpen] = useState(false);
+  const [customAvatar, setCustomAvatar] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
 
   // Add User Modal State
@@ -67,10 +73,10 @@ export const UsersPage: React.FC = () => {
   const [editAvatarSeed, setEditAvatarSeed] = useState(0);
   const [editAvatar, setEditAvatar] = useState('');
 
-  // Live avatar preview for the create modal
+  // Live avatar preview for the create modal (uses employee photo if available)
   const previewAvatar = useMemo(
-    () => getAvatarUrl(name, gender, avatarSeed),
-    [name, gender, avatarSeed]
+    () => customAvatar || getAvatarUrl(name, gender, avatarSeed),
+    [customAvatar, name, gender, avatarSeed]
   );
 
   const fetchUsers = async () => {
@@ -97,38 +103,99 @@ export const UsersPage: React.FC = () => {
     }
   }, []);
 
-  const handleEmployeeSelect = (empId: string) => {
-    setSelectedEmployeeId(empId);
-    if (!empId) return;
-
-    const emp = employees.find(e => e.id === empId || e.employeeId === empId);
-    if (emp) {
-      const fullName = `${emp.firstName || ''} ${emp.lastName || ''}`.trim() || emp.arabicName || '';
-      setName(fullName);
-
-      const genEmail = `${(emp.firstName || 'user').trim().toLowerCase().replace(/\s+/g, '.')}.${(emp.lastName || 'emp').trim().toLowerCase().replace(/\s+/g, '')}@enterprise.com`;
-      setEmail(emp.workEmail || emp.personalEmail || genEmail);
-
-      if (emp.departmentName) {
-        setDept(emp.departmentName);
-      }
-
-      const empGender: 'male' | 'female' = emp.gender === 'female' ? 'female' : 'male';
-      setGender(empGender);
-
+  // Filtered employees for the searchable dropdown
+  const filteredEmployees = useMemo(() => {
+    if (!empSearchQuery.trim()) return employees.slice(0, 40);
+    const q = empSearchQuery.toLowerCase().trim();
+    return employees.filter(emp => {
+      const fullEn = `${emp.firstName || ''} ${emp.lastName || ''}`.toLowerCase();
+      const ar = (emp.arabicName || '').toLowerCase();
+      const code = (emp.employeeId || '').toLowerCase();
+      const dept = (emp.departmentName || '').toLowerCase();
       const pos = (emp.positionTitle || '').toLowerCase();
-      if (pos.includes('director') || pos.includes('head') || pos.includes('admin')) {
-        setUserRole('admin');
-      } else if (pos.includes('manager')) {
-        setUserRole(pos.includes('hr') ? 'hr_manager' : 'dept_manager');
-      } else if (pos.includes('specialist') || pos.includes('recruitment') || pos.includes('hr')) {
-        setUserRole('hr_staff');
-      }
+      return fullEn.includes(q) || ar.includes(q) || code.includes(q) || dept.includes(q) || pos.includes(q);
+    }).slice(0, 40);
+  }, [employees, empSearchQuery]);
+
+  // Extract FIRST and SECOND name only for corporate email
+  const getFirstAndSecondName = (emp: Employee): string => {
+    const fullEn = `${emp.firstName || ''} ${emp.lastName || ''}`.trim();
+    const rawParts = fullEn.split(/\s+/).filter(Boolean);
+    const cleanParts = rawParts
+      .map(p => p.toLowerCase().replace(/[^a-z0-9]/g, ''))
+      .filter(Boolean);
+
+    if (cleanParts.length >= 2) {
+      return `${cleanParts[0]}.${cleanParts[1]}`;
+    }
+    if (cleanParts.length === 1) {
+      return cleanParts[0];
+    }
+    if (emp.email && emp.email.includes('@')) {
+      const rawUser = emp.email.split('@')[0].toLowerCase().replace(/[^a-z0-9.]/g, '');
+      const emailParts = rawUser.split('.').filter(Boolean);
+      if (emailParts.length >= 2) return `${emailParts[0]}.${emailParts[1]}`;
+      if (emailParts.length === 1) return emailParts[0];
+    }
+    return `emp.${(emp.employeeId || 'user').toLowerCase().replace(/[^a-z0-9]/g, '')}`;
+  };
+
+  const handleEmployeeSelect = (emp: Employee) => {
+    setSelectedEmployee(emp);
+    setSelectedEmployeeId(emp.id);
+    setIsEmpDropdownOpen(false);
+    setEmpSearchQuery('');
+
+    // 1. Full Name
+    const fullName = `${emp.firstName || ''} ${emp.lastName || ''}`.trim() || emp.arabicName || '';
+    setName(fullName);
+
+    // 2. Email: strictly first and second name only
+    const emailPrefix = getFirstAndSecondName(emp);
+    setEmail(`${emailPrefix}@enterprise.com`);
+
+    // 3. Official Photo / Avatar: Auto-set if present
+    if (emp.avatar && emp.avatar.trim()) {
+      setCustomAvatar(emp.avatar.trim());
+    } else {
+      setCustomAvatar('');
+    }
+
+    // 4. Department
+    if (emp.departmentName) {
+      setDept(emp.departmentName);
+    }
+
+    // 5. Gender
+    const empGender: 'male' | 'female' = emp.gender === 'female' ? 'female' : 'male';
+    setGender(empGender);
+
+    // 6. Role Suggestion
+    const pos = (emp.positionTitle || '').toLowerCase();
+    if (pos.includes('director') || pos.includes('head') || pos.includes('admin') || (pos.includes('manager') && pos.includes('general'))) {
+      setUserRole('admin');
+    } else if (pos.includes('manager')) {
+      setUserRole(pos.includes('hr') ? 'hr_manager' : 'dept_manager');
+    } else if (pos.includes('specialist') || pos.includes('recruitment') || pos.includes('hr')) {
+      setUserRole('hr_staff');
     }
   };
 
-  const openAddModal = () => {
+  const handleClearSelectedEmployee = () => {
+    setSelectedEmployee(null);
     setSelectedEmployeeId('');
+    setCustomAvatar('');
+    setName('');
+    setEmail('');
+    setEmpSearchQuery('');
+  };
+
+  const openAddModal = () => {
+    setSelectedEmployee(null);
+    setSelectedEmployeeId('');
+    setCustomAvatar('');
+    setEmpSearchQuery('');
+    setIsEmpDropdownOpen(false);
     setName('');
     setEmail('');
     setPassword('Enterprise@123');
@@ -160,7 +227,10 @@ export const UsersPage: React.FC = () => {
         t('common.success', 'User Created')
       );
       setIsAddOpen(false);
+      setSelectedEmployee(null);
       setSelectedEmployeeId('');
+      setCustomAvatar('');
+      setEmpSearchQuery('');
       setName('');
       setEmail('');
       setPassword('Enterprise@123');
@@ -402,45 +472,171 @@ export const UsersPage: React.FC = () => {
           description={t('users.createUserDesc', 'إضافة حساب موظف جديد وتعيين صلاحيات الوصول للنظام')}
         >
           <form onSubmit={handleAddSubmit} className="space-y-4 text-xs">
-            {/* Quick Pick: Select from Existing Employees */}
+            {/* Searchable Quick Pick: Select from Existing Employees */}
             <div className="p-3 bg-blue-50/70 dark:bg-[#151D2E] border border-blue-200 dark:border-blue-900/40 rounded-xl space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
                   <UserCheck className="w-4 h-4 text-brand-600 dark:text-brand-400" />
-                  <span>{t('users.selectFromEmployees', 'اختيار من الموظفين الحاليين (تعبئة تلقائية)')}</span>
+                  <span>{t('users.selectFromEmployees', 'اختيار موظف مسجل (بحث وتعبئة تلقائية)')}</span>
                 </label>
-                {selectedEmployeeId && (
+                {selectedEmployee && (
                   <button
                     type="button"
-                    onClick={() => {
-                      setSelectedEmployeeId('');
-                      setName('');
-                      setEmail('');
-                    }}
+                    onClick={handleClearSelectedEmployee}
                     className="text-[11px] text-rose-500 hover:text-rose-600 font-medium cursor-pointer"
                   >
                     {t('users.clearSelection', 'إلغاء التحديد')}
                   </button>
                 )}
               </div>
-              <select
-                value={selectedEmployeeId}
-                onChange={e => handleEmployeeSelect(e.target.value)}
-                className="w-full text-xs rounded-lg border border-slate-300 dark:border-[#1E293B] p-2.5 text-slate-800 dark:text-[#F8FAFC] bg-white dark:bg-[#0B0F19] focus:outline-none focus:ring-1 focus:ring-brand-500 cursor-pointer shadow-xs [&>option]:bg-white [&>option]:dark:bg-[#151D2E]"
-              >
-                <option value="">
-                  {t('users.chooseEmployeePlaceholder', '-- اختر موظفاً لسحب بياناته تلقائياً (أو أدخل يدوياً) --')}
-                </option>
-                {employees.map(emp => (
-                  <option key={emp.id} value={emp.id}>
-                    {emp.firstName} {emp.lastName} {emp.arabicName ? `(${emp.arabicName})` : ''} - [{emp.employeeId}] {emp.departmentName ? `- ${emp.departmentName}` : ''}
-                  </option>
-                ))}
-              </select>
-              {selectedEmployeeId && (
+
+              {selectedEmployee ? (
+                /* Selected Employee Card */
+                <div className="flex items-center justify-between p-2.5 bg-white dark:bg-[#0B0F19] border border-emerald-300 dark:border-emerald-700/60 rounded-xl shadow-xs">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    {selectedEmployee.avatar ? (
+                      <img
+                        src={selectedEmployee.avatar}
+                        alt={selectedEmployee.firstName}
+                        className="w-10 h-10 rounded-full object-cover border-2 border-emerald-500 shrink-0 shadow-xs"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 flex items-center justify-center font-bold text-sm shrink-0 border border-emerald-300 dark:border-emerald-700">
+                        {(selectedEmployee.firstName?.[0] || 'E').toUpperCase()}
+                      </div>
+                    )}
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="font-bold text-xs text-slate-900 dark:text-[#F8FAFC]">
+                          {selectedEmployee.firstName} {selectedEmployee.lastName}
+                        </span>
+                        {selectedEmployee.arabicName && (
+                          <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                            ({selectedEmployee.arabicName})
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400 flex items-center gap-1.5 flex-wrap mt-0.5">
+                        <span className="font-mono font-semibold bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.2 rounded text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                          {selectedEmployee.employeeId}
+                        </span>
+                        <span>•</span>
+                        <span>{selectedEmployee.departmentName || '—'}</span>
+                        {selectedEmployee.positionTitle && (
+                          <>
+                            <span>•</span>
+                            <span className="text-slate-600 dark:text-slate-300 font-medium">{selectedEmployee.positionTitle}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleClearSelectedEmployee}
+                    className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg transition-colors cursor-pointer shrink-0"
+                    title={t('users.clearSelection', 'إلغاء التحديد')}
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                /* Search Input & Combobox */
+                <div className="relative">
+                  <div className="relative">
+                    <Search className="w-4 h-4 text-slate-400 absolute right-3 rtl:right-3 ltr:right-auto ltr:left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input
+                      type="text"
+                      value={empSearchQuery}
+                      onChange={e => {
+                        setEmpSearchQuery(e.target.value);
+                        setIsEmpDropdownOpen(true);
+                      }}
+                      onFocus={() => setIsEmpDropdownOpen(true)}
+                      placeholder={t('users.searchEmployeePlaceholder', 'ابحث بالاسم، الرقم الوظيفي، أو القسم...')}
+                      className="w-full text-xs rounded-lg border border-slate-300 dark:border-[#1E293B] py-2 px-9 text-slate-800 dark:text-[#F8FAFC] bg-white dark:bg-[#0B0F19] focus:outline-none focus:ring-1 focus:ring-brand-500 shadow-xs"
+                    />
+                    {empSearchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setEmpSearchQuery('')}
+                        className="absolute left-3 rtl:left-3 ltr:left-auto ltr:right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Dropdown Results */}
+                  {isEmpDropdownOpen && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-40"
+                        onClick={() => setIsEmpDropdownOpen(false)}
+                      />
+                      <div className="absolute z-50 left-0 right-0 mt-1.5 max-h-56 overflow-y-auto bg-white dark:bg-[#151D2E] border border-slate-200 dark:border-[#1E293B] rounded-xl shadow-xl divide-y divide-slate-100 dark:divide-[#1E293B]/60">
+                        {filteredEmployees.length === 0 ? (
+                          <div className="p-3 text-center text-xs text-slate-400">
+                            {t('users.noEmployeesFound', 'لا يوجد موظف مطابق للبحث')}
+                          </div>
+                        ) : (
+                          filteredEmployees.map(emp => (
+                            <div
+                              key={emp.id}
+                              onClick={() => handleEmployeeSelect(emp)}
+                              className="p-2.5 hover:bg-brand-50/70 dark:hover:bg-brand-950/40 flex items-center justify-between gap-3 cursor-pointer transition-colors"
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                {emp.avatar ? (
+                                  <img
+                                    src={emp.avatar}
+                                    alt={emp.firstName}
+                                    className="w-8 h-8 rounded-full object-cover border border-slate-200 dark:border-[#1E293B] shrink-0"
+                                  />
+                                ) : (
+                                  <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-[#0B0F19] text-slate-600 dark:text-slate-300 flex items-center justify-center font-bold text-xs shrink-0 border border-slate-200 dark:border-[#1E293B]">
+                                    {(emp.firstName?.[0] || 'E').toUpperCase()}
+                                  </div>
+                                )}
+                                <div className="min-w-0 text-right rtl:text-right ltr:text-left">
+                                  <div className="text-xs font-semibold text-slate-800 dark:text-slate-100 truncate">
+                                    {emp.firstName} {emp.lastName} {emp.arabicName ? `(${emp.arabicName})` : ''}
+                                  </div>
+                                  <div className="text-[10px] text-slate-400 flex items-center gap-1.5 truncate">
+                                    <span className="font-mono text-brand-600 dark:text-brand-400 font-semibold">
+                                      {emp.employeeId}
+                                    </span>
+                                    <span>•</span>
+                                    <span>{emp.departmentName || '—'}</span>
+                                    {emp.positionTitle && (
+                                      <>
+                                        <span>•</span>
+                                        <span>{emp.positionTitle}</span>
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                              <span className="text-[10px] text-brand-600 dark:text-brand-400 font-semibold shrink-0 bg-brand-50 dark:bg-brand-950/60 px-2 py-0.5 rounded border border-brand-200 dark:border-brand-800">
+                                اختيار
+                              </span>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {selectedEmployee && (
                 <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
                   <span>✓</span>
-                  <span>{t('users.employeeAutoFilledNotice', 'تم سحب الاسم والبريد والقسم والجنس تلقائياً من ملف الموظف، ويمكنك تعديلها بحرية.')}</span>
+                  <span>
+                    {selectedEmployee.avatar
+                      ? t('users.employeeAutoFilledNoticeWithPhoto', 'تم سحب الصورة الشخصية، والاسم، والبريد (أول وثاني اسم)، والقسم، والنوع تلقائياً.')
+                      : t('users.employeeAutoFilledNotice', 'تم سحب الاسم، والبريد (أول وثاني اسم)، والقسم، والنوع تلقائياً.')}
+                  </span>
                 </p>
               )}
             </div>
@@ -449,20 +645,32 @@ export const UsersPage: React.FC = () => {
             <div className="p-3.5 bg-slate-50 dark:bg-[#0B0F19] border border-slate-200 dark:border-[#1E293B] rounded-xl space-y-2.5">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                  <span>{t('users.genderLabel', 'نوع المستخدم')}</span>
-                  <span className="text-[11px] font-normal text-slate-400">
-                    - {t('users.genderDesc', 'تحديد مظهر الصورة الرمزية للمستخدم')}
-                  </span>
+                  <span>{t('users.genderLabel', 'نوع المستخدم ومظهر الصورة')}</span>
                 </label>
-                <button
-                  type="button"
-                  onClick={() => setAvatarSeed(s => s + 1)}
-                  className="inline-flex items-center gap-1 text-[11px] font-medium text-brand-600 dark:text-brand-400 hover:underline cursor-pointer"
-                  title="تغيير شكل الملامح والشعر"
-                >
-                  <RefreshCw className="w-3 h-3" />
-                  <span>{t('users.randomizeAvatar', 'تغيير الشكل')}</span>
-                </button>
+                {customAvatar ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
+                      الصورة الشخصية للموظف
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setCustomAvatar('')}
+                      className="text-[10px] text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 underline cursor-pointer"
+                    >
+                      استخدام أفاتار بديل
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setAvatarSeed(s => s + 1)}
+                    className="inline-flex items-center gap-1 text-[11px] font-medium text-brand-600 dark:text-brand-400 hover:underline cursor-pointer"
+                    title="تغيير شكل الملامح والشعر"
+                  >
+                    <RefreshCw className="w-3 h-3" />
+                    <span>{t('users.randomizeAvatar', 'تغيير الشكل')}</span>
+                  </button>
+                )}
               </div>
 
               <div className="flex items-center gap-3">
