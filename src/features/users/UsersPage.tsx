@@ -8,6 +8,7 @@ import {
   Lock,
   Edit2,
   RefreshCw,
+  UserCheck,
 } from 'lucide-react';
 import { DataTable, Column } from '../../components/ui/DataTable';
 import { Button } from '../../components/ui/Button';
@@ -18,7 +19,8 @@ import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { userService } from '../../services/userService';
 import { departmentService } from '../../services/departmentService';
-import { UserAccount, RoleType, Department } from '../../types';
+import { employeeService } from '../../services/employeeService';
+import { UserAccount, RoleType, Department, Employee } from '../../types';
 import { useToast } from '../../components/ui/Toast';
 import { useAuth } from '../../context/AuthContext';
 
@@ -40,6 +42,8 @@ export const UsersPage: React.FC = () => {
 
   const [users, setUsers] = useState<UserAccount[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
 
   // Add User Modal State
@@ -83,12 +87,57 @@ export const UsersPage: React.FC = () => {
 
   useEffect(() => {
     departmentService.getDepartments().then(setDepartments).catch(() => {});
+    employeeService.getEmployees({ pageSize: 500 }).then(res => {
+      setEmployees(res.data || []);
+    }).catch(() => {});
     if (can('users', 'view')) {
       fetchUsers();
     } else {
       setIsLoading(false);
     }
   }, []);
+
+  const handleEmployeeSelect = (empId: string) => {
+    setSelectedEmployeeId(empId);
+    if (!empId) return;
+
+    const emp = employees.find(e => e.id === empId || e.employeeId === empId);
+    if (emp) {
+      const fullName = `${emp.firstName || ''} ${emp.lastName || ''}`.trim() || emp.arabicName || '';
+      setName(fullName);
+
+      const genEmail = `${(emp.firstName || 'user').trim().toLowerCase().replace(/\s+/g, '.')}.${(emp.lastName || 'emp').trim().toLowerCase().replace(/\s+/g, '')}@enterprise.com`;
+      setEmail(emp.workEmail || emp.personalEmail || genEmail);
+
+      if (emp.departmentName) {
+        setDept(emp.departmentName);
+      }
+
+      const empGender: 'male' | 'female' = emp.gender === 'female' ? 'female' : 'male';
+      setGender(empGender);
+
+      const pos = (emp.positionTitle || '').toLowerCase();
+      if (pos.includes('director') || pos.includes('head') || pos.includes('admin')) {
+        setUserRole('admin');
+      } else if (pos.includes('manager')) {
+        setUserRole(pos.includes('hr') ? 'hr_manager' : 'dept_manager');
+      } else if (pos.includes('specialist') || pos.includes('recruitment') || pos.includes('hr')) {
+        setUserRole('hr_staff');
+      }
+    }
+  };
+
+  const openAddModal = () => {
+    setSelectedEmployeeId('');
+    setName('');
+    setEmail('');
+    setPassword('Enterprise@123');
+    setUserRole('hr_staff');
+    setDept(departments[0]?.name || 'Human Resources');
+    setGender('male');
+    setAvatarSeed(0);
+    setIsAddOpen(true);
+  };
 
   const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -111,6 +160,7 @@ export const UsersPage: React.FC = () => {
         t('common.success', 'User Created')
       );
       setIsAddOpen(false);
+      setSelectedEmployeeId('');
       setName('');
       setEmail('');
       setPassword('Enterprise@123');
@@ -325,7 +375,7 @@ export const UsersPage: React.FC = () => {
             variant="primary"
             size="md"
             leftIcon={<UserPlus className="w-4 h-4" />}
-            onClick={() => setIsAddOpen(true)}
+            onClick={openAddModal}
           >
             {t('users.addUser', 'إضافة مستخدم جديد')}
           </Button>
@@ -339,7 +389,7 @@ export const UsersPage: React.FC = () => {
         isLoading={isLoading}
         searchable
         searchPlaceholder={t('users.searchPlaceholder', 'بحث باسم المستخدم أو البريد الإلكتروني...')}
-        exportFilename="Apex_Enterprise_User_Accounts"
+        exportFilename="Enterprise_User_Accounts"
       />
 
       {/* Add User Modal */}
@@ -352,6 +402,49 @@ export const UsersPage: React.FC = () => {
           description={t('users.createUserDesc', 'إضافة حساب موظف جديد وتعيين صلاحيات الوصول للنظام')}
         >
           <form onSubmit={handleAddSubmit} className="space-y-4 text-xs">
+            {/* Quick Pick: Select from Existing Employees */}
+            <div className="p-3 bg-blue-50/70 dark:bg-[#151D2E] border border-blue-200 dark:border-blue-900/40 rounded-xl space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                  <UserCheck className="w-4 h-4 text-brand-600 dark:text-brand-400" />
+                  <span>{t('users.selectFromEmployees', 'اختيار من الموظفين الحاليين (تعبئة تلقائية)')}</span>
+                </label>
+                {selectedEmployeeId && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedEmployeeId('');
+                      setName('');
+                      setEmail('');
+                    }}
+                    className="text-[11px] text-rose-500 hover:text-rose-600 font-medium cursor-pointer"
+                  >
+                    {t('users.clearSelection', 'إلغاء التحديد')}
+                  </button>
+                )}
+              </div>
+              <select
+                value={selectedEmployeeId}
+                onChange={e => handleEmployeeSelect(e.target.value)}
+                className="w-full text-xs rounded-lg border border-slate-300 dark:border-[#1E293B] p-2.5 text-slate-800 dark:text-[#F8FAFC] bg-white dark:bg-[#0B0F19] focus:outline-none focus:ring-1 focus:ring-brand-500 cursor-pointer shadow-xs [&>option]:bg-white [&>option]:dark:bg-[#151D2E]"
+              >
+                <option value="">
+                  {t('users.chooseEmployeePlaceholder', '-- اختر موظفاً لسحب بياناته تلقائياً (أو أدخل يدوياً) --')}
+                </option>
+                {employees.map(emp => (
+                  <option key={emp.id} value={emp.id}>
+                    {emp.firstName} {emp.lastName} {emp.arabicName ? `(${emp.arabicName})` : ''} - [{emp.employeeId}] {emp.departmentName ? `- ${emp.departmentName}` : ''}
+                  </option>
+                ))}
+              </select>
+              {selectedEmployeeId && (
+                <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
+                  <span>✓</span>
+                  <span>{t('users.employeeAutoFilledNotice', 'تم سحب الاسم والبريد والقسم والجنس تلقائياً من ملف الموظف، ويمكنك تعديلها بحرية.')}</span>
+                </p>
+              )}
+            </div>
+
             {/* Gender Selection & Live Avatar Preview */}
             <div className="p-3.5 bg-slate-50 dark:bg-[#0B0F19] border border-slate-200 dark:border-[#1E293B] rounded-xl space-y-2.5">
               <div className="flex items-center justify-between">
