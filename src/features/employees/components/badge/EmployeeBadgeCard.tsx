@@ -61,6 +61,32 @@ function resolveEnglishPosition(pos?: string): string {
   return trimmed;
 }
 
+function formatBadgePosition(chinesePos?: string, posTitle?: string): string {
+  const en = (posTitle || 'Specialist').trim();
+  if (!chinesePos) return en;
+
+  let zh = chinesePos.trim();
+  // Strip duplicate English suffix if in format "中文 - English" or "中文 / English"
+  if (zh.includes(' - ')) {
+    zh = zh.split(' - ')[0].trim();
+  } else if (zh.includes(' / ')) {
+    zh = zh.split(' / ')[0].trim();
+  }
+
+  // If chinese position is identical to english (e.g. "IT" vs "IT"), avoid duplicating
+  if (zh.toLowerCase() === en.toLowerCase()) {
+    return en;
+  }
+
+  // If zh contains no Chinese characters and is redundant with en
+  const hasChinese = /[\u4e00-\u9fa5]/.test(zh);
+  if (!hasChinese && zh.toLowerCase() === en.toLowerCase()) {
+    return en;
+  }
+
+  return `${zh} / ${en}`;
+}
+
 export const EmployeeBadgeCard: React.FC<EmployeeBadgeCardProps> = ({
   employee,
   orientation = 'vertical',
@@ -77,6 +103,7 @@ export const EmployeeBadgeCard: React.FC<EmployeeBadgeCardProps> = ({
   const chinesePosition = employee.chinesePosition || '';
   const departmentName = resolveEnglishDepartment(employee.departmentName);
   const employeeCode = employee.employeeId || 'NH-001';
+  const displayBadgePosition = formatBadgePosition(chinesePosition, positionTitle);
 
   useEffect(() => {
     generateEmployeeQRCode({
@@ -165,7 +192,7 @@ export const EmployeeBadgeCard: React.FC<EmployeeBadgeCardProps> = ({
 
         {/* Position */}
         <div className="mt-1 bg-emerald-50 border border-emerald-200/80 text-emerald-800 px-2 py-0.5 rounded-md text-[8.5px] font-bold inline-block max-w-[48mm] truncate font-sans">
-          {chinesePosition ? `${chinesePosition} / ` : ''}{positionTitle}
+          {displayBadgePosition}
         </div>
 
         {/* Department */}
@@ -341,7 +368,7 @@ export const EmployeeBadgeCard: React.FC<EmployeeBadgeCardProps> = ({
 
           <div className="pt-0.5">
             <span className="bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded text-[9px] font-bold inline-block font-sans">
-              {chinesePosition ? `${chinesePosition} / ` : ''}{positionTitle}
+              {displayBadgePosition}
             </span>
           </div>
 
