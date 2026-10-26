@@ -26,6 +26,9 @@ const ARABIC_DEPT_TRANSLATIONS: Record<string, string> = {
 };
 
 const ARABIC_POS_TRANSLATIONS: Record<string, string> = {
+  'IT': 'IT Specialist',
+  'it': 'IT Specialist',
+  'أخصائي تكنولوجيا المعلومات (IT)': 'IT Specialist',
   'مسؤول توظيف وتعيينات 2': 'Recruitment Specialist 2',
   'مشرف إداري 1': 'Supervisor 1',
   'كاتب شؤون إدارية 2': 'Administrative Clerk 2',
@@ -197,7 +200,7 @@ export const EmployeeBadgeCard: React.FC<EmployeeBadgeCardProps> = ({
 
         {/* Department */}
         <span className="text-[8px] text-slate-500 font-semibold block mt-0.5 font-sans uppercase">
-          {departmentName}
+          DEPT: <strong className="text-slate-800">{departmentName}</strong>
         </span>
       </div>
 
