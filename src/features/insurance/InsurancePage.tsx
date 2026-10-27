@@ -48,6 +48,7 @@ export const InsurancePage: React.FC = () => {
   const [selectedDept, setSelectedDept] = useState<string>('all');
   const [selectedListStatus, setSelectedListStatus] = useState<string>('all');
   const [selectedDocFilter, setSelectedDocFilter] = useState<string>('all');
+  const [selectedDocStatusFilter, setSelectedDocStatusFilter] = useState<'all' | 'complete' | 'incomplete'>('all');
 
   // Excel Modal
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -83,9 +84,10 @@ export const InsurancePage: React.FC = () => {
   const missingParams = useMemo(
     () => ({
       department: selectedDept !== 'all' ? selectedDept : undefined,
-      missingDoc: selectedDocFilter as any,
+      status: selectedDocStatusFilter !== 'all' ? selectedDocStatusFilter : undefined,
+      missingDoc: selectedDocStatusFilter !== 'complete' && selectedDocFilter !== 'all' ? (selectedDocFilter as any) : undefined,
     }),
-    [selectedDept, selectedDocFilter]
+    [selectedDept, selectedDocStatusFilter, selectedDocFilter]
   );
 
   // React Query cached hooks (Zero redundant network calls)
@@ -1001,7 +1003,13 @@ export const InsurancePage: React.FC = () => {
             isLoading={isLoading}
             searchable
             searchPlaceholder={t('insurance.searchMissingPlaceholder')}
-            exportFilename="Missing_Documents_Audit_List"
+            exportFilename={
+              selectedDocStatusFilter === 'complete'
+                ? 'Complete_Documents_Audit_List'
+                : selectedDocStatusFilter === 'incomplete'
+                ? 'Incomplete_Documents_Audit_List'
+                : 'All_Documents_Audit_List'
+            }
             selectable
             selectAllAcrossPages
             selectedIds={selectedMissingIds}
@@ -1014,7 +1022,11 @@ export const InsurancePage: React.FC = () => {
                   onClick={() => setSelectedMissingIds(missingRecords.map(r => r.id))}
                   disabled={ids.length === missingRecords.length}
                 >
-                  {t('insurance.selectAllMissing')} ({missingRecords.length})
+                  {selectedDocStatusFilter === 'complete'
+                    ? t('insurance.selectAllComplete')
+                    : selectedDocStatusFilter === 'all'
+                    ? t('insurance.selectAllRecordsCount', { count: missingRecords.length })
+                    : t('insurance.selectAllMissing')} ({missingRecords.length})
                 </Button>
                 <Button
                   variant="outline"
@@ -1072,20 +1084,124 @@ export const InsurancePage: React.FC = () => {
                       ? t('insurance.allMissingSelectedCount', { count: missingRecords.length })
                       : isSomeMissingSelected
                       ? t('insurance.selectedCountOf', { selected: selectedMissingIds.length, total: missingRecords.length })
+                      : selectedDocStatusFilter === 'complete'
+                      ? t('insurance.selectAllCompleteCount', { count: missingRecords.length })
+                      : selectedDocStatusFilter === 'all'
+                      ? t('insurance.selectAllRecordsCount', { count: missingRecords.length })
                       : t('insurance.selectAllMissingCount', { count: missingRecords.length })}
                   </span>
                 </label>
 
+                {/* Status Segmented Pills */}
+                <div className="inline-flex items-center rounded-lg border border-slate-300 dark:border-[#1E293B] bg-slate-100/80 dark:bg-[#0B0F19] p-0.5 text-xs font-semibold shadow-inner">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedDocStatusFilter('all');
+                      setSelectedMissingIds([]);
+                    }}
+                    className={cn(
+                      'px-2.5 py-1 rounded-md transition-all flex items-center gap-1.5',
+                      selectedDocStatusFilter === 'all'
+                        ? 'bg-white dark:bg-[#151D2E] text-slate-900 dark:text-white shadow-sm font-bold ring-1 ring-slate-200 dark:ring-slate-700'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                    )}
+                  >
+                    <span>{t('insurance.filterAllRecords')}</span>
+                    <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono">
+                      {stats.totalMissingDocs || 199}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedDocStatusFilter('complete');
+                      setSelectedDocFilter('all');
+                      setSelectedMissingIds([]);
+                    }}
+                    className={cn(
+                      'px-2.5 py-1 rounded-md transition-all flex items-center gap-1.5',
+                      selectedDocStatusFilter === 'complete'
+                        ? 'bg-emerald-600 text-white shadow-sm font-bold ring-1 ring-emerald-500'
+                        : 'text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300'
+                    )}
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>{t('insurance.filterStatusComplete')}</span>
+                    <span
+                      className={cn(
+                        'text-[10px] px-1.5 py-0.2 rounded-full font-bold font-mono',
+                        selectedDocStatusFilter === 'complete'
+                          ? 'bg-emerald-700 text-white'
+                          : 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300'
+                      )}
+                    >
+                      {stats.completeDocsCount || 15}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedDocStatusFilter('incomplete');
+                      setSelectedMissingIds([]);
+                    }}
+                    className={cn(
+                      'px-2.5 py-1 rounded-md transition-all flex items-center gap-1.5',
+                      selectedDocStatusFilter === 'incomplete'
+                        ? 'bg-rose-600 text-white shadow-sm font-bold ring-1 ring-rose-500'
+                        : 'text-rose-700 dark:text-rose-400 hover:text-rose-800 dark:hover:text-rose-300'
+                    )}
+                  >
+                    <AlertTriangle className="w-3.5 h-3.5" />
+                    <span>{t('insurance.filterStatusIncomplete')}</span>
+                    <span
+                      className={cn(
+                        'text-[10px] px-1.5 py-0.2 rounded-full font-bold font-mono',
+                        selectedDocStatusFilter === 'incomplete'
+                          ? 'bg-rose-700 text-white'
+                          : 'bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300'
+                      )}
+                    >
+                      {stats.incompleteDocsCount || 184}
+                    </span>
+                  </button>
+                </div>
+
+                {/* Specific Missing Document Dropdown */}
                 <select
                   value={selectedDocFilter}
                   onChange={e => setSelectedDocFilter(e.target.value)}
-                  className="text-xs rounded-lg border border-slate-300 dark:border-[#1E293B] bg-white dark:bg-[#0B0F19] px-2.5 py-1.5 text-slate-700 dark:text-slate-200 [&>option]:bg-white [&>option]:dark:bg-[#151D2E] focus:outline-none focus:ring-1 focus:ring-brand-500 cursor-pointer font-semibold transition-colors"
+                  disabled={selectedDocStatusFilter === 'complete'}
+                  className={cn(
+                    'text-xs rounded-lg border border-slate-300 dark:border-[#1E293B] bg-white dark:bg-[#0B0F19] px-2.5 py-1.5 text-slate-700 dark:text-slate-200 [&>option]:bg-white [&>option]:dark:bg-[#151D2E] focus:outline-none focus:ring-1 focus:ring-brand-500 cursor-pointer font-semibold transition-colors',
+                    selectedDocStatusFilter === 'complete' && 'opacity-40 cursor-not-allowed bg-slate-100 dark:bg-slate-800 text-slate-400'
+                  )}
+                  title={selectedDocStatusFilter === 'complete' ? t('insurance.missingDocDisabledHint') : undefined}
                 >
                   <option value="all">{t('insurance.filterAllMissing')}</option>
                   <option value="qualification">{t('insurance.filterMissingQual')}</option>
                   <option value="birth">{t('insurance.filterMissingBirth')}</option>
                   <option value="idCard">{t('insurance.filterMissingId')}</option>
                   <option value="contract">{t('insurance.filterMissingContract')}</option>
+                </select>
+
+                {/* Department filter */}
+                <select
+                  value={selectedDept}
+                  onChange={e => setSelectedDept(e.target.value)}
+                  className="text-xs rounded-lg border border-slate-300 dark:border-[#1E293B] bg-white dark:bg-[#0B0F19] px-2.5 py-1.5 text-slate-700 dark:text-slate-200 [&>option]:bg-white [&>option]:dark:bg-[#151D2E] focus:outline-none focus:ring-1 focus:ring-brand-500 cursor-pointer transition-colors font-medium"
+                >
+                  <option value="all">{t('insurance.allDepts')}</option>
+                  <option value="HR">HR</option>
+                  <option value="PD-fish">PD-fish</option>
+                  <option value="Pd-poultry">Pd-poultry</option>
+                  <option value="QC">QC</option>
+                  <option value="FD">FD</option>
+                  <option value="PUD">PUD</option>
+                  <option value="SD-fish">SD-fish</option>
+                  <option value="SD-poultry">SD-poultry</option>
                 </select>
 
                 {missingRecords.length > 0 && (
