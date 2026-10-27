@@ -2,30 +2,37 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { AppLayout } from '../components/layout/AppLayout';
-import { LoginPage } from '../features/auth/LoginPage';
-import { DashboardPage } from '../features/dashboard/DashboardPage';
-import { EmployeesListPage } from '../features/employees/EmployeesListPage';
-import { EmployeeProfilePage } from '../features/employees/EmployeeProfilePage';
-import { DepartmentsPage } from '../features/departments/DepartmentsPage';
-import { PositionsPage } from '../features/positions/PositionsPage';
-import { DocumentsPage } from '../features/documents/DocumentsPage';
-import { FormsTemplatesPage } from '../features/documents/FormsTemplatesPage';
-import { InsurancePage } from '../features/insurance/InsurancePage';
-import { ContractsPage } from '../features/contracts/ContractsPage';
-import { EmploymentHistoryPage } from '../features/employmentHistory/EmploymentHistoryPage';
-import { AttendancePage } from '../features/attendance/AttendancePage';
-import { LeavePage } from '../features/leave/LeavePage';
-import { ApprovalsPage } from '../features/approvals/ApprovalsPage';
-import { PayrollPage } from '../features/payroll/PayrollPage';
-import { PayrollPeriodDetailsPage } from '../features/payroll/PayrollPeriodDetailsPage';
-import { AdvancesPage } from '../features/advances/AdvancesPage';
-import { DriverPayoutsPage } from '../features/drivers/DriverPayoutsPage';
-import { ReportsPage } from '../features/reports/ReportsPage';
-import { NotificationsPage } from '../features/notifications/NotificationsPage';
-import { UsersPage } from '../features/users/UsersPage';
-import { RolesPermissionsPage } from '../features/users/RolesPermissionsPage';
-import { AuditLogsPage } from '../features/audit/AuditLogsPage';
-import { SettingsPage } from '../features/settings/SettingsPage';
+// Helper for lazy loading named exports
+const lazyLoad = <T extends Record<string, React.ComponentType<any>>, K extends keyof T>(
+  loader: () => Promise<T>,
+  key: K
+) => React.lazy(() => loader().then(m => ({ default: m[key] })));
+
+// Lazy-loaded route components (Code Splitting)
+const LoginPage = lazyLoad(() => import('../features/auth/LoginPage'), 'LoginPage');
+const DashboardPage = lazyLoad(() => import('../features/dashboard/DashboardPage'), 'DashboardPage');
+const EmployeesListPage = lazyLoad(() => import('../features/employees/EmployeesListPage'), 'EmployeesListPage');
+const EmployeeProfilePage = lazyLoad(() => import('../features/employees/EmployeeProfilePage'), 'EmployeeProfilePage');
+const DepartmentsPage = lazyLoad(() => import('../features/departments/DepartmentsPage'), 'DepartmentsPage');
+const PositionsPage = lazyLoad(() => import('../features/positions/PositionsPage'), 'PositionsPage');
+const DocumentsPage = lazyLoad(() => import('../features/documents/DocumentsPage'), 'DocumentsPage');
+const FormsTemplatesPage = lazyLoad(() => import('../features/documents/FormsTemplatesPage'), 'FormsTemplatesPage');
+const InsurancePage = lazyLoad(() => import('../features/insurance/InsurancePage'), 'InsurancePage');
+const ContractsPage = lazyLoad(() => import('../features/contracts/ContractsPage'), 'ContractsPage');
+const EmploymentHistoryPage = lazyLoad(() => import('../features/employmentHistory/EmploymentHistoryPage'), 'EmploymentHistoryPage');
+const AttendancePage = lazyLoad(() => import('../features/attendance/AttendancePage'), 'AttendancePage');
+const LeavePage = lazyLoad(() => import('../features/leave/LeavePage'), 'LeavePage');
+const ApprovalsPage = lazyLoad(() => import('../features/approvals/ApprovalsPage'), 'ApprovalsPage');
+const PayrollPage = lazyLoad(() => import('../features/payroll/PayrollPage'), 'PayrollPage');
+const PayrollPeriodDetailsPage = lazyLoad(() => import('../features/payroll/PayrollPeriodDetailsPage'), 'PayrollPeriodDetailsPage');
+const AdvancesPage = lazyLoad(() => import('../features/advances/AdvancesPage'), 'AdvancesPage');
+const DriverPayoutsPage = lazyLoad(() => import('../features/drivers/DriverPayoutsPage'), 'DriverPayoutsPage');
+const ReportsPage = lazyLoad(() => import('../features/reports/ReportsPage'), 'ReportsPage');
+const NotificationsPage = lazyLoad(() => import('../features/notifications/NotificationsPage'), 'NotificationsPage');
+const UsersPage = lazyLoad(() => import('../features/users/UsersPage'), 'UsersPage');
+const RolesPermissionsPage = lazyLoad(() => import('../features/users/RolesPermissionsPage'), 'RolesPermissionsPage');
+const AuditLogsPage = lazyLoad(() => import('../features/audit/AuditLogsPage'), 'AuditLogsPage');
+const SettingsPage = lazyLoad(() => import('../features/settings/SettingsPage'), 'SettingsPage');
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -84,7 +91,15 @@ export const AppRoutes: React.FC = () => {
         path="/login"
         element={
           <PublicOnlyRoute>
-            <LoginPage />
+            <React.Suspense
+              fallback={
+                <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-[#0B0F19]">
+                  <div className="w-8 h-8 border-3 border-brand-500 border-t-transparent rounded-full animate-spin" />
+                </div>
+              }
+            >
+              <LoginPage />
+            </React.Suspense>
           </PublicOnlyRoute>
         }
       />

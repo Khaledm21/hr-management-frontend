@@ -1,7 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
+
+export const PageFallback: React.FC = () => (
+  <div className="w-full min-h-[60vh] flex flex-col items-center justify-center gap-3">
+    <div className="w-8 h-8 border-3 border-brand-500 border-t-transparent rounded-full animate-spin" />
+    <span className="text-xs font-semibold text-slate-400 dark:text-slate-500">جاري تحميل البيانات...</span>
+  </div>
+);
 
 export const AppLayout: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -26,7 +33,9 @@ export const AppLayout: React.FC = () => {
         />
 
         <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
-          <Outlet />
+          <Suspense fallback={<PageFallback />}>
+            <Outlet />
+          </Suspense>
         </main>
       </div>
     </div>

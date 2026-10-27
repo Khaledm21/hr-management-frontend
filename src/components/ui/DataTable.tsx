@@ -380,17 +380,27 @@ export function DataTable<T extends Record<string, any>>({
 
           <tbody className="divide-y divide-slate-100 dark:divide-[#1E293B] text-xs text-slate-700 dark:text-slate-300 font-normal">
             {isLoading ? (
-              // Loading skeletons
-              Array.from({ length: 5 }).map((_, i) => (
-                <tr key={i} className="hover:bg-transparent">
+              // Loading skeletons with stable height matching 10 rows
+              Array.from({ length: Math.min(pageSize, 10) }).map((_, i) => (
+                <tr key={i} className="hover:bg-transparent h-[56px]">
                   {selectable && (
-                    <td className="px-4 py-3.5">
-                      <Skeleton className="w-4 h-4 rounded" />
+                    <td className="px-4 py-3.5 w-10 text-center">
+                      <Skeleton className="w-4 h-4 rounded mx-auto" />
                     </td>
                   )}
                   {activeColumns.map((col, cIdx) => (
                     <td key={col.key} className="px-4 py-3.5">
-                      <Skeleton className={cn('h-4', cIdx === 0 ? 'w-24' : 'w-36')} />
+                      {cIdx === 1 ? (
+                        <div className="flex items-center gap-3 min-w-[200px]">
+                          <Skeleton className="w-8 h-8 rounded-full shrink-0" />
+                          <div className="space-y-1.5 flex-1">
+                            <Skeleton className="h-3.5 w-28" />
+                            <Skeleton className="h-2.5 w-20" />
+                          </div>
+                        </div>
+                      ) : (
+                        <Skeleton className={cn('h-4', cIdx === 0 ? 'w-20' : cIdx === 2 ? 'w-24' : 'w-28')} />
+                      )}
                     </td>
                   ))}
                 </tr>

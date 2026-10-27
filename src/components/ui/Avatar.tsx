@@ -28,14 +28,25 @@ export const Avatar: React.FC<AvatarProps> = ({ src, name, size = 'md', classNam
     return n.substring(0, 2).toUpperCase();
   };
 
+  const pixelSizes = {
+    xs: 24,
+    sm: 32,
+    md: 40,
+    lg: 56,
+    xl: 80,
+  };
+
   if (src && !hasError) {
     return (
       <img
         src={src}
         alt={name}
+        loading="lazy"
+        width={pixelSizes[size]}
+        height={pixelSizes[size]}
         onError={() => setHasError(true)}
         className={cn(
-          'rounded-full object-cover bg-slate-100 ring-2 ring-white shrink-0',
+          'rounded-full object-cover bg-slate-100 dark:bg-slate-800 ring-2 ring-white dark:ring-slate-700 shrink-0 aspect-square',
           sizeClasses[size],
           className
         )}
