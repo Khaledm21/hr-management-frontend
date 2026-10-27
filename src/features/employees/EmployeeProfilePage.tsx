@@ -45,7 +45,7 @@ import { attendanceService } from '../../services/attendanceService';
 import { leaveService } from '../../services/leaveService';
 import { auditService } from '../../services/auditService';
 import { Employee, DocumentRecord, ContractRecord, AttendanceRecord, LeaveRequest, EmploymentHistoryEvent } from '../../types';
-import { formatCurrency, formatDate } from '../../lib/utils';
+import { formatCurrency, formatDate, getGenderAvatarUrl } from '../../lib/utils';
 import { useDirection } from '../../context/DirectionContext';
 import { useToast } from '../../components/ui/Toast';
 import { useQueryClient } from '@tanstack/react-query';
@@ -318,7 +318,7 @@ export const EmployeeProfilePage: React.FC = () => {
             {/* Interactive Avatar with Photo Upload */}
             <div className="relative group/avatar cursor-pointer shrink-0">
               <img
-                src={employee.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${employee.firstName || 'User'}`}
+                src={getGenderAvatarUrl(employee.avatar, employee.gender, employee.firstName || employee.id)}
                 alt=""
                 className="w-20 h-20 rounded-2xl bg-brand-50 dark:bg-brand-950/40 border-2 border-white dark:border-[#1E293B] shadow-md object-cover transition-opacity group-hover/avatar:opacity-75"
               />

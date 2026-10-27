@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   UserPlus,
@@ -18,8 +18,9 @@ import {
   Upload,
   Download,
   Trash2,
+  Printer,
 } from 'lucide-react';
-import { cn, downloadCSV } from '../../lib/utils';
+import { cn, downloadCSV, getGenderAvatarUrl } from '../../lib/utils';
 import { DataTable, Column } from '../../components/ui/DataTable';
 import { Button } from '../../components/ui/Button';
 import { Badge, BadgeVariant } from '../../components/ui/Badge';
@@ -27,6 +28,7 @@ import { Avatar } from '../../components/ui/Avatar';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { EmployeeFormModal } from './EmployeeFormModal';
 import { EmployeeBadgeModal } from './components/badge/EmployeeBadgeModal';
+import { EmployeePrintTableModal } from './components/EmployeePrintTableModal';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEmployees, useDepartments, employeeKeys } from '../../hooks/queries';
 import { Employee } from '../../types';
@@ -37,6 +39,7 @@ import { employeeService } from '../../services/employeeService';
 export const EmployeesListPage: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { success, error: toastError } = useToast();
   const queryClient = useQueryClient();
   const { data: departments = [] } = useDepartments();
@@ -44,13 +47,43 @@ export const EmployeesListPage: React.FC = () => {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isBadgeModalOpen, setIsBadgeModalOpen] = useState(false);
   const [badgeModalEmployees, setBadgeModalEmployees] = useState<Employee[]>([]);
+  const [isPrintTableModalOpen, setIsPrintTableModalOpen] = useState(false);
 
   // Filters
-  const [selectedDept, setSelectedDept] = useState<string>('all');
+  const initialDept = searchParams.get('departmentId') || searchParams.get('department') || 'all';
+  const [selectedDept, setSelectedDept] = useState<string>(initialDept);
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [selectedDocStatus, setSelectedDocStatus] = useState<string>('all');
   const [selectedContractStatus, setSelectedContractStatus] = useState<string>('all');
   const [selectedInsuranceStatus, setSelectedInsuranceStatus] = useState<string>('all');
+
+  useEffect(() => {
+    const urlDept = searchParams.get('departmentId') || searchParams.get('department');
+    if (urlDept) {
+      const match = departments.find(
+        d => d.id === urlDept || d.name.toLowerCase() === urlDept.toLowerCase()
+      );
+      const targetId = match ? match.id : urlDept;
+      if (targetId !== selectedDept) {
+        setSelectedDept(targetId);
+      }
+    }
+  }, [searchParams, departments]);
+
+  const handleDepartmentChange = (deptId: string) => {
+    setSelectedDept(deptId);
+    setSelectedIds([]);
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      if (deptId === 'all') {
+        next.delete('departmentId');
+        next.delete('department');
+      } else {
+        next.set('departmentId', deptId);
+      }
+      return next;
+    });
+  };
 
   // Modal states
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -228,7 +261,7 @@ export const EmployeesListPage: React.FC = () => {
 
           return (
             <div className="flex items-center gap-3 min-w-[250px]">
-              <Avatar name={fullName} src={row.avatar} size="sm" />
+              <Avatar name={fullName} src={getGenderAvatarUrl(row.avatar, row.gender, row.firstName || row.id)} size="sm" />
               <div>
                 <div className="font-semibold text-slate-900 dark:text-[#F8FAFC] hover:text-brand-600 dark:hover:text-[#38BDF8] transition-colors whitespace-nowrap">
                   {fullName}
@@ -491,6 +524,14 @@ export const EmployeesListPage: React.FC = () => {
           <Button
             variant="outline"
             size="md"
+            leftIcon={<Printer className="w-4 h-4 text-brand-600 dark:text-[#38BDF8]" />}
+            onClick={() => setIsPrintTableModalOpen(true)}
+          >
+            {t('employees.printTable', 'طباعة جدول الموظفين')}
+          </Button>
+          <Button
+            variant="outline"
+            size="md"
             leftIcon={<Upload className="w-4 h-4 text-brand-600 dark:text-[#38BDF8]" />}
             onClick={() => setIsImportModalOpen(true)}
           >
@@ -556,6 +597,15 @@ export const EmployeesListPage: React.FC = () => {
               {t('employees.printBadgesCount', { count: ids.length })}
             </Button>
             <Button
+              variant="outline"
+              size="sm"
+              className="border-brand-300 dark:border-brand-800 bg-brand-50/70 dark:bg-brand-950/40 text-brand-800 dark:text-[#38BDF8] hover:bg-brand-100 font-bold"
+              leftIcon={<Printer className="w-3.5 h-3.5 text-brand-600 dark:text-[#38BDF8]" />}
+              onClick={() => setIsPrintTableModalOpen(true)}
+            >
+              {t('employees.printSelectedTable', 'طباعة جدول المحددين ({{count}})', { count: ids.length })}
+            </Button>
+            <Button
               variant="danger"
               size="sm"
               leftIcon={<Trash2 className="w-3.5 h-3.5" />}
@@ -612,8 +662,9 @@ export const EmployeesListPage: React.FC = () => {
             </label>
             {/* Department Filter */}
             <select
+              id="employee-department-filter"
               value={selectedDept}
-              onChange={e => setSelectedDept(e.target.value)}
+              onChange={e => handleDepartmentChange(e.target.value)}
               className="text-xs rounded-lg border border-slate-300 dark:border-[#1E293B] bg-white dark:bg-[#151D2E] px-2.5 py-1.5 text-slate-700 dark:text-[#F8FAFC] focus:outline-none focus:ring-1 focus:ring-brand-500 cursor-pointer"
             >
               <option value="all" className="dark:bg-[#151D2E] dark:text-[#F8FAFC]">{t('employees.allDepartments')}</option>
@@ -623,6 +674,19 @@ export const EmployeesListPage: React.FC = () => {
                 </option>
               ))}
             </select>
+
+            {/* Quick Print Department Button */}
+            {selectedDept !== 'all' && (
+              <Button
+                variant="outline"
+                size="sm"
+                leftIcon={<Printer className="w-3.5 h-3.5 text-brand-600 dark:text-[#38BDF8]" />}
+                onClick={() => setIsPrintTableModalOpen(true)}
+                className="text-xs border-brand-300 dark:border-brand-800 bg-brand-50 dark:bg-brand-950/40 text-brand-700 dark:text-[#38BDF8] hover:bg-brand-100 font-bold"
+              >
+                {t('employees.printDeptTable', 'طباعة كشف القسم')}
+              </Button>
+            )}
 
             {/* Employment Status Filter */}
             <select
@@ -676,6 +740,17 @@ export const EmployeesListPage: React.FC = () => {
               </Button>
             )}
           </div>
+        }
+        actionsSlot={
+          <Button
+            variant="outline"
+            size="sm"
+            leftIcon={<Printer className="w-3.5 h-3.5 text-brand-600 dark:text-[#38BDF8]" />}
+            onClick={() => setIsPrintTableModalOpen(true)}
+            className="text-xs"
+          >
+            {t('employees.printTableShort', 'طباعة الجدول')}
+          </Button>
         }
       />
 
@@ -763,6 +838,18 @@ export const EmployeesListPage: React.FC = () => {
             setBadgeModalEmployees([]);
           }}
           employees={badgeModalEmployees}
+        />
+      )}
+
+      {/* Employee Directory Print Table Modal */}
+      {isPrintTableModalOpen && (
+        <EmployeePrintTableModal
+          isOpen={isPrintTableModalOpen}
+          onClose={() => setIsPrintTableModalOpen(false)}
+          employees={employees}
+          initialSelectedIds={selectedIds}
+          departmentFilter={selectedDept !== 'all' ? departments.find(d => d.id === selectedDept)?.name : undefined}
+          statusFilter={selectedStatus !== 'all' ? selectedStatus : undefined}
         />
       )}
     </div>

@@ -3,6 +3,7 @@ import { Employee } from '../../../../types';
 import { generateEmployeeQRCode } from '../../services/badgeQrService';
 import logoImg from '../../../../assets/new-hope-logo.png';
 import { CheckCircle2, User, Phone, Shield } from 'lucide-react';
+import { getGenderAvatarUrl } from '../../../../lib/utils';
 
 export interface EmployeeBadgeCardProps {
   employee: Employee;
@@ -99,7 +100,7 @@ export const EmployeeBadgeCard: React.FC<EmployeeBadgeCardProps> = ({
           >
             {employee.avatar ? (
               <img
-                src={employee.avatar}
+                src={getGenderAvatarUrl(employee.avatar, employee.gender, employee.firstName || employee.id)}
                 alt={fullNameEn}
                 className="w-full h-full object-cover rounded-lg"
               />
@@ -282,7 +283,7 @@ export const EmployeeBadgeCard: React.FC<EmployeeBadgeCardProps> = ({
           style={{ width: '22mm', height: '26mm' }}
         >
           {employee.avatar ? (
-            <img src={employee.avatar} alt={fullNameEn} className="w-full h-full object-cover rounded-lg" />
+            <img src={getGenderAvatarUrl(employee.avatar, employee.gender, employee.firstName || employee.id)} alt={fullNameEn} className="w-full h-full object-cover rounded-lg" />
           ) : (
             <div className="w-full h-full bg-slate-100 flex flex-col items-center justify-center text-slate-400">
               <User className="w-7 h-7 text-emerald-600/70" />

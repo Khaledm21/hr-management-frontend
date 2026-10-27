@@ -19,7 +19,7 @@ export const useEmployees = (params: EmployeeFilterParams = {}) => {
   return useQuery({
     queryKey: employeeKeys.list(params),
     queryFn: () => employeeService.getEmployees(params),
-    staleTime: 3 * 60 * 1000, // 3 minutes fresh
+    staleTime: 30 * 1000, // 30 seconds fresh
   });
 };
 

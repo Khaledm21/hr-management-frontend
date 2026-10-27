@@ -91,3 +91,39 @@ export function parseEgyptianNationalId(nid: string | number | undefined | null)
   return { gender, dateOfBirth };
 }
 
+/**
+ * Ensures an avatar matches the employee's gender.
+ * - Custom uploaded real photos (base64 or files) are preserved 100%.
+ * - Dicebear SVG avatars are forced to use tailored hairstyles and facial attributes according to gender.
+ */
+export function getGenderAvatarUrl(
+  avatar?: string | null,
+  gender?: 'male' | 'female' | string,
+  seed?: string
+): string {
+  // If user uploaded a custom real photo, preserve it
+  if (avatar && !avatar.includes('dicebear.com')) {
+    return avatar;
+  }
+
+  // Extract existing seed if present
+  let cleanSeed = seed || 'User';
+  if (avatar && avatar.includes('seed=')) {
+    try {
+      const match = avatar.match(/seed=([^&]+)/);
+      if (match && match[1]) {
+        cleanSeed = decodeURIComponent(match[1]);
+      }
+    } catch {
+      // fallback
+    }
+  }
+
+  const s = encodeURIComponent(cleanSeed);
+  if (gender === 'female') {
+    return `https://api.dicebear.com/7.x/avataaars/svg?seed=${s}&facialHairProbability=0&top=longButNotTooLong,straight01,straight02,curly,curvy,bob,bun,miaWallace`;
+  }
+  return `https://api.dicebear.com/7.x/avataaars/svg?seed=${s}&top=shortFlat,shortRound,shortWaved,sides,theCaesar,theCaesarAndSidePart,shortCurly`;
+}
+
+
