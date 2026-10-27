@@ -510,7 +510,7 @@ export const EmployeesListPage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2.5">
-          {employees.length > 0 && (
+          {(!isLoading && employees.length > 0) ? (
             <Button
               variant="outline"
               size="md"
@@ -520,7 +520,9 @@ export const EmployeesListPage: React.FC = () => {
             >
               {t('employees.deleteAll')}
             </Button>
-          )}
+          ) : isLoading ? (
+            <div className="w-[150px] h-[38px] hidden sm:block" />
+          ) : null}
           <Button
             variant="outline"
             size="md"

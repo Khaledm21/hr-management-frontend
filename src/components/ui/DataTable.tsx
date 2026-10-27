@@ -478,7 +478,7 @@ export function DataTable<T extends Record<string, any>>({
       </div>
 
       {/* Pagination component */}
-      {!isLoading && !error && totalRecords > 0 && (
+      {!isLoading && !error && totalRecords > 0 ? (
         <Pagination
           currentPage={currentPage}
           totalPages={totalPages}
@@ -490,7 +490,12 @@ export function DataTable<T extends Record<string, any>>({
             setCurrentPage(1);
           }}
         />
-      )}
+      ) : isLoading ? (
+        <div className="p-3 border-t border-slate-100 dark:border-[#1E293B] flex items-center justify-between h-[52px]">
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-7 w-48 rounded-lg" />
+        </div>
+      ) : null}
     </div>
   );
 }
