@@ -830,7 +830,18 @@
     "colBirthCert": "شهادة الميلاد",
     "colIdCard": "بطاقة الرقم القومي",
     "colContract": "عقد العمل",
-    "colMissingNotes": "الملاحظات"
+    "colMissingNotes": "الملاحظات",
+    "colInsuranceStatus": "حالة التأمين",
+    "statusInsuredDone": "تم التأمين ✓",
+    "statusNotInsuredYet": "غير مؤمن عليه",
+    "notInsuredClickToInsureTooltip": "اضغط لتحويل الحالة إلى (تم التأمين) وإضافته تلقائياً في شيت التأمينات الاجتماعية",
+    "insuredClickToCancelTooltip": "تم التأمين ومضاف في شيت التأمينات (اضغط لإلغاء التأمين)",
+    "markedInsuredAndAddedSuccess": "تم التأمين على الموظف \"{{name}}\" وإضافته تلقائياً إلى شيت التأمينات الاجتماعية",
+    "markedNotInsuredAndRemovedSuccess": "تم تحويل حالة الموظف \"{{name}}\" إلى غير مؤمن عليه وإزالته من شيت التأمينات",
+    "insuranceStatusUpdateError": "حدث خطأ أثناء تحديث حالة التأمين",
+    "filterMissingInsAll": "حالة التأمين: الكل",
+    "filterMissingInsInsured": "تم التأمين عليهم",
+    "filterMissingInsNotInsured": "غير مؤمن عليهم (في انتظار التأمين)"
   },
   "contracts": {
     "title": "إدارة العقود والارتباطات الوظيفية",

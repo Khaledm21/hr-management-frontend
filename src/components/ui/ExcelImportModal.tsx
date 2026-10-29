@@ -345,6 +345,12 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
           const id = String(row['ID Card'] || row['بطاقة الرقم القومي'] || '').toLowerCase().includes('miss') || String(row['ID Card'] || '').includes('ناقص') ? 'missing' : 'available';
           const cont = String(row['Contract'] || row['عقد العمل'] || '').toLowerCase().includes('miss') || String(row['Contract'] || '').includes('ناقص') ? 'missing' : 'available';
 
+          const rawIns = String(row['Insurance Status'] || row['حالة التأمين'] || '').toLowerCase().trim();
+          const isRowInsured =
+            rawIns === 'insured' ||
+            rawIns.includes('تم التأمين') ||
+            (rawIns.includes('مؤمن') && !rawIns.includes('غير'));
+
           return {
             serialNo: idx + 1,
             department: dept,
@@ -353,7 +359,7 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
             position,
             startDate: start,
             employeeCode: empCode,
-            insuranceStatus: 'not_insured' as const,
+            insuranceStatus: (isRowInsured ? 'insured' : 'not_insured') as 'insured' | 'not_insured',
             qualificationCert: qual as any,
             birthCert: birth as any,
             idCard: id as any,

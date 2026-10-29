@@ -830,7 +830,18 @@
     "colBirthCert": "出生证明",
     "colIdCard": "国民身份证",
     "colContract": "劳动合同",
-    "colMissingNotes": "备注"
+    "colMissingNotes": "备注",
+    "colInsuranceStatus": "参保状态",
+    "statusInsuredDone": "已参保 ✓",
+    "statusNotInsuredYet": "未参保",
+    "notInsuredClickToInsureTooltip": "点击标记为已参保并自动添加至社保缴费清单",
+    "insuredClickToCancelTooltip": "已参保并加入社保名单（点击取消参保）",
+    "markedInsuredAndAddedSuccess": "已将员工“{{name}}”标记为已参保并自动添加至社保缴费清单",
+    "markedNotInsuredAndRemovedSuccess": "已将员工“{{name}}”更改为未参保并从社保名单移除",
+    "insuranceStatusUpdateError": "更新参保状态时发生错误",
+    "filterMissingInsAll": "参保状态：全部",
+    "filterMissingInsInsured": "已参保",
+    "filterMissingInsNotInsured": "未参保（待审批）"
   },
   "contracts": {
     "title": "劳动合同管理",

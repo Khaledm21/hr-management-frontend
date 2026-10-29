@@ -830,7 +830,18 @@
     "colBirthCert": "Birth Certificate",
     "colIdCard": "National ID Card",
     "colContract": "Labor Contract",
-    "colMissingNotes": "Notes"
+    "colMissingNotes": "Notes",
+    "colInsuranceStatus": "Insurance Status",
+    "statusInsuredDone": "Insured ✓",
+    "statusNotInsuredYet": "Not Insured",
+    "notInsuredClickToInsureTooltip": "Click to mark as Insured and automatically add to the Social Insurance sheet",
+    "insuredClickToCancelTooltip": "Insured and added to Social Insurance sheet (Click to revert)",
+    "markedInsuredAndAddedSuccess": "Employee \"{{name}}\" marked as Insured and automatically added to Social Insurance sheet",
+    "markedNotInsuredAndRemovedSuccess": "Employee \"{{name}}\" marked as Not Insured and removed from Social Insurance sheet",
+    "insuranceStatusUpdateError": "Error updating insurance status",
+    "filterMissingInsAll": "Insurance Status: All",
+    "filterMissingInsInsured": "Insured",
+    "filterMissingInsNotInsured": "Not Insured (Pending Approval)"
   },
   "contracts": {
     "title": "Contract Management",

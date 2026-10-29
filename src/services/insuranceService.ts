@@ -194,7 +194,149 @@ export const insuranceService = {
     item.notes = count === 0 ? 'All documents submitted' : `${count} document(s) pending`;
 
     missingDocumentsState[idx] = item;
+    persistItem(STORAGE_KEYS.MISSING_DOCS, missingDocumentsState);
     return item;
+  },
+
+  // Toggle insuranceStatus ('insured' | 'not_insured') for a Missing Document record
+  // and automatically add/remove the employee in the Social Insurance sheet
+  async toggleInsuranceStatus(
+    record: MissingDocumentRecord,
+    currentlyInsured?: boolean
+  ): Promise<{ missingRecord: MissingDocumentRecord; targetStatus: 'insured' | 'not_insured' }> {
+    const isCurrentlyInsured =
+      currentlyInsured !== undefined ? currentlyInsured : record.insuranceStatus === 'insured';
+    const targetStatus: 'insured' | 'not_insured' = isCurrentlyInsured ? 'not_insured' : 'insured';
+
+    let updatedMissing: MissingDocumentRecord = {
+      ...record,
+      insuranceStatus: targetStatus,
+    };
+
+    if (apiClient.isBackendAvailable()) {
+      try {
+        const patched = await apiClient.patch<MissingDocumentRecord>(
+          `/insurance/missing-documents/${record.id}/toggle`,
+          {
+            documentType: 'insuranceStatus',
+            status: targetStatus,
+          }
+        );
+        if (patched) {
+          updatedMissing = { ...patched, insuranceStatus: targetStatus };
+        }
+      } catch (err) {
+        console.warn('Backend toggle insuranceStatus on missing-documents failed, continuing with social sync:', err);
+      }
+
+      if (targetStatus === 'insured') {
+        try {
+          const existingSocial = await this.getSocialInsuranceRecords();
+          const alreadyInSocial = existingSocial.some(
+            s =>
+              (record.nationalId && s.nationalId && s.nationalId.trim() === record.nationalId.trim()) ||
+              (record.employeeCode && s.employeeCode && s.employeeCode.trim() === record.employeeCode.trim())
+          );
+
+          if (!alreadyInSocial) {
+            const salary = 4325.0;
+            const worker = Number((salary * 0.11).toFixed(2));
+            const company = Number((salary * 0.1875).toFixed(2));
+            await this.importSocialInsurance(
+              [
+                {
+                  serialNo: existingSocial.length + 1,
+                  nationalId: record.nationalId?.trim() || record.employeeCode?.trim() || String(Date.now()),
+                  employeeName: record.employeeName?.trim() || 'Employee',
+                  department: record.department || 'HR',
+                  employeeCode: record.employeeCode,
+                  insuranceNumber: 'قيد الإصدار',
+                  insuranceSalary: salary,
+                  workerShare: worker,
+                  companyShare: company,
+                  totalContribution: Number((worker + company).toFixed(2)),
+                  note: record.startDate ? `Start: ${record.startDate}` : 'تم التأمين من شيت مسوغات التعيين',
+                  employeeListStatus: 'found',
+                },
+              ],
+              false
+            );
+          }
+        } catch (err) {
+          console.error('Failed to auto-add employee to Social Insurance sheet:', err);
+          throw err;
+        }
+      } else {
+        try {
+          const existingSocial = await this.getSocialInsuranceRecords();
+          const matchedSocial = existingSocial.find(
+            s =>
+              (record.nationalId && s.nationalId && s.nationalId.trim() === record.nationalId.trim()) ||
+              (record.employeeCode && s.employeeCode && s.employeeCode.trim() === record.employeeCode.trim())
+          );
+          const deleteTargetId = matchedSocial?.id || record.nationalId?.trim() || record.employeeCode?.trim();
+          if (deleteTargetId) {
+            await this.deleteSocialInsurance(deleteTargetId).catch(() => {});
+          }
+        } catch (err) {
+          console.warn('Could not remove employee from Social Insurance sheet:', err);
+        }
+      }
+    } else {
+      // Local state fallback when backend is offline
+      if (targetStatus === 'insured') {
+        const alreadyInSocial = socialInsuranceState.some(
+          s =>
+            (record.nationalId && s.nationalId === record.nationalId) ||
+            (record.employeeCode && s.employeeCode === record.employeeCode)
+        );
+        if (!alreadyInSocial) {
+          const salary = 4325.0;
+          const worker = Number((salary * 0.11).toFixed(2));
+          const company = Number((salary * 0.1875).toFixed(2));
+          const newSocial: SocialInsuranceRecord = {
+            id: `soc-auto-${Date.now()}`,
+            serialNo: socialInsuranceState.length + 1,
+            nationalId: record.nationalId?.trim() || record.employeeCode?.trim() || '',
+            employeeName: record.employeeName,
+            department: record.department || 'HR',
+            employeeCode: record.employeeCode,
+            insuranceNumber: 'قيد الإصدار',
+            insuranceSalary: salary,
+            workerShare: worker,
+            companyShare: company,
+            totalContribution: Number((worker + company).toFixed(2)),
+            note: record.startDate ? `Start: ${record.startDate}` : 'تم التأمين من شيت مسوغات التعيين',
+            employeeListStatus: 'found',
+          };
+          socialInsuranceState = [newSocial, ...socialInsuranceState];
+          persistItem(STORAGE_KEYS.SOCIAL_INSURANCE, socialInsuranceState);
+        }
+      } else {
+        socialInsuranceState = socialInsuranceState.filter(
+          s =>
+            (!record.nationalId || s.nationalId !== record.nationalId) &&
+            (!record.employeeCode || s.employeeCode !== record.employeeCode)
+        );
+        persistItem(STORAGE_KEYS.SOCIAL_INSURANCE, socialInsuranceState);
+      }
+    }
+
+    const idx = missingDocumentsState.findIndex(
+      d =>
+        d.id === record.id ||
+        (record.employeeCode && d.employeeCode === record.employeeCode) ||
+        (record.nationalId && d.nationalId === record.nationalId)
+    );
+    if (idx !== -1) {
+      missingDocumentsState[idx] = {
+        ...missingDocumentsState[idx],
+        insuranceStatus: targetStatus,
+      };
+      persistItem(STORAGE_KEYS.MISSING_DOCS, missingDocumentsState);
+    }
+
+    return { missingRecord: updatedMissing, targetStatus };
   },
 
   // Bulk import for Social Insurance

@@ -69,6 +69,28 @@ export const useToggleDocumentMutation = () => {
 };
 
 /**
+ * Mutation to toggle insurance status ('insured' | 'not_insured') in Missing Documents
+ * and automatically sync with the Social Insurance sheet & Employee directory
+ */
+export const useToggleInsuranceStatusMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      record,
+      currentlyInsured,
+    }: {
+      record: MissingDocumentRecord;
+      currentlyInsured?: boolean;
+    }) => insuranceService.toggleInsuranceStatus(record, currentlyInsured),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: insuranceKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+    },
+  });
+};
+
+/**
  * Mutation to import social insurance records
  */
 export const useImportSocialInsuranceMutation = () => {

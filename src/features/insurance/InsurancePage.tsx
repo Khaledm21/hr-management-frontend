@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import * as XLSX from 'xlsx';
 import { useTranslation } from 'react-i18next';
 import {
@@ -29,6 +29,7 @@ import {
   useMissingDocuments,
   useInsuranceStats,
   useToggleDocumentMutation,
+  useToggleInsuranceStatusMutation,
 } from '../../hooks/queries';
 import { SocialInsuranceRecord, MissingDocumentRecord } from '../../types';
 import { ExcelImportModal, ImportTargetType } from '../../components/ui/ExcelImportModal';
@@ -49,6 +50,8 @@ export const InsurancePage: React.FC = () => {
   const [selectedListStatus, setSelectedListStatus] = useState<string>('all');
   const [selectedDocFilter, setSelectedDocFilter] = useState<string>('all');
   const [selectedDocStatusFilter, setSelectedDocStatusFilter] = useState<'all' | 'complete' | 'incomplete'>('all');
+  const [selectedMissingInsFilter, setSelectedMissingInsFilter] = useState<'all' | 'insured' | 'not_insured'>('all');
+  const [togglingInsuranceId, setTogglingInsuranceId] = useState<string | null>(null);
 
   // Excel Modal
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -110,6 +113,27 @@ export const InsurancePage: React.FC = () => {
   } = useInsuranceStats();
 
   const toggleMutation = useToggleDocumentMutation();
+  const toggleInsuranceMutation = useToggleInsuranceStatusMutation();
+
+  const isEmployeeInsured = useCallback(
+    (row: MissingDocumentRecord) => {
+      if (row.insuranceStatus === 'insured') return true;
+      return socialRecords.some(
+        s =>
+          (row.nationalId && s.nationalId && s.nationalId.trim() === row.nationalId.trim()) ||
+          (row.employeeCode && s.employeeCode && s.employeeCode.trim() === row.employeeCode.trim())
+      );
+    },
+    [socialRecords]
+  );
+
+  const filteredMissingRecords = useMemo(() => {
+    if (selectedMissingInsFilter === 'all') return missingRecords;
+    return missingRecords.filter(row => {
+      const insured = isEmployeeInsured(row);
+      return selectedMissingInsFilter === 'insured' ? insured : !insured;
+    });
+  }, [missingRecords, selectedMissingInsFilter, isEmployeeInsured]);
 
   const stats = statsData || {
     insuredCount: 0,
@@ -148,6 +172,26 @@ export const InsurancePage: React.FC = () => {
       success(t('insurance.docUpdatedSuccess', { name: updated.employeeName }));
     } catch (err: any) {
       toastError(err?.message || t('insurance.docUpdateError'));
+    }
+  };
+
+  const handleToggleInsuranceStatus = async (row: MissingDocumentRecord, currentlyInsured: boolean) => {
+    setTogglingInsuranceId(row.id);
+    try {
+      const { targetStatus } = await toggleInsuranceMutation.mutateAsync({
+        record: row,
+        currentlyInsured,
+      });
+      if (targetStatus === 'insured') {
+        success(t('insurance.markedInsuredAndAddedSuccess', { name: row.employeeName }));
+      } else {
+        info(t('insurance.markedNotInsuredAndRemovedSuccess', { name: row.employeeName }));
+      }
+      handleRefetch();
+    } catch (err: any) {
+      toastError(err?.message || t('insurance.insuranceStatusUpdateError'));
+    } finally {
+      setTogglingInsuranceId(null);
     }
   };
 
@@ -234,19 +278,21 @@ export const InsurancePage: React.FC = () => {
   };
 
   // Missing Documents Selection & Delete Handlers
-  const isAllMissingSelected = missingRecords.length > 0 && missingRecords.every(r => selectedMissingIds.includes(r.id));
-  const isSomeMissingSelected = missingRecords.some(r => selectedMissingIds.includes(r.id)) && !isAllMissingSelected;
+  const isAllMissingSelected =
+    filteredMissingRecords.length > 0 && filteredMissingRecords.every(r => selectedMissingIds.includes(r.id));
+  const isSomeMissingSelected =
+    filteredMissingRecords.some(r => selectedMissingIds.includes(r.id)) && !isAllMissingSelected;
 
   const handleToggleSelectAllMissing = () => {
     if (isAllMissingSelected) {
       setSelectedMissingIds([]);
     } else {
-      setSelectedMissingIds(missingRecords.map(r => r.id));
+      setSelectedMissingIds(filteredMissingRecords.map(r => r.id));
     }
   };
 
   const handleExportSelectedMissing = () => {
-    const selectedRows = missingRecords.filter(r => selectedMissingIds.includes(r.id));
+    const selectedRows = filteredMissingRecords.filter(r => selectedMissingIds.includes(r.id));
     if (selectedRows.length > 0) {
       const wb = XLSX.utils.book_new();
       const rows = selectedRows.map(r => ({
@@ -256,7 +302,7 @@ export const InsurancePage: React.FC = () => {
         ID: r.nationalId,
         Position: r.position,
         'Employee ID': r.employeeCode,
-        'Insurance Status': r.insuranceStatus,
+        'Insurance Status': isEmployeeInsured(r) ? 'Insured' : 'Not Insured',
         'Qualification Cert': r.qualificationCert,
         'Birth Cert': r.birthCert,
         'ID Card': r.idCard,
@@ -337,7 +383,7 @@ export const InsurancePage: React.FC = () => {
       XLSX.writeFile(wb, 'Social_Insurance_September_Export.xlsx');
       info(t('insurance.exportSocialSheetSuccess'));
     } else if (activeTab === 'missing_documents') {
-      const rows = missingRecords.map(r => ({
+      const rows = filteredMissingRecords.map(r => ({
         No: r.serialNo,
         Department: r.department,
         Name: r.employeeName,
@@ -345,7 +391,7 @@ export const InsurancePage: React.FC = () => {
         Position: r.position,
         'Start date': r.startDate,
         'Employee ID': r.employeeCode,
-        'Insurance Status': r.insuranceStatus === 'insured' ? 'Insured' : 'Not Insured',
+        'Insurance Status': isEmployeeInsured(r) ? 'Insured' : 'Not Insured',
         'Qualification Certificate': r.qualificationCert === 'available' ? 'Available' : 'Missing',
         'Birth Certificate': r.birthCert === 'available' ? 'Available' : 'Missing',
         'ID Card': r.idCard === 'available' ? 'Available' : 'Missing',
@@ -625,6 +671,45 @@ export const InsurancePage: React.FC = () => {
         },
       },
       {
+        key: 'insuranceStatus',
+        header: t('insurance.colInsuranceStatus'),
+        sortable: true,
+        render: row => {
+          const insured = isEmployeeInsured(row);
+          const isUpdating = togglingInsuranceId === row.id;
+          return (
+            <button
+              type="button"
+              disabled={isUpdating}
+              onClick={() => handleToggleInsuranceStatus(row, insured)}
+              title={
+                insured
+                  ? t('insurance.insuredClickToCancelTooltip')
+                  : t('insurance.notInsuredClickToInsureTooltip')
+              }
+              className={cn(
+                'px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all inline-flex items-center gap-1.5 border shadow-2xs cursor-pointer whitespace-nowrap',
+                isUpdating && 'opacity-60 cursor-wait',
+                insured
+                  ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800 hover:bg-emerald-200 dark:hover:bg-emerald-900/60'
+                  : 'bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-800/70 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 hover:text-emerald-700 dark:hover:text-emerald-300 hover:border-emerald-300 dark:hover:border-emerald-700'
+              )}
+            >
+              {isUpdating ? (
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+              ) : insured ? (
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              ) : (
+                <ShieldAlert className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+              )}
+              <span>
+                {insured ? t('insurance.statusInsuredDone') : t('insurance.statusNotInsuredYet')}
+              </span>
+            </button>
+          );
+        },
+      },
+      {
         key: 'actions',
         header: t('common.actions'),
         align: 'right',
@@ -641,7 +726,7 @@ export const InsurancePage: React.FC = () => {
         ),
       },
     ],
-    [t]
+    [t, isEmployeeInsured, togglingInsuranceId]
   );
 
   return (
@@ -998,7 +1083,7 @@ export const InsurancePage: React.FC = () => {
         <div className="space-y-4">
           <DataTable
             columns={missingColumns}
-            data={missingRecords}
+            data={filteredMissingRecords}
             keyExtractor={row => row.id}
             isLoading={isLoading}
             searchable
@@ -1019,14 +1104,14 @@ export const InsurancePage: React.FC = () => {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setSelectedMissingIds(missingRecords.map(r => r.id))}
-                  disabled={ids.length === missingRecords.length}
+                  onClick={() => setSelectedMissingIds(filteredMissingRecords.map(r => r.id))}
+                  disabled={ids.length === filteredMissingRecords.length}
                 >
                   {selectedDocStatusFilter === 'complete'
                     ? t('insurance.selectAllComplete')
                     : selectedDocStatusFilter === 'all'
-                    ? t('insurance.selectAllRecordsCount', { count: missingRecords.length })
-                    : t('insurance.selectAllMissing')} ({missingRecords.length})
+                    ? t('insurance.selectAllRecordsCount', { count: filteredMissingRecords.length })
+                    : t('insurance.selectAllMissing')} ({filteredMissingRecords.length})
                 </Button>
                 <Button
                   variant="outline"
@@ -1041,14 +1126,14 @@ export const InsurancePage: React.FC = () => {
                   size="sm"
                   leftIcon={<Trash2 className="w-3.5 h-3.5" />}
                   onClick={() => {
-                    if (ids.length === missingRecords.length) {
+                    if (ids.length === filteredMissingRecords.length) {
                       setIsDeleteAllMissingModalOpen(true);
                     } else {
                       setIsBulkDeleteMissingModalOpen(true);
                     }
                   }}
                 >
-                  {ids.length === missingRecords.length
+                  {ids.length === filteredMissingRecords.length
                     ? t('insurance.deleteAllMissing')
                     : t('insurance.deleteSelectedMissing', { count: ids.length })}
                 </Button>
@@ -1081,14 +1166,14 @@ export const InsurancePage: React.FC = () => {
                   />
                   <span className="whitespace-nowrap">
                     {isAllMissingSelected
-                      ? t('insurance.allMissingSelectedCount', { count: missingRecords.length })
+                      ? t('insurance.allMissingSelectedCount', { count: filteredMissingRecords.length })
                       : isSomeMissingSelected
-                      ? t('insurance.selectedCountOf', { selected: selectedMissingIds.length, total: missingRecords.length })
+                      ? t('insurance.selectedCountOf', { selected: selectedMissingIds.length, total: filteredMissingRecords.length })
                       : selectedDocStatusFilter === 'complete'
-                      ? t('insurance.selectAllCompleteCount', { count: missingRecords.length })
+                      ? t('insurance.selectAllCompleteCount', { count: filteredMissingRecords.length })
                       : selectedDocStatusFilter === 'all'
-                      ? t('insurance.selectAllRecordsCount', { count: missingRecords.length })
-                      : t('insurance.selectAllMissingCount', { count: missingRecords.length })}
+                      ? t('insurance.selectAllRecordsCount', { count: filteredMissingRecords.length })
+                      : t('insurance.selectAllMissingCount', { count: filteredMissingRecords.length })}
                   </span>
                 </label>
 
@@ -1168,6 +1253,20 @@ export const InsurancePage: React.FC = () => {
                     </span>
                   </button>
                 </div>
+
+                {/* Insurance Status Filter Dropdown */}
+                <select
+                  value={selectedMissingInsFilter}
+                  onChange={e => {
+                    setSelectedMissingInsFilter(e.target.value as 'all' | 'insured' | 'not_insured');
+                    setSelectedMissingIds([]);
+                  }}
+                  className="text-xs rounded-lg border border-slate-300 dark:border-[#1E293B] bg-white dark:bg-[#0B0F19] px-2.5 py-1.5 text-slate-700 dark:text-slate-200 [&>option]:bg-white [&>option]:dark:bg-[#151D2E] focus:outline-none focus:ring-1 focus:ring-brand-500 cursor-pointer font-semibold transition-colors"
+                >
+                  <option value="all">{t('insurance.filterMissingInsAll')}</option>
+                  <option value="insured">{t('insurance.filterMissingInsInsured')}</option>
+                  <option value="not_insured">{t('insurance.filterMissingInsNotInsured')}</option>
+                </select>
 
                 {/* Specific Missing Document Dropdown */}
                 <select
