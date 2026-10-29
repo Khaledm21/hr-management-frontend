@@ -32,7 +32,7 @@ export const App: React.FC = () => {
           </DirectionProvider>
         </ThemeProvider>
       </BrowserRouter>
-      <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-right" />
+      {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-right" />}
     </QueryClientProvider>
   );
 };

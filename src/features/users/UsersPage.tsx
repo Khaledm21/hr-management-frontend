@@ -56,7 +56,7 @@ export const UsersPage: React.FC = () => {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('Enterprise@123');
+  const [password, setPassword] = useState('');
   const [userRole, setUserRole] = useState<RoleType>('hr_staff');
   const [dept, setDept] = useState('Human Resources');
   const [gender, setGender] = useState<'male' | 'female'>('male');
@@ -198,7 +198,7 @@ export const UsersPage: React.FC = () => {
     setIsEmpDropdownOpen(false);
     setName('');
     setEmail('');
-    setPassword('Enterprise@123');
+    setPassword('');
     setUserRole('hr_staff');
     setDept(departments[0]?.name || 'Human Resources');
     setGender('male');
@@ -208,12 +208,16 @@ export const UsersPage: React.FC = () => {
 
   const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!password.trim() || password.trim().length < 6) {
+      toastError('يجب ألا تقل كلمة المرور الابتدائية عن 6 أحرف', 'تنبيه أمان');
+      return;
+    }
     setIsSubmitting(true);
     try {
       await userService.createUser({
         name: name.trim(),
         email: email.trim(),
-        password: password.trim() || 'Enterprise@123',
+        password: password.trim(),
         role: userRole,
         department: dept.trim() || 'Human Resources',
         avatar: previewAvatar,
@@ -233,7 +237,7 @@ export const UsersPage: React.FC = () => {
       setEmpSearchQuery('');
       setName('');
       setEmail('');
-      setPassword('Enterprise@123');
+      setPassword('');
       setGender('male');
       setAvatarSeed(0);
       await fetchUsers();
@@ -381,16 +385,19 @@ export const UsersPage: React.FC = () => {
         align: 'right',
         render: row => {
           const isMasterAdmin = row.email === 'khaled.mossad@enterprise.com';
+          const isSelf = row.id === currentUser?.id;
           return (
             <div className="flex items-center justify-end gap-1.5">
-              <button
-                onClick={() => openEditModal(row)}
-                className="p-1.5 text-slate-400 hover:text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-500/10 rounded-lg transition-colors cursor-pointer"
-                title={t('users.editUserTitle', 'تعديل المستخدم')}
-              >
-                <Edit2 className="w-4 h-4" />
-              </button>
-              {!isMasterAdmin && (
+              {can('users', 'edit') && (
+                <button
+                  onClick={() => openEditModal(row)}
+                  className="p-1.5 text-slate-400 hover:text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-500/10 rounded-lg transition-colors cursor-pointer"
+                  title={t('users.editUserTitle', 'تعديل المستخدم')}
+                >
+                  <Edit2 className="w-4 h-4" />
+                </button>
+              )}
+              {can('users', 'delete') && !isMasterAdmin && !isSelf && (
                 <button
                   onClick={() => handleDeleteUser(row.id, row.name)}
                   className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
@@ -404,7 +411,7 @@ export const UsersPage: React.FC = () => {
         },
       },
     ],
-    [t]
+    [t, can, currentUser]
   );
 
   if (!can('users', 'view')) {
@@ -441,14 +448,16 @@ export const UsersPage: React.FC = () => {
           >
             {t('users.rolesPermissions', 'مصفوفة الصلاحيات')}
           </Button>
-          <Button
-            variant="primary"
-            size="md"
-            leftIcon={<UserPlus className="w-4 h-4" />}
-            onClick={openAddModal}
-          >
-            {t('users.addUser', 'إضافة مستخدم جديد')}
-          </Button>
+          {can('users', 'create') && (
+            <Button
+              variant="primary"
+              size="md"
+              leftIcon={<UserPlus className="w-4 h-4" />}
+              onClick={openAddModal}
+            >
+              {t('users.addUser', 'إضافة مستخدم جديد')}
+            </Button>
+          )}
         </div>
       </div>
 

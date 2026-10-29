@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import { useDirection, LanguageCode } from '../../context/DirectionContext';
 import { useCompany } from '../../context/CompanyContext';
-import { Building, Lock, Mail, Eye, EyeOff, Globe, ArrowRight, ShieldCheck, AlertCircle, KeyRound } from 'lucide-react';
+import { Lock, Mail, Eye, EyeOff, Globe, ArrowRight, ShieldCheck, AlertCircle } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 
 export const LoginPage: React.FC = () => {
@@ -14,8 +14,8 @@ export const LoginPage: React.FC = () => {
   const { companyName, logo } = useCompany();
   const navigate = useNavigate();
 
-  const [email, setEmail] = useState('khaled.mossad@enterprise.com');
-  const [password, setPassword] = useState('Admin@123456');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
@@ -24,21 +24,22 @@ export const LoginPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
+
+    const cleanEmail = email.trim();
+    if (!cleanEmail || !password) {
+      setErrorMsg(t('auth.credentialsRequired', 'يرجى إدخال البريد الإلكتروني وكلمة المرور.'));
+      return;
+    }
+
     setIsLoading(true);
     try {
-      await login(email, password);
-      navigate('/dashboard');
+      await login(cleanEmail, password, rememberMe);
+      navigate('/dashboard', { replace: true });
     } catch (err: any) {
-      setErrorMsg(err.message || 'Authentication failed. Please verify your email and password.');
+      setErrorMsg(err.message || t('auth.loginFailed', 'فشل تسجيل الدخول. يرجى التأكد من البريد الإلكتروني وكلمة المرور.'));
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleFillAdmin = () => {
-    setEmail('khaled.mossad@enterprise.com');
-    setPassword('Admin@123456');
-    setErrorMsg('');
   };
 
   return (
@@ -90,6 +91,8 @@ export const LoginPage: React.FC = () => {
                 <input
                   type="email"
                   required
+                  autoComplete="username"
+                  placeholder="name@enterprise.com"
                   value={email}
                   onChange={e => {
                     setEmail(e.target.value);
@@ -105,7 +108,6 @@ export const LoginPage: React.FC = () => {
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
                   {t('auth.passwordLabel', 'كلمة المرور')}
                 </label>
-                <span className="text-xs text-slate-400 dark:text-slate-500">Default: Admin@123456</span>
               </div>
               <div className="relative rounded-lg shadow-xs">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 dark:text-slate-500 rtl:left-auto rtl:right-0 rtl:pl-0 rtl:pr-3">
@@ -114,6 +116,8 @@ export const LoginPage: React.FC = () => {
                 <input
                   type={showPassword ? 'text' : 'password'}
                   required
+                  autoComplete="current-password"
+                  placeholder="••••••••"
                   value={password}
                   onChange={e => {
                     setPassword(e.target.value);
@@ -154,18 +158,6 @@ export const LoginPage: React.FC = () => {
               {t('auth.signInButton', 'تسجيل الدخول للمنصة')}
             </Button>
           </form>
-
-          {/* Quick Master Admin Login Button */}
-          <div className="mt-6 pt-5 border-t border-slate-200 dark:border-[#1E293B]">
-            <button
-              type="button"
-              onClick={handleFillAdmin}
-              className="w-full py-2.5 px-3 rounded-xl border border-slate-200 dark:border-[#1E293B] bg-slate-50 dark:bg-[#0B0F19] hover:bg-slate-100 dark:hover:bg-[#1E293B]/70 hover:border-brand-300 dark:hover:border-brand-500 text-center transition-colors text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-center gap-2 cursor-pointer shadow-xs"
-            >
-              <KeyRound className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400" />
-              <span>Fill Master Admin Credentials (خالد مسعد)</span>
-            </button>
-          </div>
         </div>
 
         <div className="mt-6 text-center text-xs text-slate-400 dark:text-slate-500 flex items-center justify-center gap-1.5">

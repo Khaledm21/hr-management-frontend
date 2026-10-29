@@ -39,10 +39,10 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-[#0B0F19]">
         <div className="flex flex-col items-center gap-3">
           <div className="w-9 h-9 border-3 border-brand-500 border-t-transparent rounded-full animate-spin" />
-          <span className="text-xs font-semibold text-slate-500">Checking authentication...</span>
+          <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">جاري التحقق من صلاحيات الدخول...</span>
         </div>
       </div>
     );
@@ -56,7 +56,15 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 };
 
 const PermissionRoute: React.FC<{ module: string; children: React.ReactNode }> = ({ module, children }) => {
-  const { can } = useAuth();
+  const { can, isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return null;
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
 
   if (!can(module, 'view')) {
     return <Navigate to="/dashboard" replace />;
@@ -70,7 +78,7 @@ const PublicOnlyRoute: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-[#0B0F19]">
         <div className="w-8 h-8 border-3 border-brand-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );

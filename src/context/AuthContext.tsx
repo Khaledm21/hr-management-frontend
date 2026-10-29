@@ -10,7 +10,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   permissions: PermissionMatrix[];
-  login: (email: string, password?: string) => Promise<UserAccount>;
+  login: (email: string, password: string, rememberMe?: boolean) => Promise<UserAccount>;
   logout: () => void;
   refreshMe: () => Promise<void>;
   updateCurrentUser: (updated: Partial<UserAccount>) => void;
@@ -24,12 +24,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [permissions, setPermissions] = useState<PermissionMatrix[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  // Initialize session on mount
+  // Initialize and strictly verify session with backend on mount
   useEffect(() => {
     let isMounted = true;
     const initAuth = async () => {
       const token = apiClient.getToken();
       if (!token) {
+        authService.logout();
         if (isMounted) {
           setUser(null);
           setPermissions([]);
@@ -61,19 +62,48 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Listen for unauthorized 401 events from apiClient
     const handleUnauthorized = () => {
+      authService.logout();
       setUser(null);
       setPermissions([]);
     };
+
+    // Listen for cross-tab or manual storage tampering
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === 'auth_token' || event.key === 'hr_auth_user' || event.key === null) {
+        const currentToken = apiClient.getToken();
+        if (!currentToken) {
+          authService.logout();
+          setUser(null);
+          setPermissions([]);
+        } else {
+          authService.getMe().then(({ user: meUser, permissions: mePerms }) => {
+            if (isMounted) {
+              setUser(meUser);
+              setPermissions(mePerms || []);
+            }
+          }).catch(() => {
+            if (isMounted) {
+              authService.logout();
+              setUser(null);
+              setPermissions([]);
+            }
+          });
+        }
+      }
+    };
+
     window.addEventListener('auth:unauthorized', handleUnauthorized);
+    window.addEventListener('storage', handleStorageChange);
 
     return () => {
       isMounted = false;
       window.removeEventListener('auth:unauthorized', handleUnauthorized);
+      window.removeEventListener('storage', handleStorageChange);
     };
   }, []);
 
-  const login = async (email: string, password?: string) => {
-    const res = await authService.login(email, password);
+  const login = async (email: string, password: string, rememberMe = true) => {
+    const res = await authService.login(email, password, rememberMe);
     setUser(res.user);
     setPermissions(res.permissions || []);
     return res.user;
@@ -96,7 +126,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const can = (module: string, action: 'view' | 'create' | 'edit' | 'delete' | 'approve' | 'export'): boolean => {
-    if (!user) return false;
+    if (!user || !apiClient.getToken()) return false;
+    if (user.status && user.status !== 'active') return false;
     if (user.role === 'admin') return true; // Admins have full root access
 
     const modPerm = permissions.find(p => p.module === module);
@@ -123,12 +154,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   };
 
+  const isAuthenticated = Boolean(
+    user &&
+    apiClient.getToken() &&
+    (!user.status || user.status === 'active')
+  );
+
   return (
     <AuthContext.Provider
       value={{
         user,
-        role: user?.role || 'admin',
-        isAuthenticated: !!user,
+        role: user?.role || 'hr_staff',
+        isAuthenticated,
         isLoading,
         permissions,
         login,

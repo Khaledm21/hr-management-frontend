@@ -1,24 +1,7 @@
-import { UserAccount, PermissionMatrix, RoleType } from '../types';
+import { UserAccount, PermissionMatrix } from '../types';
 import { apiClient } from './apiClient';
 
 const AUTH_STORAGE_KEY = 'hr_auth_user';
-
-export const demoAccounts: { role: RoleType; name: string; email: string; label: string; desc: string }[] = [
-  {
-    role: 'admin',
-    name: 'Khaled Mossad',
-    email: 'khaled.mossad@enterprise.com',
-    label: 'System Administrator',
-    desc: 'Full system access: users, roles, audit logs, all settings & modules',
-  },
-  {
-    role: 'hr_manager',
-    name: 'Khaled Ashraf',
-    email: 'khaled.ashraf@enterprise.com',
-    label: 'Recruitment & HR Specialist',
-    desc: 'Full workforce, approvals, payroll, contracts, leave & policy sign-offs',
-  },
-];
 
 export interface LoginResult {
   user: UserAccount;
@@ -29,9 +12,20 @@ export interface LoginResult {
 export const authService = {
   getCurrentUser(): UserAccount | null {
     try {
-      const stored = localStorage.getItem(AUTH_STORAGE_KEY);
+      const token = apiClient.getToken();
+      if (!token) {
+        localStorage.removeItem(AUTH_STORAGE_KEY);
+        sessionStorage.removeItem(AUTH_STORAGE_KEY);
+        return null;
+      }
+      const stored = localStorage.getItem(AUTH_STORAGE_KEY) || sessionStorage.getItem(AUTH_STORAGE_KEY);
       if (stored) {
-        return JSON.parse(stored);
+        const parsed = JSON.parse(stored) as UserAccount;
+        if (parsed && parsed.status && parsed.status !== 'active') {
+          this.logout();
+          return null;
+        }
+        return parsed;
       }
     } catch {
       // ignore
@@ -39,22 +33,44 @@ export const authService = {
     return null;
   },
 
-  setCurrentUser(user: UserAccount | null): void {
-    if (user) {
-      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user));
-    } else {
-      localStorage.removeItem(AUTH_STORAGE_KEY);
+  setCurrentUser(user: UserAccount | null, rememberMe?: boolean): void {
+    try {
+      if (user) {
+        const useLocal =
+          rememberMe !== undefined
+            ? rememberMe
+            : Boolean(localStorage.getItem('auth_token') || !sessionStorage.getItem('auth_token'));
+        if (useLocal) {
+          localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user));
+          sessionStorage.removeItem(AUTH_STORAGE_KEY);
+        } else {
+          sessionStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user));
+          localStorage.removeItem(AUTH_STORAGE_KEY);
+        }
+      } else {
+        localStorage.removeItem(AUTH_STORAGE_KEY);
+        sessionStorage.removeItem(AUTH_STORAGE_KEY);
+      }
+    } catch {
+      // ignore
     }
   },
 
-  async login(email: string, password?: string): Promise<LoginResult> {
+  async login(email: string, password: string, rememberMe = true): Promise<LoginResult> {
+    if (!email?.trim() || !password) {
+      throw new Error('يرجى إدخال البريد الإلكتروني وكلمة المرور.');
+    }
     const res = await apiClient.post<{ token: string; user: UserAccount; permissions: PermissionMatrix[] }>(
       '/auth/login',
-      { email, password }
+      { email: email.trim(), password }
     );
     if (res && res.token && res.user) {
-      apiClient.setToken(res.token);
-      this.setCurrentUser(res.user);
+      if (res.user.status && res.user.status !== 'active') {
+        this.logout();
+        throw new Error('هذا الحساب غير نشط أو موقوف حالياً. يرجى التواصل مع مسؤول النظام.');
+      }
+      apiClient.setToken(res.token, rememberMe);
+      this.setCurrentUser(res.user, rememberMe);
       return {
         user: res.user,
         token: res.token,
@@ -67,6 +83,10 @@ export const authService = {
   async getMe(): Promise<{ user: UserAccount; permissions: PermissionMatrix[] }> {
     const res = await apiClient.get<{ user: UserAccount; permissions: PermissionMatrix[] }>('/auth/me');
     if (res && res.user) {
+      if (res.user.status && res.user.status !== 'active') {
+        this.logout();
+        throw new Error('Account is inactive or suspended');
+      }
       this.setCurrentUser(res.user);
       return {
         user: res.user,

@@ -1085,8 +1085,8 @@
     "rememberMe": "保持登录状态 30 天",
     "forgotPassword": "忘记密码？",
     "signInButton": "立即进入系统",
-    "demoAccountsTitle": "快速使用演示角色登录：",
-    "orContinue": "或输入任意模拟凭据登录",
+    "credentialsRequired": "请输入您的工作邮箱和登录密码。",
+    "loginFailed": "登录失败，请检查邮箱和密码是否正确。",
     "signOut": "退出登录"
   },
   "driverPayouts": {

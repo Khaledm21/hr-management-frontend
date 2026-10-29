@@ -1085,8 +1085,8 @@
     "rememberMe": "Remember this session for 30 days",
     "forgotPassword": "Forgot password?",
     "signInButton": "Sign In to Dashboard",
-    "demoAccountsTitle": "Quick Demo Login As:",
-    "orContinue": "Or sign in with mock credentials",
+    "credentialsRequired": "Please enter your email address and password.",
+    "loginFailed": "Authentication failed. Please verify your email and password.",
     "signOut": "Sign Out"
   },
   "driverPayouts": {

@@ -90,6 +90,7 @@ export const RolesPermissionsPage: React.FC = () => {
   };
 
   const handleSave = async () => {
+    if (!can('users', 'edit')) return;
     setIsSaving(true);
     try {
       await userService.updateRolePermissions(activeRole, permissions);
@@ -102,6 +103,18 @@ export const RolesPermissionsPage: React.FC = () => {
       setIsSaving(false);
     }
   };
+
+  if (!can('users', 'view')) {
+    return (
+      <div className="text-center py-16 bg-white dark:bg-[#151D2E] rounded-2xl border border-slate-200 dark:border-[#1E293B]">
+        <Lock className="w-12 h-12 text-amber-500 mx-auto mb-3" />
+        <h3 className="text-base font-bold text-slate-900 dark:text-[#F8FAFC]">{t('users.accessRestricted', 'Access Restricted')}</h3>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-md mx-auto">
+          {t('users.accessRestrictedDesc', 'User administration is restricted to System Administrators and authorized personnel.')}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -127,15 +140,17 @@ export const RolesPermissionsPage: React.FC = () => {
           </p>
         </div>
 
-        <Button
-          variant="primary"
-          size="md"
-          leftIcon={<Save className="w-4 h-4" />}
-          onClick={handleSave}
-          isLoading={isSaving}
-        >
-          {t('users.savePermissions', 'حفظ مصفوفة الصلاحيات')}
-        </Button>
+        {can('users', 'edit') && (
+          <Button
+            variant="primary"
+            size="md"
+            leftIcon={<Save className="w-4 h-4" />}
+            onClick={handleSave}
+            isLoading={isSaving}
+          >
+            {t('users.savePermissions', 'حفظ مصفوفة الصلاحيات')}
+          </Button>
+        )}
       </div>
 
       {/* Role Picker Buttons */}

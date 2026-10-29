@@ -40,30 +40,47 @@ class ApiClient {
 
   constructor(baseURL: string) {
     this.baseURL = baseURL;
-    // Load persisted token if present
+    // Load persisted token if present (from localStorage or sessionStorage)
     try {
-      this.token = localStorage.getItem('auth_token');
+      this.token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
     } catch {
       this.token = null;
     }
   }
 
-  public setToken(token: string | null) {
+  public setToken(token: string | null, rememberMe = true) {
     this.token = token;
-    if (token) {
-      localStorage.setItem('auth_token', token);
-    } else {
-      localStorage.removeItem('auth_token');
+    try {
+      if (token) {
+        if (rememberMe) {
+          localStorage.setItem('auth_token', token);
+          sessionStorage.removeItem('auth_token');
+        } else {
+          sessionStorage.setItem('auth_token', token);
+          localStorage.removeItem('auth_token');
+        }
+      } else {
+        localStorage.removeItem('auth_token');
+        sessionStorage.removeItem('auth_token');
+      }
+    } catch {
+      // ignore storage errors
     }
     this.clearCache();
   }
 
   public getToken(): string | null {
-    return this.token;
+    try {
+      const stored = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+      this.token = stored;
+      return stored;
+    } catch {
+      return this.token;
+    }
   }
 
   public isBackendAvailable(): boolean {
-    return !FORCE_MOCK;
+    return import.meta.env.PROD || !FORCE_MOCK;
   }
 
   public clearCache(): void {
@@ -214,6 +231,7 @@ class ApiClient {
         this.setToken(null);
         try {
           localStorage.removeItem('hr_auth_user');
+          sessionStorage.removeItem('hr_auth_user');
         } catch {
           // ignore
         }
