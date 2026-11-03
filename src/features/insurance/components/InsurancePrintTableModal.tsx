@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Printer,
@@ -91,6 +91,34 @@ export const InsurancePrintTableModal: React.FC<InsurancePrintTableModalProps> =
     initialListStatusFilter || 'all'
   );
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Sync state whenever modal is opened or props change
+  useEffect(() => {
+    if (isOpen) {
+      setActiveTab(defaultTab);
+      if (defaultTab === 'social_insurance' && initialSelectedSocialIds && initialSelectedSocialIds.length > 0) {
+        setDataScope('selected');
+      } else if (defaultTab === 'missing_documents' && initialSelectedMissingIds && initialSelectedMissingIds.length > 0) {
+        setDataScope('selected');
+      } else {
+        setDataScope('all');
+      }
+      setSelectedDeptFilter(departmentFilter || 'all');
+      setSelectedDocStatus(docStatusFilter || 'all');
+      setSelectedInsFilter(insuranceFilter || 'all');
+      setSelectedListStatusFilter(initialListStatusFilter || 'all');
+      setSearchTerm('');
+    }
+  }, [
+    isOpen,
+    defaultTab,
+    initialSelectedSocialIds,
+    initialSelectedMissingIds,
+    departmentFilter,
+    docStatusFilter,
+    insuranceFilter,
+    initialListStatusFilter,
+  ]);
 
   // Toggles
   const [includeHeader, setIncludeHeader] = useState(true);
@@ -279,7 +307,7 @@ export const InsurancePrintTableModal: React.FC<InsurancePrintTableModalProps> =
     return { total, complete, incomplete, insured, notInsured, completionRate };
   }, [displayedMissing]);
 
-  // Social Stats with Found / Not Found distinction
+  // Social Stats with Found / Not Found distinction - strictly computed for displayed employees
   const socialStats = useMemo(() => {
     const total = displayedSocial.length;
     const foundCount = displayedSocial.filter(r => r.employeeListStatus === 'found').length;
@@ -287,8 +315,16 @@ export const InsurancePrintTableModal: React.FC<InsurancePrintTableModalProps> =
     const totalSalary = displayedSocial.reduce((sum, r) => sum + (Number(r.insuranceSalary) || 0), 0);
     const totalWorker = displayedSocial.reduce((sum, r) => sum + (Number(r.workerShare) || 0), 0);
     const totalCompany = displayedSocial.reduce((sum, r) => sum + (Number(r.companyShare) || 0), 0);
-    const totalContrib = totalWorker + totalCompany;
-    return { total, foundCount, notFoundCount, totalSalary, totalWorker, totalCompany, totalContrib };
+    const totalContrib = Number((totalWorker + totalCompany).toFixed(2));
+    return {
+      total,
+      foundCount,
+      notFoundCount,
+      totalSalary: Number(totalSalary.toFixed(2)),
+      totalWorker: Number(totalWorker.toFixed(2)),
+      totalCompany: Number(totalCompany.toFixed(2)),
+      totalContrib,
+    };
   }, [displayedSocial]);
 
   const getSocialReportTitle = () => {
@@ -599,7 +635,7 @@ export const InsurancePrintTableModal: React.FC<InsurancePrintTableModalProps> =
                 className="w-full text-xs border border-slate-300 dark:border-slate-700 rounded-lg p-1.5 bg-white dark:bg-[#151D2E] text-slate-800 dark:text-slate-200"
               >
                 <option value="all">
-                  {t('insurance.printScopeAll', { count: activeTab === 'missing_documents' ? missingRecords.length : displayedSocial.length })}
+                  {t('insurance.printScopeAll', { count: activeTab === 'missing_documents' ? missingRecords.length : masterSocialPool.length })}
                 </option>
                 <option value="selected">
                   {t('insurance.printScopeSelected', { count: activeTab === 'missing_documents' ? initialSelectedMissingIds.length : initialSelectedSocialIds.length })}
@@ -912,19 +948,19 @@ export const InsurancePrintTableModal: React.FC<InsurancePrintTableModalProps> =
                     <div className="border border-blue-300 rounded p-1.5 bg-blue-50">
                       <div className="text-[9px] font-bold text-blue-800">{t('insurance.kpiTotalInsurableWage', 'إجمالي الأجور التأمينية')}</div>
                       <div className="text-sm font-black text-blue-900 font-mono">
-                        {socialStats.totalSalary.toLocaleString()} {t('insurance.currency')}
+                        {socialStats.totalSalary.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {t('insurance.currency')}
                       </div>
                     </div>
                     <div className="border border-emerald-300 rounded p-1.5 bg-emerald-50">
                       <div className="text-[9px] font-bold text-emerald-800">{t('insurance.kpiWorkerShareTotal', 'حصة العامل (11%)')}</div>
                       <div className="text-sm font-black text-emerald-900 font-mono">
-                        {socialStats.totalWorker.toLocaleString()} {t('insurance.currency')}
+                        {socialStats.totalWorker.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {t('insurance.currency')}
                       </div>
                     </div>
                     <div className="border border-purple-300 rounded p-1.5 bg-purple-50">
                       <div className="text-[9px] font-bold text-purple-800">{t('insurance.kpiCompanyShareTotal', 'حصة المنشأة (18.75%)')}</div>
                       <div className="text-sm font-black text-purple-900 font-mono">
-                        {socialStats.totalCompany.toLocaleString()} {t('insurance.currency')}
+                        {socialStats.totalCompany.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {t('insurance.currency')}
                       </div>
                     </div>
                   </>
@@ -1091,12 +1127,18 @@ export const InsurancePrintTableModal: React.FC<InsurancePrintTableModalProps> =
                     </tbody>
                     <tfoot>
                       <tr className="bg-slate-100 font-bold text-slate-900 border-t-2 border-slate-900">
-                        <td colSpan={missingCols.filter(c => c.visible).length} className="py-1.5 px-3 text-xs">
+                        <td colSpan={missingCols.filter(c => c.visible).length} className="py-2 px-3 text-xs">
                           <div className="flex items-center justify-between">
-                            <span>
-                              {t('insurance.printTotalRecordsLabel')}{' '}
-                              <strong className="text-brand-700">{displayedMissing.length}</strong>{' '}
-                              {t('insurance.employeeUnit')}
+                            <span className="flex items-center gap-2">
+                              <span>
+                                {dataScope === 'selected' ? 'الموظفون المحددون: ' : t('insurance.printTotalRecordsLabel') + ' '}
+                                <strong className="text-brand-700">{displayedMissing.length}</strong>{' '}
+                                {t('insurance.employeeUnit')}
+                              </span>
+                              <span>•</span>
+                              <span className="text-[11px] text-slate-700">
+                                ({missingStats.complete} {t('insurance.statusDocComplete', 'مكتمل')} • {missingStats.incomplete} {t('insurance.statusDocMissing', 'ناقص')} • {missingStats.insured} {t('insurance.kpiInsuredCount', 'مؤمن')})
+                              </span>
                             </span>
                             <span className="text-slate-500 font-normal text-[10px]">
                               {t('insurance.printSystemFooterGamasa')}
@@ -1225,28 +1267,78 @@ export const InsurancePrintTableModal: React.FC<InsurancePrintTableModalProps> =
                       })}
                     </tbody>
                     <tfoot>
-                      <tr className="bg-slate-100 font-bold text-slate-900 border-t-2 border-slate-900">
-                        <td colSpan={socialCols.filter(c => c.visible).length} className="py-1.5 px-3 text-xs">
+                      <tr className="bg-slate-100 font-black text-slate-900 border-t-2 border-slate-900 text-center text-[9px]">
+                        {isColVisible('seq') && <td className="border border-slate-400 py-1.5 px-0.5">{t('common.total', 'الإجمالي')}</td>}
+                        {isColVisible('nationalId') && (
+                          <td className="border border-slate-400 py-1.5 px-1 font-mono font-bold">
+                            {displayedSocial.length} {t('insurance.employeeUnit', 'موظف')}
+                          </td>
+                        )}
+                        {isColVisible('employeeName') && <td className="border border-slate-400 py-1.5 px-1 text-right text-slate-500 font-bold">—</td>}
+                        {isColVisible('employeeCode') && <td className="border border-slate-400 py-1.5 px-1 text-slate-500">—</td>}
+                        {isColVisible('department') && (
+                          <td className="border border-slate-400 py-1.5 px-1 font-bold text-slate-800">
+                            {selectedDeptFilter !== 'all' ? selectedDeptFilter : t('insurance.printAllDepts', 'جميع الأقسام')}
+                          </td>
+                        )}
+                        {isColVisible('insuranceNumber') && <td className="border border-slate-400 py-1.5 px-1 text-slate-500">—</td>}
+                        {isColVisible('insuranceSalary') && (
+                          <td className="border border-slate-400 py-1.5 px-1 font-mono font-black text-blue-900 bg-blue-50/70">
+                            {socialStats.totalSalary.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </td>
+                        )}
+                        {isColVisible('workerShare') && (
+                          <td className="border border-slate-400 py-1.5 px-1 font-mono font-black text-emerald-900 bg-emerald-50/70">
+                            {socialStats.totalWorker.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </td>
+                        )}
+                        {isColVisible('companyShare') && (
+                          <td className="border border-slate-400 py-1.5 px-1 font-mono font-black text-purple-900 bg-purple-50/70">
+                            {socialStats.totalCompany.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </td>
+                        )}
+                        {isColVisible('totalContribution') && (
+                          <td className="border border-slate-400 py-1.5 px-1 font-mono font-black text-amber-950 bg-amber-100/80">
+                            {socialStats.totalContrib.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </td>
+                        )}
+                        {isColVisible('employeeListStatus') && (
+                          <td className="border border-slate-400 py-1.5 px-1 text-[8.5px] font-bold">
+                            {socialStats.foundCount} {t('insurance.statusMatched', 'مطابق')} • {socialStats.notFoundCount} {t('insurance.statusNotRegistered', 'فروق')}
+                          </td>
+                        )}
+                      </tr>
+                      <tr className="bg-slate-200/90 font-bold text-slate-900 border-t border-slate-400">
+                        <td colSpan={socialCols.filter(c => c.visible).length} className="py-2 px-3 text-xs">
                           <div className="flex items-center justify-between">
-                            <span>
-                              {selectedListStatusFilter === 'not_found'
-                                ? t('insurance.tabPrintSocialNotFound') + ': '
-                                : selectedListStatusFilter === 'found'
-                                ? t('insurance.tabPrintSocialFound') + ': '
-                                : t('insurance.printTotalRecordsLabel') + ' '}
-                              <strong
-                                className={cn(
-                                  selectedListStatusFilter === 'not_found' ? 'text-rose-700' : 'text-brand-700'
-                                )}
-                              >
-                                {displayedSocial.length}
-                              </strong>{' '}
-                              {t('insurance.employeeUnit')} • {t('insurance.printTotalContributionsLabel')}{' '}
-                              <strong className="text-emerald-700 font-mono">
-                                {socialStats.totalContrib.toLocaleString()} {t('insurance.currency')}
-                              </strong>
+                            <span className="flex items-center gap-2 flex-wrap">
+                              <span>
+                                {dataScope === 'selected'
+                                  ? 'الموظفون المحددون: '
+                                  : selectedListStatusFilter === 'not_found'
+                                  ? t('insurance.tabPrintSocialNotFound') + ': '
+                                  : selectedListStatusFilter === 'found'
+                                  ? t('insurance.tabPrintSocialFound') + ': '
+                                  : t('insurance.printTotalRecordsLabel') + ' '}
+                                <strong
+                                  className={cn(
+                                    selectedListStatusFilter === 'not_found' ? 'text-rose-700' : 'text-brand-700'
+                                  )}
+                                >
+                                  {displayedSocial.length}
+                                </strong>{' '}
+                                {t('insurance.employeeUnit')}
+                              </span>
+                              <span>•</span>
+                              <span>
+                                {t('insurance.printTotalContributionsLabel')}{' '}
+                                <strong className="text-emerald-800 font-mono text-sm bg-emerald-100 px-2 py-0.5 rounded border border-emerald-300">
+                                  {socialStats.totalContrib.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{' '}
+                                  {t('insurance.currency')}
+                                </strong>
+                              </span>
                             </span>
-                            <span className="text-slate-500 font-normal text-[10px]">
+                            <span className="text-slate-600 font-medium text-[10px]">
                               {t('insurance.printSystemFooterGamasa')}
                             </span>
                           </div>

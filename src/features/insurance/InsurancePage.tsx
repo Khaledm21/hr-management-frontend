@@ -18,6 +18,7 @@ import {
   Trash2,
   FileText,
   Printer,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { DataTable, Column } from '../../components/ui/DataTable';
 import { Card, CardContent } from '../../components/ui/Card';
@@ -157,6 +158,112 @@ export const InsurancePage: React.FC = () => {
     totalMissingDocs: 0,
     totalEmployees: 0,
   };
+
+  // 1. Dynamic active social records & stats (strictly reflects active filters & checkboxes)
+  const activeSocialRecords = useMemo(() => {
+    if (selectedSocialIds.length > 0) {
+      return socialRecords.filter(r => selectedSocialIds.includes(r.id));
+    }
+    return socialRecords;
+  }, [socialRecords, selectedSocialIds]);
+
+  const isSocialFilteredOrSelected = useMemo(() => {
+    return selectedSocialIds.length > 0 || selectedDept !== 'all' || selectedListStatus !== 'all';
+  }, [selectedSocialIds, selectedDept, selectedListStatus]);
+
+  const activeSocialStats = useMemo(() => {
+    const total = activeSocialRecords.length;
+    const foundCount = activeSocialRecords.filter(r => r.employeeListStatus === 'found').length;
+    const notFoundCount = activeSocialRecords.filter(r => r.employeeListStatus === 'not_found').length;
+    const totalSalary = activeSocialRecords.reduce((sum, r) => sum + (Number(r.insuranceSalary) || 0), 0);
+    const totalWorker = activeSocialRecords.reduce((sum, r) => sum + (Number(r.workerShare) || 0), 0);
+    const totalCompany = activeSocialRecords.reduce((sum, r) => sum + (Number(r.companyShare) || 0), 0);
+    const totalContributions = Number((totalWorker + totalCompany).toFixed(2));
+    return {
+      total,
+      foundCount,
+      notFoundCount,
+      totalSalary: Number(totalSalary.toFixed(2)),
+      totalWorker: Number(totalWorker.toFixed(2)),
+      totalCompany: Number(totalCompany.toFixed(2)),
+      totalContributions,
+    };
+  }, [activeSocialRecords]);
+
+  // 2. Dynamic active missing docs records & stats
+  const activeMissingRecords = useMemo(() => {
+    if (selectedMissingIds.length > 0) {
+      return filteredMissingRecords.filter(r => selectedMissingIds.includes(r.id));
+    }
+    return filteredMissingRecords;
+  }, [filteredMissingRecords, selectedMissingIds]);
+
+  const isMissingFilteredOrSelected = useMemo(() => {
+    return (
+      selectedMissingIds.length > 0 ||
+      selectedDept !== 'all' ||
+      selectedDocStatusFilter !== 'all' ||
+      selectedDocFilter !== 'all' ||
+      selectedMissingInsFilter !== 'all'
+    );
+  }, [selectedMissingIds, selectedDept, selectedDocStatusFilter, selectedDocFilter, selectedMissingInsFilter]);
+
+  const activeMissingStats = useMemo(() => {
+    const total = activeMissingRecords.length;
+    const complete = activeMissingRecords.filter(r => r.status === 'complete').length;
+    const incomplete = activeMissingRecords.filter(r => r.status === 'incomplete').length;
+    const insured = activeMissingRecords.filter(r => isEmployeeInsured(r)).length;
+    const notInsured = total - insured;
+    return { total, complete, incomplete, insured, notInsured };
+  }, [activeMissingRecords, isEmployeeInsured]);
+
+  // 3. Computed stats displayed on KPI cards
+  const displayStats = useMemo(() => {
+    if (activeTab === 'social_insurance') {
+      if (isSocialFilteredOrSelected) {
+        return {
+          insuredCount: activeSocialStats.total,
+          notInsuredCount: activeSocialStats.foundCount,
+          notFoundCount: activeSocialStats.notFoundCount,
+          totalContributions: activeSocialStats.totalContributions,
+          totalSalary: activeSocialStats.totalSalary,
+          totalWorkerShare: activeSocialStats.totalWorker,
+          totalCompanyShare: activeSocialStats.totalCompany,
+        };
+      }
+      return {
+        insuredCount: stats.totalInsuredRows || 108,
+        notInsuredCount: stats.notInsuredCount,
+        notFoundCount: stats.notFoundCount,
+        totalContributions: stats.totalContributions,
+        totalSalary: stats.totalSalary,
+        totalWorkerShare: stats.totalWorkerShare,
+        totalCompanyShare: stats.totalCompanyShare,
+      };
+    } else {
+      if (isMissingFilteredOrSelected) {
+        return {
+          insuredCount: activeMissingStats.insured,
+          notInsuredCount: activeMissingStats.notInsured,
+          incompleteDocsCount: activeMissingStats.incomplete,
+          completeDocsCount: activeMissingStats.complete,
+          totalContributions: stats.totalContributions,
+          totalSalary: stats.totalSalary,
+          totalWorkerShare: stats.totalWorkerShare,
+          totalCompanyShare: stats.totalCompanyShare,
+          notFoundCount: stats.notFoundCount,
+        };
+      }
+      return stats;
+    }
+  }, [
+    activeTab,
+    isSocialFilteredOrSelected,
+    isMissingFilteredOrSelected,
+    activeSocialStats,
+    activeMissingStats,
+    stats,
+  ]);
 
   const isLoading = isLoadingSocial || isLoadingMissing || isLoadingStats;
 
@@ -810,6 +917,67 @@ export const InsurancePage: React.FC = () => {
         </div>
       </div>
 
+      {/* Active Filter / Selection Indicator Banner */}
+      {((activeTab === 'social_insurance' && isSocialFilteredOrSelected) ||
+        (activeTab === 'missing_documents' && isMissingFilteredOrSelected)) && (
+        <div className="bg-brand-50/80 dark:bg-brand-950/40 border border-brand-200 dark:border-brand-800/50 rounded-xl px-4 py-2.5 flex items-center justify-between flex-wrap gap-2 text-xs">
+          <div className="flex items-center gap-2 text-brand-900 dark:text-brand-200 font-semibold">
+            <span className="p-1 rounded-md bg-brand-200/60 dark:bg-brand-900/60 text-brand-800 dark:text-brand-300">
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+            </span>
+            <span>
+              {activeTab === 'social_insurance'
+                ? selectedSocialIds.length > 0
+                  ? `تم تحديد (${selectedSocialIds.length}) موظف: جميع الإحصائيات وفاتورة التأمينات والطباعة محسوبة للموظفين المحددين فقط.`
+                  : `تصفية نشطة (${selectedDept !== 'all' ? `القسم: ${selectedDept}` : ''}${selectedDept !== 'all' && selectedListStatus !== 'all' ? ' • ' : ''}${selectedListStatus !== 'all' ? `حالة المطابقة: ${selectedListStatus === 'found' ? 'مطابق' : 'فروق مطابقة'}` : ''}): الأرقام وفاتورة التأمينات محسوبة لـ (${activeSocialRecords.length}) موظف فقط.`
+                : selectedMissingIds.length > 0
+                ? `تم تحديد (${selectedMissingIds.length}) موظف: الإحصائيات محسوبة للموظفين المحددين فقط.`
+                : `تصفية نشطة (${selectedDept !== 'all' ? `القسم: ${selectedDept}` : ''}): الأرقام محسوبة لـ (${activeMissingRecords.length}) موظف فقط.`}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            {activeTab === 'social_insurance' && selectedSocialIds.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSelectedSocialIds([])}
+                className="text-xs h-7 text-brand-700 dark:text-brand-300 hover:bg-brand-100 dark:hover:bg-brand-900/40"
+              >
+                إلغاء التحديد ({selectedSocialIds.length})
+              </Button>
+            )}
+            {activeTab === 'social_insurance' && (selectedDept !== 'all' || selectedListStatus !== 'all') && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setSelectedDept('all');
+                  setSelectedListStatus('all');
+                }}
+                className="text-xs h-7 text-brand-700 dark:text-brand-300 hover:bg-brand-100 dark:hover:bg-brand-900/40"
+              >
+                إعادة ضبط الفلاتر
+              </Button>
+            )}
+            {activeTab === 'missing_documents' && (selectedDept !== 'all' || selectedDocStatusFilter !== 'all' || selectedMissingInsFilter !== 'all' || selectedMissingIds.length > 0) && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setSelectedDept('all');
+                  setSelectedDocStatusFilter('all');
+                  setSelectedMissingInsFilter('all');
+                  setSelectedMissingIds([]);
+                }}
+                className="text-xs h-7 text-brand-700 dark:text-brand-300 hover:bg-brand-100 dark:hover:bg-brand-900/40"
+              >
+                إعادة ضبط الفلاتر
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* KPI Cards Matching User's Excel Summary Box Exactly */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: Insured */}
@@ -817,13 +985,19 @@ export const InsurancePage: React.FC = () => {
           <CardContent className="p-4 flex items-center justify-between">
             <div>
               <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider block">
-                {t('insurance.kpiInsured')}
+                {activeTab === 'social_insurance' && isSocialFilteredOrSelected
+                  ? selectedSocialIds.length > 0
+                    ? 'المحددون بالتأمينات'
+                    : 'المعروضون بالتأمينات'
+                  : t('insurance.kpiInsured')}
               </span>
               <span className="text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-1 block">
-                {stats.insuredCount}
+                {displayStats.insuredCount}
               </span>
               <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-                {t('insurance.kpiInsuredSub')}
+                {activeTab === 'social_insurance' && isSocialFilteredOrSelected
+                  ? `${displayStats.insuredCount} موظف وفق الفلتر/التحديد`
+                  : t('insurance.kpiInsuredSub')}
               </span>
             </div>
             <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 font-bold">
@@ -832,18 +1006,22 @@ export const InsurancePage: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* Card 2: Not Insured */}
+        {/* Card 2: Matched / Not Insured */}
         <Card className="border-l-4 border-l-rose-500 bg-white dark:bg-[#151D2E] border-slate-200 dark:border-[#1E293B] shadow-sm transition-colors">
           <CardContent className="p-4 flex items-center justify-between">
             <div>
               <span className="text-[11px] font-bold text-rose-700 dark:text-rose-400 uppercase tracking-wider block">
-                {t('insurance.kpiNotInsured')}
+                {activeTab === 'social_insurance' && isSocialFilteredOrSelected
+                  ? 'المطابقون بشيت الموظفين'
+                  : t('insurance.kpiNotInsured')}
               </span>
               <span className="text-3xl font-extrabold text-rose-600 dark:text-rose-400 mt-1 block">
-                {stats.notInsuredCount}
+                {displayStats.notInsuredCount}
               </span>
               <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-                {t('insurance.kpiNotInsuredSub')}
+                {activeTab === 'social_insurance' && isSocialFilteredOrSelected
+                  ? `${displayStats.notInsuredCount} مطابق بقائمة العاملين`
+                  : t('insurance.kpiNotInsuredSub')}
               </span>
             </div>
             <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 font-bold">
@@ -873,10 +1051,14 @@ export const InsurancePage: React.FC = () => {
                 </span>
               </div>
               <span className="text-3xl font-extrabold text-amber-600 dark:text-amber-400 mt-1 block">
-                {stats.notFoundCount}
+                {displayStats.notFoundCount}
               </span>
               <span className="text-[11px] text-amber-800 dark:text-amber-300 font-semibold underline">
-                {selectedListStatus === 'not_found' ? t('insurance.clearFilter') : t('insurance.clickToFilter')}
+                {activeTab === 'social_insurance' && isSocialFilteredOrSelected
+                  ? `${displayStats.notFoundCount} فروق مطابقة بالفلتر الحالي`
+                  : selectedListStatus === 'not_found'
+                  ? t('insurance.clearFilter')
+                  : t('insurance.clickToFilter')}
               </span>
             </div>
             <div className="p-3 rounded-xl bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 font-bold">
@@ -890,13 +1072,19 @@ export const InsurancePage: React.FC = () => {
           <CardContent className="p-4 flex items-center justify-between">
             <div>
               <span className="text-[11px] font-bold text-brand-700 dark:text-brand-400 uppercase tracking-wider block">
-                {t('insurance.kpiMonthlyBill')}
+                {activeTab === 'social_insurance' && isSocialFilteredOrSelected
+                  ? selectedSocialIds.length > 0
+                    ? 'فاتورة الموظفين المحددين'
+                    : 'فاتورة الموظفين المعروضين'
+                  : t('insurance.kpiMonthlyBill')}
               </span>
               <span className="text-2xl font-extrabold text-brand-600 dark:text-brand-400 mt-1 block font-mono">
-                {(stats.totalContributions || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })} {t('insurance.currency')}
+                {(displayStats.totalContributions || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {t('insurance.currency')}
               </span>
               <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-                {t('insurance.kpiMonthlyBillSub')}
+                {activeTab === 'social_insurance' && isSocialFilteredOrSelected
+                  ? `حصة العامل: ${displayStats.totalWorkerShare.toLocaleString('en-US', { minimumFractionDigits: 2 })} + المنشأة: ${displayStats.totalCompanyShare.toLocaleString('en-US', { minimumFractionDigits: 2 })}`
+                  : t('insurance.kpiMonthlyBillSub')}
               </span>
             </div>
             <div className="p-3 rounded-xl bg-brand-50 dark:bg-brand-950/40 text-brand-600 dark:text-brand-400 font-bold">
