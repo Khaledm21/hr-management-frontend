@@ -29,45 +29,100 @@ interface ExcelImportModalProps {
   onImportComplete?: () => void;
 }
 
+// Helper to get value matching keys ignoring case, whitespace, dots, and underscores
+export const getRowValue = (row: any, ...candidateKeys: string[]): any => {
+  if (!row || typeof row !== 'object') return undefined;
+
+  // 1. Direct match first
+  for (const k of candidateKeys) {
+    if (row[k] !== undefined && row[k] !== null && String(row[k]).trim() !== '') {
+      return row[k];
+    }
+  }
+
+  // 2. Normalized match (remove spaces, dots, underscores, hyphens, and lowercase)
+  const normalize = (str: string) => str.toLowerCase().replace(/[\s._\-–—()]/g, '');
+  const normalizedCandidateKeys = candidateKeys.map(normalize);
+
+  const rowKeys = Object.keys(row);
+  for (const rk of rowKeys) {
+    const normRk = normalize(rk);
+    const matchIdx = normalizedCandidateKeys.indexOf(normRk);
+    if (matchIdx !== -1) {
+      const val = row[rk];
+      if (val !== undefined && val !== null && String(val).trim() !== '') {
+        return val;
+      }
+    }
+  }
+
+  return undefined;
+};
+
+// Robust numeric parser for numbers with commas, currency symbols, and extra spaces
+export const parseExcelNumeric = (val: any): number => {
+  if (val === null || val === undefined) return 0;
+  if (typeof val === 'number') return isNaN(val) ? 0 : val;
+  const str = String(val).replace(/,/g, '').replace(/[\s\u00A0ج\.م$]/g, '').trim();
+  const parsed = parseFloat(str);
+  return isNaN(parsed) ? 0 : Number(parsed.toFixed(2));
+};
+
+export const hasExcelNumeric = (val: any): boolean => {
+  if (val === null || val === undefined) return false;
+  if (typeof val === 'number') return !isNaN(val);
+  const str = String(val).replace(/,/g, '').replace(/[\s\u00A0ج\.م$]/g, '').trim();
+  return str !== '' && !isNaN(parseFloat(str));
+};
+
 const isValidEmployeeRow = (row: any): boolean => {
   if (!row || typeof row !== 'object') return false;
 
-  const name = String(
-    row['Name'] || row['الاسم'] || row['اسم الموظف'] || row['اسم العامل'] || row['Employee Name'] || ''
-  ).trim();
+  const nameVal = getRowValue(row, 'Name', 'الاسم', 'اسم الموظف', 'اسم العامل', 'Employee Name');
+  const name = String(nameVal || '').trim();
 
-  const natId = String(
-    row['ID.'] || row['ID'] || row['الرقم القومي'] || row['National ID'] || ''
-  ).trim();
+  const natIdVal = getRowValue(row, 'ID.', 'ID', 'الرقم القومي', 'National ID', 'الرقم_القومي');
+  const natId = String(natIdVal || '').trim();
 
-  const no = String(
-    row['No'] || row['No.'] || row['م'] || row['كود'] || row['#'] || ''
-  ).trim();
+  const noVal = getRowValue(row, 'NO.', 'No', 'No.', 'م', 'كود', '#', 'رقم');
+  const no = String(noVal || '').trim();
 
   // 1. Check if row has any non-empty value
   const nonEmpties = Object.values(row).filter(v => v !== null && v !== undefined && String(v).trim() !== '');
   if (nonEmpties.length === 0) return false;
 
-  // 2. Filter out explicit summary/total rows
-  const totalRegex = /^(total|grand\s*total|subtotal|sum|summary|إجمالي|الإجمالي|المجموع|مجموع|المتوسط)$/i;
-  if (totalRegex.test(name) || totalRegex.test(no) || totalRegex.test(natId)) {
-    return false;
-  }
-
-  // 3. Department breakdown tables at the bottom (e.g. column 'No' is GM, HR, FD, SD, QC, PD, Pu.D, TSD) where Name is empty
-  const deptCodes = ['gm', 'hr', 'fd', 'sd', 'qc', 'pd', 'pu.d', 'pud', 'tsd', 'sec', 'adm'];
-  if (!name && deptCodes.includes(no.toLowerCase())) {
-    return false;
-  }
-
-  // 4. If employee name is completely missing:
-  if (!name) {
-    // If ID contains decimal points (financial totals like '2451.40', '157672.62') or has fewer than 10 digits
-    const cleanDigits = natId.replace(/\D/g, '');
-    if (cleanDigits.length < 10 || natId.includes('.')) {
-      return false;
+  // 2. Filter out explicit summary/total rows across any key
+  const totalKeywords = ['total', 'grand total', 'subtotal', 'sum', 'summary', 'إجمالي', 'الإجمالي', 'المجموع', 'مجموع', 'المتوسط', 'فاتورة'];
+  const hasTotalKeyword = Object.values(row).some(v => {
+    if (typeof v === 'string') {
+      const s = v.trim().toLowerCase();
+      return totalKeywords.some(kw => s === kw || s.startsWith(kw));
     }
+    return false;
+  });
+  if (hasTotalKeyword) return false;
+
+  // 3. Department breakdown tables at the bottom (GM, HR, FD, SD, QC, PD, Pu.D, TSD, SEC, ADM) where Name is empty or dept code
+  const deptCodes = ['gm', 'hr', 'fd', 'sd', 'qc', 'pd', 'pu.d', 'pud', 'tsd', 'sec', 'adm'];
+  const lowerNo = no.toLowerCase();
+  const lowerName = name.toLowerCase();
+  if (deptCodes.includes(lowerNo) || deptCodes.includes(lowerName)) {
+    const cleanDigits = natId.replace(/\D/g, '');
+    if (cleanDigits.length < 10) return false;
   }
+
+  // 4. In Egyptian Excel sheets, decimal numbers in ID column (like 2,451.40 or 157,672.62) indicate departmental totals table
+  if (natId.includes('.') || natId.includes(',')) {
+    const cleanDigits = natId.replace(/\D/g, '');
+    if (cleanDigits.length < 10) return false;
+  }
+
+  // 5. Filter out rows without a name and without a national ID
+  if (!name && !natId) return false;
+
+  // 6. If name is a pure number or empty and ID is not a national ID
+  if (!name && natId.length < 9) return false;
+  if (/^\d+(\.\d+)?$/.test(name) && !natId) return false;
 
   return true;
 };
@@ -215,7 +270,26 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
       }
 
       const activeWorksheet = workbook.Sheets[sheetToUse];
-      const rawJsonData: any[] = XLSX.utils.sheet_to_json(activeWorksheet, { defval: '' });
+      
+      // Smart header row detection (handles title banners e.g. "Social Insurance - September" on row 0)
+      const rawRows: any[][] = XLSX.utils.sheet_to_json(activeWorksheet, { header: 1, defval: '' });
+      let headerRowIndex = 0;
+      const headerKeywords = [
+        'name', 'اسم', 'id', 'قومي', 'department', 'قسم', 'salary', 'أجر', 'worker', 'عامل', 'company', 'شركة', 'insurance', 'تأمين'
+      ];
+      for (let r = 0; r < Math.min(10, rawRows.length); r++) {
+        const rowCells = (rawRows[r] || []).map(c => String(c || '').trim().toLowerCase());
+        const matchCount = rowCells.filter(c => headerKeywords.some(kw => c.includes(kw))).length;
+        if (matchCount >= 2) {
+          headerRowIndex = r;
+          break;
+        }
+      }
+
+      const rawJsonData: any[] = XLSX.utils.sheet_to_json(activeWorksheet, {
+        range: headerRowIndex,
+        defval: '',
+      });
       const jsonData = rawJsonData.filter(isValidEmployeeRow);
 
       if (jsonData.length === 0) {
@@ -334,9 +408,15 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
             hireDate,
             resignationDate: resignationDate || undefined,
             insuranceStatus: (isInsured ? 'insured' : 'not_insured') as 'insured' | 'not_insured',
-            insuranceSalary: isInsured ? 4325.00 : undefined,
-            workerShare: isInsured ? 475.85 : undefined,
-            companyShare: isInsured ? 811.13 : undefined,
+            insuranceSalary: isInsured && hasExcelNumeric(getRowValue(row, 'Insurance Salary', 'الأجر التأميني', 'Salary'))
+              ? parseExcelNumeric(getRowValue(row, 'Insurance Salary', 'الأجر التأميني', 'Salary'))
+              : undefined,
+            workerShare: isInsured && hasExcelNumeric(getRowValue(row, 'Worker', 'حصة العامل', 'Worker Share'))
+              ? parseExcelNumeric(getRowValue(row, 'Worker', 'حصة العامل', 'Worker Share'))
+              : undefined,
+            companyShare: isInsured && hasExcelNumeric(getRowValue(row, 'Company', 'حصة الشركة', 'Company Share'))
+              ? parseExcelNumeric(getRowValue(row, 'Company', 'حصة الشركة', 'Company Share'))
+              : undefined,
             qualificationCertificateStatus: (isInsured ? 'available' : 'missing') as 'available' | 'missing',
             birthCertificateStatus: (isInsured ? 'available' : 'missing') as 'available' | 'missing',
             idCardStatus: (isInsured ? 'available' : 'missing') as 'available' | 'missing',
@@ -353,19 +433,53 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
       if (targetType === 'social_insurance') {
         const validSocial = parsedRows.filter(isValidEmployeeRow);
         const mappedInsurance = validSocial.map((row, idx) => {
-          const name = String(row['Name'] || row['اسم الموظف'] || `Insured ${idx + 1}`).trim();
-          const natId = String(row['ID.'] || row['ID'] || row['الرقم القومي'] || '').trim();
-          const dept = String(row['Department'] || row['القسم'] || 'HR').trim();
-          const insNum = String(row['Insurance Number'] || row['الرقم التأميني'] || `${300000 + idx}`).trim();
-          const salary = Number(row['Insurance Salary'] || row['الأجر التأميني']) || 4325.00;
-          const worker = Number(row['Worker'] || row['حصة العامل']) || 475.85;
-          const company = Number(row['Company'] || row['حصة الشركة']) || 811.13;
-          const note = String(row['Note'] || row['ملاحظات'] || '').trim();
-          const listStatus = String(row['Employee List Status'] || row['حالة المطابقة'] || '').toLowerCase();
+          const nameVal = getRowValue(row, 'Name', 'اسم الموظف', 'الاسم', 'اسم العامل', 'Employee Name');
+          const name = String(nameVal || `Insured ${idx + 1}`).trim();
+
+          const natIdVal = getRowValue(row, 'ID.', 'ID', 'الرقم القومي', 'National ID');
+          const natId = String(natIdVal || '').trim();
+
+          const deptVal = getRowValue(row, 'Department', 'القسم', 'dept');
+          const dept = String(deptVal || 'Operations').trim();
+
+          const insNumVal = getRowValue(row, 'Insurance Number', 'الرقم التأميني', 'Insurance No', 'رقم التأمين');
+          const insNum = String(insNumVal || `${300000 + idx}`).trim();
+
+          // 1. Dynamic Salary extraction (no hardcoded fallbacks!)
+          const salaryVal = getRowValue(row, 'Insurance Salary', 'الأجر التأميني', 'Salary', 'Insurance salary', 'اجر الاشتراك');
+          const salary = parseExcelNumeric(salaryVal);
+
+          // 2. Dynamic Worker share extraction
+          const workerVal = getRowValue(row, 'Worker', 'حصة العامل', 'Worker Share', 'حصة الموظف');
+          const worker = hasExcelNumeric(workerVal)
+            ? parseExcelNumeric(workerVal)
+            : Number((salary * 0.11).toFixed(2));
+
+          // 3. Dynamic Company share extraction
+          const companyVal = getRowValue(row, 'Company', 'حصة الشركة', 'Company Share', 'حصة المنشأة');
+          const company = hasExcelNumeric(companyVal)
+            ? parseExcelNumeric(companyVal)
+            : Number((salary * 0.1875).toFixed(2));
+
+          // 4. Dynamic Total contribution extraction
+          const totalVal = getRowValue(row, 'Total', 'الإجمالي', 'إجمالي الاشتراك', 'Total Contribution');
+          const totalContribution = hasExcelNumeric(totalVal)
+            ? parseExcelNumeric(totalVal)
+            : Number((worker + company).toFixed(2));
+
+          const noteVal = getRowValue(row, 'Note', 'ملاحظات', 'Notes');
+          const note = String(noteVal || '').trim();
+
+          const listStatusVal = getRowValue(row, 'Employee List Status', 'حالة المطابقة', 'Not Found in ALL Employee List');
+          const listStatus = String(listStatusVal || '').toLowerCase();
           const isNotFound = listStatus.includes('not') || listStatus.includes('غير');
 
+          const noVal = getRowValue(row, 'NO.', 'No', 'No.', 'م', 'كود', '#');
+          const parsedSerial = parseInt(String(noVal || ''), 10);
+          const serialNo = !isNaN(parsedSerial) && parsedSerial > 0 ? parsedSerial : idx + 1;
+
           return {
-            serialNo: idx + 1,
+            serialNo,
             nationalId: natId,
             employeeName: name,
             department: dept,
@@ -373,7 +487,7 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
             insuranceSalary: salary,
             workerShare: worker,
             companyShare: company,
-            totalContribution: worker + company,
+            totalContribution,
             note,
             employeeListStatus: (isNotFound ? 'not_found' : 'found') as any,
           };

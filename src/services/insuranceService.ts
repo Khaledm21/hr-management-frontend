@@ -287,7 +287,18 @@ export const insuranceService = {
           );
 
           if (!alreadyInSocial) {
-            const salary = 4325.0;
+            let empSalary = 0;
+            try {
+              const allEmps = await employeeService.getEmployees();
+              const matchedEmp = allEmps.find(e =>
+                (record.nationalId && e.nationalId === record.nationalId) ||
+                (record.employeeCode && e.employeeId === record.employeeCode)
+              );
+              if (matchedEmp) {
+                empSalary = Number(matchedEmp.insuranceSalary || matchedEmp.basicSalary || 0);
+              }
+            } catch {}
+            const salary = empSalary;
             const worker = Number((salary * 0.11).toFixed(2));
             const company = Number((salary * 0.1875).toFixed(2));
             await this.importSocialInsurance(
@@ -339,9 +350,9 @@ export const insuranceService = {
             (record.employeeCode && s.employeeCode === record.employeeCode)
         );
         if (!alreadyInSocial) {
-          const salary = 4325.0;
-          const worker = Number((salary * 0.11).toFixed(2));
-          const company = Number((salary * 0.1875).toFixed(2));
+          const salary = 0;
+          const worker = 0;
+          const company = 0;
           const newSocial: SocialInsuranceRecord = {
             id: `soc-auto-${Date.now()}`,
             serialNo: socialInsuranceState.length + 1,
@@ -404,9 +415,28 @@ export const insuranceService = {
     await new Promise(res => setTimeout(res, 80));
     const formatted: SocialInsuranceRecord[] = cleanSocialRecords(
       records.map((r, i) => {
-        const salary = Number(r.insuranceSalary) || 4325.00;
-        const worker = Number(r.workerShare) || Number((salary * 0.11).toFixed(2));
-        const comp = Number(r.companyShare) || Number((salary * 0.1875).toFixed(2));
+        const rawSalary = String(r.insuranceSalary ?? '').replace(/,/g, '').trim();
+        const parsedSalary = parseFloat(rawSalary);
+        const salary = !isNaN(parsedSalary) ? parsedSalary : 0;
+
+        const rawWorker = String(r.workerShare ?? '').replace(/,/g, '').trim();
+        const parsedWorker = parseFloat(rawWorker);
+        const worker = r.workerShare !== undefined && r.workerShare !== null && rawWorker !== '' && !isNaN(parsedWorker)
+          ? parsedWorker
+          : Number((salary * 0.11).toFixed(2));
+
+        const rawComp = String(r.companyShare ?? '').replace(/,/g, '').trim();
+        const parsedComp = parseFloat(rawComp);
+        const comp = r.companyShare !== undefined && r.companyShare !== null && rawComp !== '' && !isNaN(parsedComp)
+          ? parsedComp
+          : Number((salary * 0.1875).toFixed(2));
+
+        const rawTotal = String(r.totalContribution ?? '').replace(/,/g, '').trim();
+        const parsedTotal = parseFloat(rawTotal);
+        const totalContribution = r.totalContribution !== undefined && r.totalContribution !== null && rawTotal !== '' && !isNaN(parsedTotal)
+          ? parsedTotal
+          : Number((worker + comp).toFixed(2));
+
         return {
           id: `soc-imp-${Date.now()}-${i}`,
           serialNo: r.serialNo || i + 1,
@@ -417,7 +447,7 @@ export const insuranceService = {
           insuranceSalary: salary,
           workerShare: worker,
           companyShare: comp,
-          totalContribution: Number((worker + comp).toFixed(2)),
+          totalContribution: totalContribution,
           note: String(r.note || ''),
           employeeListStatus: r.employeeListStatus === 'not_found' ? 'not_found' : 'found',
           employeeCode: r.employeeCode,

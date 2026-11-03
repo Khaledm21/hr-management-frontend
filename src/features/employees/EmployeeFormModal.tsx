@@ -142,13 +142,13 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
       employmentType: 'full_time',
       employmentStatus: 'active',
       hireDate: new Date().toISOString().split('T')[0],
-      basicSalary: 4325,
+      basicSalary: 0,
       housingAllowance: 0,
       transportAllowance: 0,
       workLocation: 'مصنع جمصة - New Hope Gamasa',
       insuranceStatus: 'insured',
       insuranceNumber: '',
-      insuranceSalary: 4325,
+      insuranceSalary: 0,
       idCardStatus: 'missing',
       qualificationCertificateStatus: 'missing',
       birthCertificateStatus: 'missing',
@@ -193,13 +193,13 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
           employmentType: initialData.employmentType || 'full_time',
           employmentStatus: initialData.employmentStatus || 'active',
           hireDate: hireDateStr,
-          basicSalary: Number(initialData.basicSalary ?? 4325),
+          basicSalary: Number(initialData.basicSalary ?? 0),
           housingAllowance: Number(initialData.housingAllowance ?? 0),
           transportAllowance: Number(initialData.transportAllowance ?? 0),
           workLocation: initialData.workLocation || 'مصنع جمصة - New Hope Gamasa',
           insuranceStatus: initialData.insuranceStatus || 'insured',
           insuranceNumber: initialData.insuranceNumber || '',
-          insuranceSalary: Number(initialData.insuranceSalary ?? initialData.basicSalary ?? 4325),
+          insuranceSalary: Number(initialData.insuranceSalary ?? initialData.basicSalary ?? 0),
           idCardStatus: initialData.idCardStatus || 'available',
           qualificationCertificateStatus: initialData.qualificationCertificateStatus || 'available',
           birthCertificateStatus: initialData.birthCertificateStatus || 'available',
@@ -226,13 +226,13 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
           employmentType: 'full_time',
           employmentStatus: 'active',
           hireDate: new Date().toISOString().split('T')[0],
-          basicSalary: 4325,
+          basicSalary: 0,
           housingAllowance: 0,
           transportAllowance: 0,
           workLocation: 'مصنع جمصة - New Hope Gamasa',
           insuranceStatus: 'insured',
           insuranceNumber: '',
-          insuranceSalary: 4325,
+          insuranceSalary: 0,
           idCardStatus: 'missing',
           qualificationCertificateStatus: 'missing',
           birthCertificateStatus: 'missing',
@@ -992,7 +992,7 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
                         label={t('employees.insuranceWageEgp', 'أجر الاشتراك التأميني (ج.م)')}
                         type="number"
                         {...register('insuranceSalary')}
-                        placeholder="4325"
+                        placeholder="0.00"
                       />
                     </>
                   )}
@@ -1003,14 +1003,14 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
                     <span>
                       {t('employees.workerShareText', 'حصة العامل المستقطعة (11%):')}{' '}
                       <strong className="font-bold">
-                        {(Number(watch('insuranceSalary') || watch('basicSalary') || 4325) * 0.11).toFixed(2)}{' '}
+                        {(Number(watch('insuranceSalary') || watch('basicSalary') || 0) * 0.11).toFixed(2)}{' '}
                         {t('common.egp', 'ج.م')}
                       </strong>
                     </span>
                     <span>
                       {t('employees.companyShareText', 'حصة المنشأة / الشركة (18.75%):')}{' '}
                       <strong className="font-bold">
-                        {(Number(watch('insuranceSalary') || watch('basicSalary') || 4325) * 0.1875).toFixed(2)}{' '}
+                        {(Number(watch('insuranceSalary') || watch('basicSalary') || 0) * 0.1875).toFixed(2)}{' '}
                         {t('common.egp', 'ج.م')}
                       </strong>
                     </span>
