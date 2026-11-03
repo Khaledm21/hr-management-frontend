@@ -2,6 +2,8 @@ import React, { useState, Suspense } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
+import { PandaAIWidget } from '../ai/PandaAIWidget';
+import { ErrorBoundary } from '../common/ErrorBoundary';
 
 export const PageFallback: React.FC = () => (
   <div className="w-full min-h-[60vh] flex flex-col items-center justify-center gap-3">
@@ -33,10 +35,15 @@ export const AppLayout: React.FC = () => {
         />
 
         <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
-          <Suspense fallback={<PageFallback />}>
-            <Outlet />
-          </Suspense>
+          <ErrorBoundary>
+            <Suspense fallback={<PageFallback />}>
+              <Outlet />
+            </Suspense>
+          </ErrorBoundary>
         </main>
+
+        {/* Global New Hope Panda AI Assistant 🐼 */}
+        <PandaAIWidget />
       </div>
     </div>
   );

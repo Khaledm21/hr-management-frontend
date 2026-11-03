@@ -4,8 +4,11 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import { useDirection, LanguageCode } from '../../context/DirectionContext';
 import { useCompany } from '../../context/CompanyContext';
-import { Lock, Mail, Eye, EyeOff, Globe, ArrowRight, ShieldCheck, AlertCircle } from 'lucide-react';
+import { Lock, Mail, Eye, EyeOff, Globe, ArrowRight, ShieldCheck, AlertCircle, Sparkles, KeyRound, RotateCcw } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
+
+const DEFAULT_ADMIN_EMAIL = 'khaled.mossad@enterprise.com';
+const DEFAULT_ADMIN_PASS = 'Admin@123456';
 
 export const LoginPage: React.FC = () => {
   const { t } = useTranslation();
@@ -14,32 +17,47 @@ export const LoginPage: React.FC = () => {
   const { companyName, logo } = useCompany();
   const navigate = useNavigate();
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState(DEFAULT_ADMIN_EMAIL);
+  const [password, setPassword] = useState(DEFAULT_ADMIN_PASS);
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const executeLogin = async (loginEmail: string, loginPass: string) => {
     setErrorMsg('');
-
-    const cleanEmail = email.trim();
-    if (!cleanEmail || !password) {
+    const cleanEmail = loginEmail.trim();
+    if (!cleanEmail || !loginPass) {
       setErrorMsg(t('auth.credentialsRequired', 'يرجى إدخال البريد الإلكتروني وكلمة المرور.'));
       return;
     }
 
     setIsLoading(true);
     try {
-      await login(cleanEmail, password, rememberMe);
+      await login(cleanEmail, loginPass, rememberMe);
       navigate('/dashboard', { replace: true });
     } catch (err: any) {
       setErrorMsg(err.message || t('auth.loginFailed', 'فشل تسجيل الدخول. يرجى التأكد من البريد الإلكتروني وكلمة المرور.'));
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await executeLogin(email, password);
+  };
+
+  const handleQuickAdminLogin = async () => {
+    setEmail(DEFAULT_ADMIN_EMAIL);
+    setPassword(DEFAULT_ADMIN_PASS);
+    await executeLogin(DEFAULT_ADMIN_EMAIL, DEFAULT_ADMIN_PASS);
+  };
+
+  const handleResetDefaults = () => {
+    setEmail(DEFAULT_ADMIN_EMAIL);
+    setPassword(DEFAULT_ADMIN_PASS);
+    setErrorMsg('');
   };
 
   return (
@@ -72,10 +90,48 @@ export const LoginPage: React.FC = () => {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md px-4 sm:px-0">
         <div className="bg-white dark:bg-[#151D2E] py-8 px-6 shadow-xl shadow-slate-200/60 dark:shadow-none rounded-2xl border border-slate-200 dark:border-[#1E293B] sm:px-10">
+          
+          {/* Quick 1-Click Master Admin Login Button */}
+          <button
+            type="button"
+            onClick={handleQuickAdminLogin}
+            disabled={isLoading}
+            className="w-full mb-5 flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl bg-gradient-to-r from-brand-600 via-indigo-600 to-brand-700 hover:from-brand-500 hover:to-brand-600 text-white font-bold text-xs shadow-md shadow-brand-500/25 active:scale-[0.99] transition-all cursor-pointer border border-brand-400/30"
+          >
+            <Sparkles className="w-4 h-4 text-amber-300 animate-pulse shrink-0" />
+            <span>{t('auth.quickAdminLogin', 'تسجيل الدخول السريع (مدير النظام - خالد مسعد)')}</span>
+          </button>
+
+          <div className="relative flex items-center justify-center mb-5">
+            <div className="w-full border-t border-slate-200 dark:border-[#1E293B]" />
+            <span className="absolute px-3 bg-white dark:bg-[#151D2E] text-[11px] text-slate-400 font-medium">
+              {t('common.or', 'أو تسجيل الدخول اليدوي')}
+            </span>
+          </div>
+
           {errorMsg && (
-            <div className="mb-4 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/60 flex items-start gap-2.5 text-rose-700 dark:text-rose-300 text-xs animate-in fade-in">
-              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-600 dark:text-rose-400" />
-              <span>{errorMsg}</span>
+            <div className="mb-4 p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/60 flex flex-col gap-2 text-rose-700 dark:text-rose-300 text-xs animate-in fade-in">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-600 dark:text-rose-400" />
+                <span className="font-semibold">{errorMsg}</span>
+              </div>
+              <div className="text-[11px] text-rose-700 dark:text-rose-300 bg-white/70 dark:bg-black/30 p-2 rounded-lg border border-rose-200/60 space-y-1">
+                <div className="font-medium text-[11px]">
+                  {t('auth.loginHint', 'يرجى استخدام الحساب المعتمد أو الضغط على زر تسجيل الدخول السريع:')}
+                </div>
+                <div className="font-mono text-[11px] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 text-slate-700 dark:text-slate-300">
+                  <span>✉️ {DEFAULT_ADMIN_EMAIL}</span>
+                  <span>🔑 {DEFAULT_ADMIN_PASS}</span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleQuickAdminLogin}
+                className="self-start text-[11px] font-bold text-rose-800 dark:text-rose-200 hover:underline flex items-center gap-1 cursor-pointer mt-0.5"
+              >
+                <KeyRound className="w-3.5 h-3.5" />
+                <span>{t('auth.retryWithAdmin', 'دخول فوري بحساب المدير العام')}</span>
+              </button>
             </div>
           )}
 
@@ -135,17 +191,28 @@ export const LoginPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex items-center">
-              <input
-                id="remember-me"
-                type="checkbox"
-                checked={rememberMe}
-                onChange={e => setRememberMe(e.target.checked)}
-                className="h-4 w-4 rounded border-slate-300 dark:border-[#1E293B] dark:bg-[#0B0F19] text-brand-600 focus:ring-brand-500 cursor-pointer"
-              />
-              <label htmlFor="remember-me" className="ml-2 rtl:ml-0 rtl:mr-2 block text-xs text-slate-700 dark:text-slate-300 cursor-pointer">
-                {t('auth.rememberMe', 'تذكر تسجيل الدخول')}
-              </label>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <input
+                  id="remember-me"
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={e => setRememberMe(e.target.checked)}
+                  className="h-4 w-4 rounded border-slate-300 dark:border-[#1E293B] dark:bg-[#0B0F19] text-brand-600 focus:ring-brand-500 cursor-pointer"
+                />
+                <label htmlFor="remember-me" className="ml-2 rtl:ml-0 rtl:mr-2 block text-xs text-slate-700 dark:text-slate-300 cursor-pointer">
+                  {t('auth.rememberMe', 'تذكر تسجيل الدخول')}
+                </label>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleResetDefaults}
+                className="text-[11px] text-brand-600 dark:text-brand-400 hover:underline flex items-center gap-1 cursor-pointer font-medium"
+              >
+                <RotateCcw className="w-3 h-3" />
+                <span>{t('auth.fillCredentials', 'استعادة البيانات الافتراضية')}</span>
+              </button>
             </div>
 
             <Button
@@ -158,6 +225,17 @@ export const LoginPage: React.FC = () => {
               {t('auth.signInButton', 'تسجيل الدخول للمنصة')}
             </Button>
           </form>
+
+          {/* Credentials Info Badge */}
+          <div className="mt-4 pt-3.5 border-t border-slate-100 dark:border-[#1E293B]/80 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+            <div className="flex items-center gap-1.5 font-mono text-[11px]">
+              <KeyRound className="w-3.5 h-3.5 text-brand-500 shrink-0" />
+              <span>{DEFAULT_ADMIN_EMAIL}</span>
+            </div>
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 font-semibold border border-emerald-200 dark:border-emerald-900/50">
+              Master Admin
+            </span>
+          </div>
         </div>
 
         <div className="mt-6 text-center text-xs text-slate-400 dark:text-slate-500 flex items-center justify-center gap-1.5">

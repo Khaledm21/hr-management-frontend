@@ -193,6 +193,9 @@ export const documentService = {
     title: string;
     employeeName?: string;
     department?: string;
+    fileUrl?: string;
+    status?: DocumentStatus;
+    notes?: string;
   }): Promise<DocumentRecord> {
     if (apiClient.isBackendAvailable()) {
       try {
@@ -225,11 +228,14 @@ export const documentService = {
       department: data.department || 'Operations',
       type: data.type,
       title: data.title || data.type.replace('_', ' ').toUpperCase(),
-      fileName: data.file?.name || `${data.title || 'document'}.pdf`,
-      fileSize: data.file ? `${(data.file.size / (1024 * 1024)).toFixed(1)} MB` : '1.5 MB',
-      status: 'under_review',
+      fileName: data.file?.name || `${data.title || 'document'}.jpg`,
+      fileSize: data.file ? `${(data.file.size / (1024 * 1024)).toFixed(1)} MB` : '1.2 MB',
+      fileUrl: data.fileUrl,
+      status: data.status || 'verified',
       uploadedAt: new Date().toISOString().split('T')[0],
-      notes: 'Uploaded via HR self-service portal.',
+      verifiedAt: data.status === 'verified' ? new Date().toISOString().split('T')[0] : undefined,
+      verifiedBy: data.status === 'verified' ? 'HR Smart Scanner' : undefined,
+      notes: data.notes || 'تم رفع وتوثيق المستند عبر قارئ البطاقة الذكي.',
     };
     documentsState.unshift(newDoc);
     persistItem(STORAGE_KEY, documentsState);

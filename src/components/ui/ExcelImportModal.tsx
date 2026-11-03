@@ -29,6 +29,49 @@ interface ExcelImportModalProps {
   onImportComplete?: () => void;
 }
 
+const isValidEmployeeRow = (row: any): boolean => {
+  if (!row || typeof row !== 'object') return false;
+
+  const name = String(
+    row['Name'] || row['الاسم'] || row['اسم الموظف'] || row['اسم العامل'] || row['Employee Name'] || ''
+  ).trim();
+
+  const natId = String(
+    row['ID.'] || row['ID'] || row['الرقم القومي'] || row['National ID'] || ''
+  ).trim();
+
+  const no = String(
+    row['No'] || row['No.'] || row['م'] || row['كود'] || row['#'] || ''
+  ).trim();
+
+  // 1. Check if row has any non-empty value
+  const nonEmpties = Object.values(row).filter(v => v !== null && v !== undefined && String(v).trim() !== '');
+  if (nonEmpties.length === 0) return false;
+
+  // 2. Filter out explicit summary/total rows
+  const totalRegex = /^(total|grand\s*total|subtotal|sum|summary|إجمالي|الإجمالي|المجموع|مجموع|المتوسط)$/i;
+  if (totalRegex.test(name) || totalRegex.test(no) || totalRegex.test(natId)) {
+    return false;
+  }
+
+  // 3. Department breakdown tables at the bottom (e.g. column 'No' is GM, HR, FD, SD, QC, PD, Pu.D, TSD) where Name is empty
+  const deptCodes = ['gm', 'hr', 'fd', 'sd', 'qc', 'pd', 'pu.d', 'pud', 'tsd', 'sec', 'adm'];
+  if (!name && deptCodes.includes(no.toLowerCase())) {
+    return false;
+  }
+
+  // 4. If employee name is completely missing:
+  if (!name) {
+    // If ID contains decimal points (financial totals like '2451.40', '157672.62') or has fewer than 10 digits
+    const cleanDigits = natId.replace(/\D/g, '');
+    if (cleanDigits.length < 10 || natId.includes('.')) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
 export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
   isOpen,
   onClose,
@@ -68,61 +111,67 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
   const handleDownloadTemplate = (type: ImportTargetType) => {
     const wb = XLSX.utils.book_new();
 
+    const sampleEmployees = [
+      {
+        No: 1,
+        Department: 'Production',
+        Name: 'Ahmed Mohamed Ali',
+        ID: '29501011234567',
+        Position: 'Production Technician',
+        'Start date': '2023-01-01',
+        'Resignation Date': '',
+        'Employee ID': 'EMP001',
+        'Insurance Status': 'Insured',
+      },
+    ];
+
+    const sampleSocial = [
+      {
+        No: 1,
+        'ID.': '29501011234567',
+        Name: 'Ahmed Mohamed Ali',
+        Department: 'PD',
+        'Insurance Number': '12345678',
+        'Insurance Salary': 4325,
+        Worker: 475.75,
+        Company: 810.94,
+        Note: 'Active',
+        'Employee List Status': 'Found',
+      },
+    ];
+
+    const sampleMissing = [
+      {
+        No: 1,
+        Department: 'HR',
+        Name: 'Mohamed Ibrahim',
+        ID: '29805121234567',
+        Position: 'HR Specialist',
+        'Start date': '2024-02-01',
+        'Resignation Date': '',
+        'Employee ID': 'EMP002',
+        'Insurance Status': 'Not Insured',
+        'Qualification Certificate': 'Missing',
+        'Birth Certificate': 'Available',
+        'ID Card': 'Available',
+        Contract: 'Available',
+        Notes: 'Pending recruitment file completion',
+        Status: 'Incomplete',
+      },
+    ];
+
     if (type === 'employees' || type === 'full_workbook') {
-      const empData = realSeedEmployees.slice(0, 10).map((e, idx) => ({
-        No: idx + 1,
-        Department: e.departmentName || 'HR',
-        Name: `${e.firstName} ${e.lastName}`,
-        ID: e.nationalId,
-        Position: e.chinesePosition || e.positionTitle,
-        'Start date': e.hireDate,
-        'Resignation Date': e.resignationDate || '',
-        'Employee ID': e.employeeId,
-        'Insurance Status': e.insuranceStatus === 'insured' ? 'Insured' : 'Not Insured',
-      }));
-      const ws1 = XLSX.utils.json_to_sheet(empData);
+      const ws1 = XLSX.utils.json_to_sheet(sampleEmployees);
       XLSX.utils.book_append_sheet(wb, ws1, 'All Employees');
     }
 
     if (type === 'social_insurance' || type === 'full_workbook') {
-      const insData = realSeedSocialInsurance.slice(0, 10).map(s => ({
-        No: s.serialNo,
-        'ID.': s.nationalId,
-        Name: s.employeeName,
-        Department: s.department,
-        'Insurance Number': s.insuranceNumber,
-        'Insurance Salary': s.insuranceSalary,
-        Worker: s.workerShare,
-        Company: s.companyShare,
-        Note: s.note,
-        'Employee List Status': s.employeeListStatus === 'found' ? 'Found' : 'Not Found',
-      }));
-      const ws2 = XLSX.utils.json_to_sheet(insData);
+      const ws2 = XLSX.utils.json_to_sheet(sampleSocial);
       XLSX.utils.book_append_sheet(wb, ws2, 'Insured Employees');
     }
 
     if (type === 'missing_documents' || type === 'full_workbook') {
-      const docData = realSeedEmployees
-        .filter(e => e.insuranceStatus === 'not_insured')
-        .slice(0, 10)
-        .map((e, idx) => ({
-          No: idx + 1,
-          Department: e.departmentName || 'HR',
-          Name: `${e.firstName} ${e.lastName}`,
-          ID: e.nationalId,
-          Position: e.chinesePosition || e.positionTitle,
-          'Start date': e.hireDate,
-          'Resignation Date': '',
-          'Employee ID': e.employeeId,
-          'Insurance Status': 'Not Insured',
-          'Qualification Certificate': 'Missing',
-          'Birth Certificate': 'Missing',
-          'ID Card': 'Missing',
-          Contract: 'Missing',
-          Notes: 'Pending recruitment file completion',
-          Status: 'Incomplete',
-        }));
-      const ws3 = XLSX.utils.json_to_sheet(docData);
+      const ws3 = XLSX.utils.json_to_sheet(sampleMissing);
       XLSX.utils.book_append_sheet(wb, ws3, 'Missing Documents');
     }
 
@@ -166,7 +215,8 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
       }
 
       const activeWorksheet = workbook.Sheets[sheetToUse];
-      const jsonData: any[] = XLSX.utils.sheet_to_json(activeWorksheet, { defval: '' });
+      const rawJsonData: any[] = XLSX.utils.sheet_to_json(activeWorksheet, { defval: '' });
+      const jsonData = rawJsonData.filter(isValidEmployeeRow);
 
       if (jsonData.length === 0) {
         toastError(t('excelImport.noDataRows'));
@@ -225,6 +275,7 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
       const isOverwrite = importMode === 'replace';
 
       if (targetType === 'employees' || targetType === 'full_workbook') {
+        const validEmployees = parsedRows.filter(isValidEmployeeRow);
         const parseExcelDate = (val: any): string => {
           if (!val) return '2023-01-01';
           if (val instanceof Date) return val.toISOString().split('T')[0];
@@ -244,7 +295,7 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
           return '2023-01-01';
         };
 
-        const mappedEmployees = parsedRows.map((row, idx) => {
+        const mappedEmployees = validEmployees.map((row, idx) => {
           const fullName = String(row['Name'] || row['الاسم'] || row['اسم الموظف'] || `Employee ${idx + 1}`).trim();
           const parts = fullName.split(/\s+/);
           const firstName = parts[0] || 'Employee';
@@ -264,8 +315,7 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
           const rawIns = String(row['Insurance Status'] || row['حالة التأمين'] || '').toLowerCase();
           const isInsured = rawIns.includes('not') || rawIns.includes('غير') ? false : true;
 
-          const seedMatch = realSeedEmployees.find(s => s.employeeId === employeeId || s.nationalId === nationalId);
-          const arabicName = seedMatch?.arabicName || fullName;
+          const arabicName = fullName;
 
           return {
             employeeId,
@@ -301,7 +351,8 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
       }
 
       if (targetType === 'social_insurance') {
-        const mappedInsurance = parsedRows.map((row, idx) => {
+        const validSocial = parsedRows.filter(isValidEmployeeRow);
+        const mappedInsurance = validSocial.map((row, idx) => {
           const name = String(row['Name'] || row['اسم الموظف'] || `Insured ${idx + 1}`).trim();
           const natId = String(row['ID.'] || row['ID'] || row['الرقم القومي'] || '').trim();
           const dept = String(row['Department'] || row['القسم'] || 'HR').trim();
@@ -332,7 +383,8 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
       }
 
       if (targetType === 'missing_documents') {
-        const mappedMissing = parsedRows.map((row, idx) => {
+        const validMissing = parsedRows.filter(isValidEmployeeRow);
+        const mappedMissing = validMissing.map((row, idx) => {
           const name = String(row['Name'] || row['الاسم'] || `Employee ${idx + 1}`).trim();
           const natId = String(row['ID'] || row['الرقم القومي'] || '').trim();
           const dept = String(row['Department'] || row['القسم'] || 'HR').trim();

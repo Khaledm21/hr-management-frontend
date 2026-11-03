@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   FileText,
   Printer,
@@ -34,6 +35,7 @@ export const InsuranceForm1GuideModal: React.FC<InsuranceForm1GuideModalProps> =
   employee,
   insuranceRecord,
 }) => {
+  const { t } = useTranslation();
   const { settings, companyName } = useCompany();
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
@@ -116,7 +118,6 @@ export const InsuranceForm1GuideModal: React.FC<InsuranceForm1GuideModalProps> =
   };
 
   const handlePrintBlankForm = () => {
-    // Open the official blank PDF in a new window to print with full quality
     window.open('/templates/form1_insurance.pdf', '_blank');
   };
 
@@ -142,14 +143,14 @@ export const InsuranceForm1GuideModal: React.FC<InsuranceForm1GuideModalProps> =
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-base font-bold text-white tracking-tight">
-                  دليل تعبئة استمارة رقم (1) تأمينات اجتماعية
+                  {t('insurance.form1ModalTitle')}
                 </h3>
                 <span className="text-[11px] bg-brand-500/20 text-brand-300 border border-brand-500/30 px-2 py-0.5 rounded-full font-mono font-bold">
-                  س1 - التحاق بالعمل
+                  {t('insurance.form1Badge')}
                 </span>
               </div>
               <p className="text-xs text-slate-400 mt-0.5">
-                بيانات الموظف والمنشأة مجهزة بالكامل ومطابقة للدفتر الحكومي للنقل اليدوي بالقلم الجاف
+                {t('insurance.form1ModalSubtitle')}
               </p>
             </div>
           </div>
@@ -162,7 +163,7 @@ export const InsuranceForm1GuideModal: React.FC<InsuranceForm1GuideModalProps> =
               onClick={copyAllSummary}
               className="text-slate-300 border-slate-700 hover:bg-slate-800 hover:text-white text-xs font-semibold"
             >
-              {copiedKey === 'all' ? 'تم نسخ الكل!' : 'نسخ كل البيانات'}
+              {copiedKey === 'all' ? t('insurance.copyAllDone') : t('insurance.copyAllBtn')}
             </Button>
 
             <Button
@@ -171,9 +172,9 @@ export const InsuranceForm1GuideModal: React.FC<InsuranceForm1GuideModalProps> =
               leftIcon={<Printer className="w-3.5 h-3.5 text-brand-400" />}
               onClick={handlePrintBlankForm}
               className="text-slate-300 border-slate-700 hover:bg-slate-800 hover:text-white text-xs font-semibold"
-              title="طباعة نموذج استمارة 1 الحكومي فارغاً بجودة كاملة"
+              title={t('insurance.printBlankFormBtn')}
             >
-              طباعة استمارة فارغة
+              {t('insurance.printBlankFormBtn')}
             </Button>
 
             <Button
@@ -182,9 +183,9 @@ export const InsuranceForm1GuideModal: React.FC<InsuranceForm1GuideModalProps> =
               leftIcon={<FileDown className="w-3.5 h-3.5 text-emerald-400" />}
               onClick={handleDownloadBlankPdf}
               className="text-slate-300 border-slate-700 hover:bg-slate-800 hover:text-white text-xs font-semibold"
-              title="تحميل ملف الـ PDF الحكومي الأصلي فارغاً"
+              title={t('insurance.downloadBlankPdfBtn')}
             >
-              تحميل PDF فارغ
+              {t('insurance.downloadBlankPdfBtn')}
             </Button>
 
             <button
@@ -201,11 +202,11 @@ export const InsuranceForm1GuideModal: React.FC<InsuranceForm1GuideModalProps> =
           <div className="flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
             <span>
-              <strong>طريقة الاستخدام:</strong> أمسك دفتر التأمينات والقلم الجاف الأزرق وانقل القيم الموضحة أدناه خانة بخانة. كل قيمة بجانبها زر نسخ سريع.
+              {t('insurance.form1HowToUse')}
             </span>
           </div>
           <span className="font-mono font-bold text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/60 px-2 py-0.5 rounded">
-            مكتب {officeName}
+            {t('insurance.officeNameLabel', { name: officeName })}
           </span>
         </div>
 
@@ -217,20 +218,20 @@ export const InsuranceForm1GuideModal: React.FC<InsuranceForm1GuideModalProps> =
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#1E293B] pb-3">
               <div className="flex items-center gap-2 font-bold text-sm text-slate-900 dark:text-[#F8FAFC]">
                 <Building2 className="w-4 h-4 text-brand-600 dark:text-brand-400" />
-                <span>أولاً: بيانات المنشأة ومكتب التأمينات (الوجه الأول والإقرار)</span>
+                <span>{t('insurance.sec1Title')}</span>
               </div>
-              <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">ثابتة لكل موظفي الشركة</span>
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">{t('insurance.sec1FixedHint')}</span>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {/* رقم المنشأة */}
               <div className="bg-slate-50 dark:bg-[#0B0F19] p-3 rounded-lg border border-slate-200 dark:border-[#1E293B] transition-colors">
                 <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-1">
-                  <span>رقم المنشأة (8 خانات)</span>
+                  <span>{t('insurance.estNumberLabel')}</span>
                   <button
                     onClick={() => copyToClipboard(estNumber, 'estNumber')}
                     className="text-slate-400 hover:text-brand-600 dark:hover:text-brand-400"
-                    title="نسخ"
+                    title={t('common.copy')}
                   >
                     {copiedKey === 'estNumber' ? <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                   </button>
@@ -238,17 +239,17 @@ export const InsuranceForm1GuideModal: React.FC<InsuranceForm1GuideModalProps> =
                 <div className="font-mono text-lg font-black text-brand-700 dark:text-brand-400 tracking-wider">
                   {estNumber}
                 </div>
-                <span className="text-[10px] text-slate-400 dark:text-slate-500 block mt-0.5">في الـ 8 مربعات على اليمين</span>
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 block mt-0.5">{t('insurance.estNumberHint')}</span>
               </div>
 
               {/* مكتب التأمينات */}
               <div className="bg-slate-50 dark:bg-[#0B0F19] p-3 rounded-lg border border-slate-200 dark:border-[#1E293B] transition-colors">
                 <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-1">
-                  <span>مكتب التأمينات التابع</span>
+                  <span>{t('insurance.insOfficeLabel')}</span>
                   <button
                     onClick={() => copyToClipboard(officeName, 'officeName')}
                     className="text-slate-400 hover:text-brand-600 dark:hover:text-brand-400"
-                    title="نسخ"
+                    title={t('common.copy')}
                   >
                     {copiedKey === 'officeName' ? <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                   </button>
@@ -256,17 +257,17 @@ export const InsuranceForm1GuideModal: React.FC<InsuranceForm1GuideModalProps> =
                 <div className="text-base font-bold text-slate-900 dark:text-[#F8FAFC]">
                   {officeName}
                 </div>
-                <span className="text-[10px] text-slate-400 dark:text-slate-500 block mt-0.5">أعلى يمين الاستمارة</span>
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 block mt-0.5">{t('insurance.insOfficeHint')}</span>
               </div>
 
               {/* اسم المنشأة */}
               <div className="bg-slate-50 dark:bg-[#0B0F19] p-3 rounded-lg border border-slate-200 dark:border-[#1E293B] col-span-1 md:col-span-2 transition-colors">
                 <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-1">
-                  <span>اسم المنشأة الرسمي</span>
+                  <span>{t('insurance.companyOfficialNameLabel')}</span>
                   <button
                     onClick={() => copyToClipboard(companyOfficialName, 'companyName')}
                     className="text-slate-400 hover:text-brand-600 dark:hover:text-brand-400"
-                    title="نسخ"
+                    title={t('common.copy')}
                   >
                     {copiedKey === 'companyName' ? <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                   </button>
@@ -274,17 +275,17 @@ export const InsuranceForm1GuideModal: React.FC<InsuranceForm1GuideModalProps> =
                 <div className="text-xs font-bold text-slate-900 dark:text-[#F8FAFC] truncate">
                   {companyOfficialName}
                 </div>
-                <span className="text-[10px] text-slate-400 dark:text-slate-500 block mt-0.5">سطر اسم المنشأة بالوجهين</span>
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 block mt-0.5">{t('insurance.companyOfficialNameHint')}</span>
               </div>
 
               {/* عنوان المنشأة */}
               <div className="bg-slate-50 dark:bg-[#0B0F19] p-3 rounded-lg border border-slate-200 dark:border-[#1E293B] col-span-1 md:col-span-2 lg:col-span-4 transition-colors">
                 <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-1">
-                  <span>عنوان المنشأة (في صفحة الإقرار بالخلف)</span>
+                  <span>{t('insurance.companyAddressLabel')}</span>
                   <button
                     onClick={() => copyToClipboard(companyAddress, 'companyAddress')}
                     className="text-slate-400 hover:text-brand-600 dark:hover:text-brand-400"
-                    title="نسخ"
+                    title={t('common.copy')}
                   >
                     {copiedKey === 'companyAddress' ? <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                   </button>
@@ -301,7 +302,7 @@ export const InsuranceForm1GuideModal: React.FC<InsuranceForm1GuideModalProps> =
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#1E293B] pb-3">
               <div className="flex items-center gap-2 font-bold text-sm text-slate-900 dark:text-[#F8FAFC]">
                 <User className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                <span>ثانياً: بيانات المؤمن عليه (الموظف الحالي)</span>
+                <span>{t('insurance.sec2Title')}</span>
               </div>
               <span className="font-mono text-xs text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-950/40 px-2 py-0.5 rounded font-bold">
                 {employee?.employeeId || 'EMP'}
@@ -312,11 +313,11 @@ export const InsuranceForm1GuideModal: React.FC<InsuranceForm1GuideModalProps> =
               {/* اسم الموظف */}
               <div className="bg-slate-50 dark:bg-[#0B0F19] p-3 rounded-lg border border-slate-200 dark:border-[#1E293B] transition-colors">
                 <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-1">
-                  <span>اسم المؤمن عليه (رباعي)</span>
+                  <span>{t('insurance.empFullNameLabel')}</span>
                   <button
                     onClick={() => copyToClipboard(nameAr || nameEn, 'empName')}
                     className="text-slate-400 hover:text-brand-600 dark:hover:text-brand-400"
-                    title="نسخ"
+                    title={t('common.copy')}
                   >
                     {copiedKey === 'empName' ? <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                   </button>
@@ -332,21 +333,21 @@ export const InsuranceForm1GuideModal: React.FC<InsuranceForm1GuideModalProps> =
               {/* الرقم القومي */}
               <div className="bg-slate-50 dark:bg-[#0B0F19] p-3 rounded-lg border border-slate-200 dark:border-[#1E293B] transition-colors">
                 <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-1">
-                  <span>الرقم القومي (14 خانة)</span>
+                  <span>{t('insurance.empNidLabel')}</span>
                   <button
                     onClick={() => copyToClipboard(nid, 'nid')}
                     className="text-slate-400 hover:text-brand-600 dark:hover:text-brand-400"
-                    title="نسخ"
+                    title={t('common.copy')}
                   >
                     {copiedKey === 'nid' ? <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                   </button>
                 </div>
                 <div className="font-mono text-sm font-bold text-slate-900 dark:text-[#F8FAFC] tracking-wider">
-                  {nid || 'غير مسجل'}
+                  {nid || '-'}
                 </div>
                 {parsedNid?.governorateName && (
                   <span className="text-[10px] text-slate-400 dark:text-slate-500 block mt-0.5">
-                    محافظة الميلاد: {parsedNid.governorateName} (كود {parsedNid.governorateCode})
+                    {t('insurance.birthGovLabel', { gov: parsedNid.governorateName, code: parsedNid.governorateCode })}
                   </span>
                 )}
               </div>
@@ -354,54 +355,54 @@ export const InsuranceForm1GuideModal: React.FC<InsuranceForm1GuideModalProps> =
               {/* الرقم التأميني */}
               <div className="bg-slate-50 dark:bg-[#0B0F19] p-3 rounded-lg border border-slate-200 dark:border-[#1E293B] transition-colors">
                 <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-1">
-                  <span>الرقم التأميني (إن وجد)</span>
+                  <span>{t('insurance.empInsNoLabel')}</span>
                   {insNo && (
                     <button
                       onClick={() => copyToClipboard(insNo, 'insNo')}
                       className="text-slate-400 hover:text-brand-600 dark:hover:text-brand-400"
-                      title="نسخ"
+                      title={t('common.copy')}
                     >
                       {copiedKey === 'insNo' ? <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                     </button>
                   )}
                 </div>
                 <div className="font-mono text-sm font-bold text-brand-700 dark:text-brand-400">
-                  {insNo || 'طلب اشتراك جديد'}
+                  {insNo || t('insurance.empInsNoNew')}
                 </div>
                 <span className="text-[10px] text-slate-400 dark:text-slate-500 block mt-0.5">
-                  {insNo ? 'رقم تأميني معتمد' : 'يترك فارغاً لو أول مرة تأمين'}
+                  {insNo ? t('insurance.empInsNoHintApproved') : t('insurance.empInsNoHintEmpty')}
                 </span>
               </div>
 
               {/* كود المهنة والمسمى */}
               <div className="bg-slate-50 dark:bg-[#0B0F19] p-3 rounded-lg border border-slate-200 dark:border-[#1E293B] transition-colors">
                 <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-1">
-                  <span>كود المهنة + المسمى</span>
+                  <span>{t('insurance.jobCodeTitleLabel')}</span>
                   <button
                     onClick={() => copyToClipboard(jobTitle, 'jobTitle')}
                     className="text-slate-400 hover:text-brand-600 dark:hover:text-brand-400"
-                    title="نسخ المسمى"
+                    title={t('common.copy')}
                   >
                     {copiedKey === 'jobTitle' ? <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                   </button>
                 </div>
                 <div className="text-xs font-bold text-slate-900 dark:text-[#F8FAFC] flex items-center justify-between">
-                  <span>المسمى: {jobTitle || '-'}</span>
+                  <span>{t('insurance.jobTitlePrefix')} {jobTitle || '-'}</span>
                   <span className="font-mono bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5 rounded text-slate-700 dark:text-slate-300">{jobCode}</span>
                 </div>
                 <span className="text-[10px] text-slate-400 dark:text-slate-500 block mt-0.5">
-                  يكتب المسمى بجانب كود المهنة وباقي المسميات فارغة
+                  {t('insurance.jobCodeHint')}
                 </span>
               </div>
 
               {/* تاريخ بدء الاشتراك (التعيين) */}
               <div className="bg-slate-50 dark:bg-[#0B0F19] p-3 rounded-lg border border-slate-200 dark:border-[#1E293B] transition-colors">
                 <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-1">
-                  <span>تاريخ بدء الاشتراك (التعيين)</span>
+                  <span>{t('insurance.hireDateLabel')}</span>
                   <button
                     onClick={() => copyToClipboard(`${hireDay}/${hireMonth}/${hireYear}`, 'hireDate')}
                     className="text-slate-400 hover:text-brand-600 dark:hover:text-brand-400"
-                    title="نسخ"
+                    title={t('common.copy')}
                   >
                     {copiedKey === 'hireDate' ? <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                   </button>
@@ -409,17 +410,17 @@ export const InsuranceForm1GuideModal: React.FC<InsuranceForm1GuideModalProps> =
                 <div className="font-mono text-sm font-bold text-slate-900 dark:text-[#F8FAFC]">
                   {hireDay} / {hireMonth} / {hireYear}
                 </div>
-                <span className="text-[10px] text-slate-400 dark:text-slate-500 block mt-0.5">يوم / شهر / سنة في المربعات المخصصة</span>
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 block mt-0.5">{t('insurance.hireDateHint')}</span>
               </div>
 
               {/* المؤهل والجنسية */}
               <div className="bg-slate-50 dark:bg-[#0B0F19] p-3 rounded-lg border border-slate-200 dark:border-[#1E293B] transition-colors">
-                <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">المؤهل والجنسية</div>
+                <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">{t('insurance.qualAndNationalityLabel')}</div>
                 <div className="text-xs font-bold text-slate-900 dark:text-[#F8FAFC] flex items-center justify-between">
-                  <span>المؤهل: مؤهل عالي</span>
-                  <span className="text-slate-600 dark:text-slate-300">الجنسية: مصري</span>
+                  <span>{t('insurance.qualLabel')}</span>
+                  <span className="text-slate-600 dark:text-slate-300">{t('insurance.nationalityLabel')}</span>
                 </div>
-                <span className="text-[10px] text-slate-400 dark:text-slate-500 block mt-0.5">تكتب على الأسطر المنقطة</span>
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 block mt-0.5">{t('insurance.dottedLineHint')}</span>
               </div>
             </div>
           </div>
@@ -429,71 +430,71 @@ export const InsuranceForm1GuideModal: React.FC<InsuranceForm1GuideModalProps> =
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#1E293B] pb-3">
               <div className="flex items-center gap-2 font-bold text-sm text-slate-900 dark:text-[#F8FAFC]">
                 <CreditCard className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                <span>ثالثاً: الأجور والقطاع وقيم الاشتراك المعتمدة</span>
+                <span>{t('insurance.sec3Title')}</span>
               </div>
-              <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">وفقاً لقانون التأمينات الاجتماعية</span>
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">{t('insurance.sec3LegalHint')}</span>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {/* دخل الاشتراك */}
               <div className="bg-emerald-50/70 dark:bg-emerald-950/30 p-3.5 rounded-lg border border-emerald-200 dark:border-emerald-900/50 transition-colors">
                 <div className="flex items-center justify-between text-xs text-emerald-800 dark:text-emerald-300 mb-1 font-semibold">
-                  <span>*أجر / دخل الاشتراك</span>
+                  <span>{t('insurance.insWageLabel')}</span>
                   <button
                     onClick={() => copyToClipboard(insuranceSalary, 'insSal')}
                     className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-200"
-                    title="نسخ"
+                    title={t('common.copy')}
                   >
                     {copiedKey === 'insSal' ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                   </button>
                 </div>
                 <div className="font-mono text-xl font-black text-emerald-700 dark:text-emerald-400">
-                  {insuranceSalary} <span className="text-xs font-normal">ج.م</span>
+                  {insuranceSalary} <span className="text-xs font-normal">{t('insurance.currency')}</span>
                 </div>
                 <span className="text-[10px] text-emerald-600 dark:text-emerald-400 block mt-0.5">
-                  جنيه: <strong>4900</strong> • قرش: <strong>00</strong>
+                  {t('insurance.insWageBreakdown', { pounds: '4900', piasters: '00' })}
                 </span>
               </div>
 
               {/* الأجر الشامل */}
               <div className="bg-blue-50/70 dark:bg-blue-950/30 p-3.5 rounded-lg border border-blue-200 dark:border-blue-900/50 transition-colors">
                 <div className="flex items-center justify-between text-xs text-blue-800 dark:text-blue-300 mb-1 font-semibold">
-                  <span>*الأجر الشامل (تأمين صحي)</span>
+                  <span>{t('insurance.grossWageLabel')}</span>
                   <button
                     onClick={() => copyToClipboard(grossSalary, 'grossSal')}
                     className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200"
-                    title="نسخ"
+                    title={t('common.copy')}
                   >
                     {copiedKey === 'grossSal' ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                   </button>
                 </div>
                 <div className="font-mono text-xl font-black text-blue-700 dark:text-blue-400">
-                  {grossSalary} <span className="text-xs font-normal">ج.م</span>
+                  {grossSalary} <span className="text-xs font-normal">{t('insurance.currency')}</span>
                 </div>
                 <span className="text-[10px] text-blue-600 dark:text-blue-400 block mt-0.5">
-                  جنيه: <strong>7000</strong> • قرش: <strong>00</strong>
+                  {t('insurance.insWageBreakdown', { pounds: '7000', piasters: '00' })}
                 </span>
               </div>
 
               {/* الأجر الأساسي */}
               <div className="bg-slate-50 dark:bg-[#0B0F19] p-3.5 rounded-lg border border-slate-200 dark:border-[#1E293B] transition-colors">
-                <div className="text-xs text-slate-500 dark:text-slate-400 mb-1 font-medium">*أجر أساسي</div>
+                <div className="text-xs text-slate-500 dark:text-slate-400 mb-1 font-medium">{t('insurance.basicWageLabel')}</div>
                 <div className="text-base font-bold text-slate-400 dark:text-slate-500 line-through">
-                  فارغ تماماً
+                  {t('insurance.basicWageBlank')}
                 </div>
                 <span className="text-[10px] text-slate-400 dark:text-slate-500 block mt-0.5">
-                  يترك فارغاً (المربعات فارغة)
+                  {t('insurance.basicWageHint')}
                 </span>
               </div>
 
               {/* القطاع */}
               <div className="bg-slate-50 dark:bg-[#0B0F19] p-3.5 rounded-lg border border-slate-200 dark:border-[#1E293B] transition-colors">
-                <div className="text-xs text-slate-500 dark:text-slate-400 mb-1 font-medium">القطاع والمربع المجاور</div>
+                <div className="text-xs text-slate-500 dark:text-slate-400 mb-1 font-medium">{t('insurance.sectorLabel')}</div>
                 <div className="text-base font-bold text-slate-900 dark:text-[#F8FAFC]">
-                  خاص <span className="text-xs text-slate-400 dark:text-slate-500 font-normal">| والمربع [ ] فارغ</span>
+                  {t('insurance.sectorValuePrivate')} <span className="text-xs text-slate-400 dark:text-slate-500 font-normal">{t('insurance.sectorBoxBlank')}</span>
                 </div>
                 <span className="text-[10px] text-slate-400 dark:text-slate-500 block mt-0.5">
-                  نوع المدد وكود الاشتراك يتركان فارغين
+                  {t('insurance.sectorHint')}
                 </span>
               </div>
             </div>
@@ -504,20 +505,20 @@ export const InsuranceForm1GuideModal: React.FC<InsuranceForm1GuideModalProps> =
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#1E293B] pb-3">
               <div className="flex items-center gap-2 font-bold text-sm text-slate-900 dark:text-[#F8FAFC]">
                 <MapPin className="w-4 h-4 text-rose-600 dark:text-rose-400" />
-                <span>رابعاً: العنوان والتوقيعات والإقرار</span>
+                <span>{t('insurance.sec4Title')}</span>
               </div>
-              <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">بيانات التواصل والإقرار</span>
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">{t('insurance.sec4Hint')}</span>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
               <div className="bg-slate-50 dark:bg-[#0B0F19] p-3 rounded-lg border border-slate-200 dark:border-[#1E293B] space-y-1.5 transition-colors">
                 <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
-                  <span>عنوان إقامة الموظف (شارع / حارة):</span>
+                  <span>{t('insurance.empAddressLabel')}</span>
                   {address && (
                     <button
                       onClick={() => copyToClipboard(address, 'addr')}
                       className="text-slate-400 hover:text-brand-600 dark:hover:text-brand-400"
-                      title="نسخ"
+                      title={t('common.copy')}
                     >
                       {copiedKey === 'addr' ? <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                     </button>
@@ -525,25 +526,25 @@ export const InsuranceForm1GuideModal: React.FC<InsuranceForm1GuideModalProps> =
                 </div>
                 <div className="font-semibold text-slate-900 dark:text-[#F8FAFC]">{address || 'جمصة - محافظة الدقهلية'}</div>
                 <div className="flex items-center justify-between pt-1 border-t border-slate-200/60 dark:border-[#1E293B] text-slate-500 dark:text-slate-400">
-                  <span>رقم تليفون الموظف:</span>
+                  <span>{t('insurance.empPhoneLabel')}</span>
                   <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{phone || '-'}</span>
                 </div>
               </div>
 
               <div className="bg-slate-50 dark:bg-[#0B0F19] p-3 rounded-lg border border-slate-200 dark:border-[#1E293B] space-y-1.5 transition-colors">
-                <div className="font-bold text-slate-800 dark:text-[#F8FAFC]">التوقيعات المطلوبة على الاستمارة:</div>
+                <div className="font-bold text-slate-800 dark:text-[#F8FAFC]">{t('insurance.requiredSignaturesTitle')}</div>
                 <div className="text-slate-600 dark:text-slate-300 space-y-1 text-[11px]">
                   <div className="flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-600"></span>
-                    <span><strong>توقيع صاحب العمل / المدير المسئول:</strong> يترك فارغاً للتوقيع والختم اليدوي.</span>
+                    <span>{t('insurance.sigEmployer')}</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-600"></span>
-                    <span><strong>توقيع المؤمن عليه:</strong> يوقع العامل بيده بالقلم الجاف.</span>
+                    <span>{t('insurance.sigWorker')}</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-600"></span>
-                    <span><strong>إقرار العامل (بالخلف):</strong> يكتب اسم العامل: <strong className="text-brand-700 dark:text-brand-400">{nameAr || nameEn}</strong>.</span>
+                    <span>{t('insurance.sigDeclaration', { name: nameAr || nameEn })}</span>
                   </div>
                 </div>
               </div>
@@ -556,7 +557,7 @@ export const InsuranceForm1GuideModal: React.FC<InsuranceForm1GuideModalProps> =
         <div className="px-6 py-3.5 bg-slate-100 dark:bg-[#151D2E] border-t border-slate-200 dark:border-[#1E293B] flex items-center justify-between transition-colors">
           <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
             <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
-            <span>يمكنك دائماً طباعة الاستمارة الحكومية الفارغة من هنا وتعبئتها يدوياً بكل سهولة وبدون أي أخطاء.</span>
+            <span>{t('insurance.form1FooterTip')}</span>
           </div>
 
           <div className="flex items-center gap-2">
@@ -566,7 +567,7 @@ export const InsuranceForm1GuideModal: React.FC<InsuranceForm1GuideModalProps> =
               leftIcon={<Printer className="w-4 h-4" />}
               onClick={handlePrintBlankForm}
             >
-              طباعة استمارة فارغة (A4)
+              {t('insurance.printBlankFormA4Btn')}
             </Button>
             <Button
               variant="primary"
@@ -574,7 +575,7 @@ export const InsuranceForm1GuideModal: React.FC<InsuranceForm1GuideModalProps> =
               onClick={onClose}
               className="bg-brand-600 hover:bg-brand-500 font-bold px-5"
             >
-              إغلاق
+              {t('insurance.closeBtn')}
             </Button>
           </div>
         </div>

@@ -138,6 +138,7 @@ export interface DocumentRecord {
   title: string;
   fileName: string;
   fileSize: string;
+  fileUrl?: string;
   status: DocumentStatus;
   expiryDate?: string;
   uploadedAt?: string;

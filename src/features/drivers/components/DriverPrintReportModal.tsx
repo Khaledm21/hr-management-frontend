@@ -31,6 +31,13 @@ export const DriverPrintReportModal: React.FC<DriverPrintReportModalProps> = ({
   const isZh = i18n.language === 'zh-CN';
   const lang = i18n.language;
 
+  const totalDrivers = summary?.totalDrivers || columns.length || 0;
+  const totalAmount = summary?.totalAmount || 0;
+  const totalOperations = summary?.totalOperations || 0;
+  const averagePayout = summary?.averagePayout || 0;
+  const managementTotal = summary?.managementTotal || 0;
+  const productionTotal = summary?.productionTotal || 0;
+
   const handlePrint = () => {
     const reportElem = document.getElementById('driver-payout-printable-report');
     if (!reportElem) {
@@ -47,8 +54,8 @@ export const DriverPrintReportModal: React.FC<DriverPrintReportModalProps> = ({
     iframe.style.position = 'fixed';
     iframe.style.top = '-10000px';
     iframe.style.left = '-10000px';
-    iframe.style.width = '1400px';
-    iframe.style.height = '900px';
+    iframe.style.width = '297mm';
+    iframe.style.height = '210mm';
     iframe.style.border = '0';
     document.body.appendChild(iframe);
 
@@ -58,16 +65,16 @@ export const DriverPrintReportModal: React.FC<DriverPrintReportModalProps> = ({
       return;
     }
 
-    // Extract all styles and links from active document
-    const styles = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
-      .map(el => el.outerHTML)
-      .join('\n');
-
     const fontFamily = isRtl
-      ? "'Cairo', 'Segoe UI', Tahoma, sans-serif"
+      ? "'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif"
       : isZh
       ? "'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif"
       : "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+
+    // Extract active stylesheets as supplementary
+    const activeStyles = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
+      .map(el => el.outerHTML)
+      .join('\n');
 
     doc.open();
     doc.write(`
@@ -75,44 +82,344 @@ export const DriverPrintReportModal: React.FC<DriverPrintReportModalProps> = ({
       <html dir="${isRtl ? 'rtl' : 'ltr'}" lang="${lang}">
       <head>
         <meta charset="utf-8" />
+        <base href="${window.location.origin}/" />
         <title>${t('driverPayouts.weeklySheetTitle')}</title>
-        ${styles}
+        ${activeStyles}
         <style>
           @page {
-            size: landscape;
-            margin: 5mm;
+            size: A4 landscape;
+            margin: 4mm 5mm 4mm 5mm;
+          }
+          @media print {
+            @page {
+              size: A4 landscape;
+              margin: 4mm 5mm 4mm 5mm;
+            }
+            html, body {
+              width: 100% !important;
+              max-width: 100% !important;
+              height: auto !important;
+              overflow: visible !important;
+            }
           }
           *, *::before, *::after {
-            box-sizing: border-box;
+            box-sizing: border-box !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
+            color-adjust: exact !important;
           }
           html, body {
             margin: 0 !important;
             padding: 0 !important;
             background: #ffffff !important;
-            color: #000000 !important;
+            color: #0f172a !important;
             font-family: ${fontFamily} !important;
-            direction: ${isRtl ? 'rtl' : 'ltr'};
+            direction: ${isRtl ? 'rtl' : 'ltr'} !important;
             width: 100% !important;
+            -webkit-font-smoothing: antialiased;
           }
           #print-wrapper {
             width: 100% !important;
             max-width: 100% !important;
             margin: 0 !important;
-            padding: 2px !important;
+            padding: 0 !important;
             border: none !important;
             box-shadow: none !important;
           }
-          table {
+
+          /* Header layout */
+          .driver-print-header {
+            display: flex !important;
+            flex-direction: row !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            border-bottom: 2px solid #0f172a !important;
+            padding-bottom: 4px !important;
+            margin-bottom: 5px !important;
+            gap: 8px !important;
+            width: 100% !important;
+          }
+          .driver-brand-group {
+            display: flex !important;
+            align-items: center !important;
+            gap: 8px !important;
+            flex-shrink: 0 !important;
+          }
+          .driver-brand-logo {
+            height: 38px !important;
+            max-height: 38px !important;
+            width: auto !important;
+            max-width: 120px !important;
+            object-fit: contain !important;
+            display: block !important;
+            border: 1px solid #cbd5e1 !important;
+            border-radius: 4px !important;
+            padding: 1px !important;
+            background: #ffffff !important;
+          }
+          .driver-brand-titles {
+            display: flex !important;
+            flex-direction: column !important;
+            line-height: 1.15 !important;
+          }
+          .driver-company-en {
+            font-size: 11px !important;
+            font-weight: 900 !important;
+            color: #020617 !important;
+            letter-spacing: -0.2px !important;
+            white-space: nowrap !important;
+          }
+          .driver-company-ar {
+            font-size: 10px !important;
+            font-weight: 700 !important;
+            color: #334155 !important;
+            white-space: nowrap !important;
+          }
+          .driver-dept-tag {
+            display: inline-block !important;
+            background: #ecfdf5 !important;
+            color: #065f46 !important;
+            border: 1px solid #a7f3d0 !important;
+            padding: 1px 6px !important;
+            border-radius: 3px !important;
+            font-size: 8px !important;
+            font-weight: 800 !important;
+            white-space: nowrap !important;
+            margin-top: 1px !important;
+          }
+
+          /* Center title */
+          .driver-center-title {
+            text-align: center !important;
+            flex-shrink: 0 !important;
+          }
+          .driver-title-h1 {
+            font-size: 15px !important;
+            font-weight: 900 !important;
+            color: #020617 !important;
+            margin: 0 !important;
+            line-height: 1.15 !important;
+            white-space: nowrap !important;
+          }
+          .driver-subtitle {
+            font-size: 8.5px !important;
+            font-weight: 600 !important;
+            color: #64748b !important;
+            margin-top: 1px !important;
+            white-space: nowrap !important;
+          }
+          .driver-week-badge {
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 4px !important;
+            background: #f1f5f9 !important;
+            color: #0f172a !important;
+            border: 1px solid #cbd5e1 !important;
+            padding: 1px 8px !important;
+            border-radius: 9999px !important;
+            font-size: 9.5px !important;
+            font-weight: 800 !important;
+            margin-top: 2px !important;
+            white-space: nowrap !important;
+          }
+
+          /* KPI Mini Box */
+          .driver-kpi-box {
+            width: 220px !important;
+            border: 1.5px solid #0f172a !important;
+            border-radius: 4px !important;
+            overflow: hidden !important;
+            background: #f8fafc !important;
+            flex-shrink: 0 !important;
+          }
+          .driver-kpi-table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+            font-size: 8.5px !important;
+          }
+          .driver-kpi-table td {
+            padding: 1.5px 5px !important;
+            border: none !important;
+            border-bottom: 1px solid #e2e8f0 !important;
+            line-height: 1.2 !important;
+          }
+          .driver-kpi-table tr:last-child td {
+            border-bottom: none !important;
+          }
+
+          /* Table Matrix */
+          .driver-matrix-table {
             width: 100% !important;
             table-layout: fixed !important;
             border-collapse: collapse !important;
+            border: 1.5px solid #0f172a !important;
+            margin-bottom: 5px !important;
           }
-          th, td {
-            word-break: break-word !important;
-            overflow-wrap: break-word !important;
+          .driver-matrix-table th {
+            background-color: #FFC000 !important;
+            color: #000000 !important;
+            font-weight: 800 !important;
+            padding: 3px 1px !important;
+            border: 1px solid #475569 !important;
+            text-align: center !important;
+            vertical-align: middle !important;
+            word-break: normal !important;
+            white-space: normal !important;
           }
+          .driver-name-text {
+            font-size: 8.5px !important;
+            font-weight: 900 !important;
+            line-height: 1.1 !important;
+            color: #000000 !important;
+            display: block !important;
+          }
+          .driver-vehicle-badge {
+            font-size: 7.5px !important;
+            font-weight: 700 !important;
+            color: #1e293b !important;
+            white-space: nowrap !important;
+            display: block !important;
+            margin-top: 1px !important;
+          }
+          .driver-matrix-table td {
+            padding: 2.5px 1px !important;
+            border: 1px solid #cbd5e1 !important;
+            text-align: center !important;
+            font-size: 9px !important;
+            font-weight: 700 !important;
+            vertical-align: middle !important;
+            white-space: nowrap !important;
+            line-height: 1.2 !important;
+          }
+          .driver-matrix-table tbody tr:nth-child(even) {
+            background-color: #fafafa !important;
+          }
+          .driver-matrix-table tbody tr:nth-child(odd) {
+            background-color: #ffffff !important;
+          }
+          .mgmt-val {
+            color: #c00000 !important;
+            font-weight: 900 !important;
+          }
+          .total-row td {
+            background-color: #bbf7d0 !important;
+            color: #064e3b !important;
+            font-weight: 900 !important;
+            border-top: 1.5px solid #0f172a !important;
+            border: 1px solid #86efac !important;
+            padding: 3px 1px !important;
+          }
+          .count-row td {
+            background-color: #bfdbfe !important;
+            color: #1e3a8a !important;
+            font-weight: 900 !important;
+            border: 1px solid #93c5fd !important;
+            padding: 2px 1px !important;
+          }
+          .driver-total-amount {
+            font-size: 8.5px !important;
+            font-weight: 900 !important;
+            white-space: nowrap !important;
+            line-height: 1.1 !important;
+          }
+          .driver-total-label {
+            font-size: 7px !important;
+            font-weight: 700 !important;
+            color: #065f46 !important;
+            white-space: nowrap !important;
+            margin-top: 1px !important;
+          }
+          .driver-count-val {
+            font-size: 8.5px !important;
+            font-weight: 900 !important;
+            line-height: 1.1 !important;
+          }
+          .driver-count-label {
+            font-size: 7px !important;
+            font-weight: 700 !important;
+            color: #1e3a8a !important;
+            white-space: nowrap !important;
+            margin-top: 1px !important;
+          }
+
+          /* Master Breakdown Cards */
+          .driver-breakdown-grid {
+            display: grid !important;
+            grid-template-columns: 1fr 1fr 1fr !important;
+            gap: 6px !important;
+            margin-bottom: 5px !important;
+            page-break-inside: avoid !important;
+          }
+          .driver-stat-card {
+            border-radius: 4px !important;
+            padding: 4px 6px !important;
+            text-align: center !important;
+            font-weight: bold !important;
+          }
+          .card-grand-total {
+            background-color: #2e6930 !important;
+            color: #ffffff !important;
+          }
+          .card-mgmt-total {
+            background-color: #c00000 !important;
+            color: #ffffff !important;
+          }
+          .card-prod-total {
+            background-color: #f8cbad !important;
+            color: #0f172a !important;
+          }
+          .stat-card-title {
+            font-size: 9px !important;
+            display: block !important;
+            font-weight: 600 !important;
+            opacity: 0.95 !important;
+          }
+          .stat-card-amount {
+            font-size: 13px !important;
+            font-weight: 900 !important;
+            display: block !important;
+            margin-top: 1px !important;
+            white-space: nowrap !important;
+          }
+
+          /* Signatures */
+          .driver-signatures-grid {
+            display: grid !important;
+            grid-template-columns: 1fr 1fr 1fr !important;
+            gap: 12px !important;
+            margin-top: 5px !important;
+            padding-top: 4px !important;
+            border-top: 1.5px solid #94a3b8 !important;
+            text-align: center !important;
+            font-size: 9px !important;
+            page-break-inside: avoid !important;
+          }
+          .sig-label-top {
+            font-weight: 800 !important;
+            color: #334155 !important;
+            display: block !important;
+            margin-bottom: 12px !important;
+          }
+          .sig-underline {
+            border-top: 1px dashed #64748b !important;
+            display: inline-block !important;
+            padding: 2px 24px 0 !important;
+            color: #64748b !important;
+            font-size: 8px !important;
+          }
+
+          /* Footer */
+          .driver-print-footer {
+            display: flex !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+            font-size: 8px !important;
+            color: #64748b !important;
+            margin-top: 4px !important;
+            padding-top: 2px !important;
+            border-top: 1px solid #e2e8f0 !important;
+          }
+
           .no-print {
             display: none !important;
           }
@@ -127,7 +434,7 @@ export const DriverPrintReportModal: React.FC<DriverPrintReportModalProps> = ({
     `);
     doc.close();
 
-    setTimeout(() => {
+    const triggerPrint = () => {
       try {
         iframe.contentWindow?.focus();
         iframe.contentWindow?.print();
@@ -137,17 +444,27 @@ export const DriverPrintReportModal: React.FC<DriverPrintReportModalProps> = ({
       } finally {
         setTimeout(() => {
           iframe.remove();
-        }, 2000);
+        }, 3000);
       }
-    }, 350);
-  };
+    };
 
-  const totalDrivers = summary?.totalDrivers || columns.length || 0;
-  const totalAmount = summary?.totalAmount || 0;
-  const totalOperations = summary?.totalOperations || 0;
-  const averagePayout = summary?.averagePayout || 0;
-  const managementTotal = summary?.managementTotal || 0;
-  const productionTotal = summary?.productionTotal || 0;
+    const images = Array.from(doc.images || []);
+    if (images.length === 0) {
+      setTimeout(triggerPrint, 250);
+    } else {
+      Promise.all(
+        images.map(img => {
+          if (img.complete) return Promise.resolve();
+          return new Promise(resolve => {
+            img.onload = resolve;
+            img.onerror = resolve;
+          });
+        })
+      ).then(() => {
+        setTimeout(triggerPrint, 250);
+      });
+    }
+  };
 
   return (
     <Modal
@@ -194,133 +511,125 @@ export const DriverPrintReportModal: React.FC<DriverPrintReportModalProps> = ({
           dir={isRtl ? 'rtl' : 'ltr'}
         >
           {/* Header */}
-          <div className="border-b-2 border-slate-800 pb-3 mb-4">
-            <div className="flex items-center justify-between gap-4">
-              {/* Company Logo & Identity */}
-              <div className="flex items-center gap-3 shrink-0">
-                <img
-                  src={logo || newHopeLogo}
-                  alt="New Hope Egypt"
-                  className="h-12 w-auto object-contain border border-slate-200 rounded p-0.5 bg-white shadow-xs shrink-0"
-                />
-                <div>
-                  <div
-                    dir="ltr"
-                    className={cn(
-                      'font-black text-xs md:text-sm text-slate-950 tracking-tight whitespace-nowrap leading-tight',
-                      isRtl ? 'text-right' : 'text-left'
-                    )}
-                  >
-                    {settings.companyName || t('driverPayouts.companyNameEn')}
-                  </div>
-                  <div className="text-[11px] font-bold text-slate-700 whitespace-nowrap mt-0.5">
-                    {settings.companyNameAr || t('driverPayouts.companyName')}
-                  </div>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-[10px] bg-emerald-50 text-emerald-800 border border-emerald-300 px-2 py-0.5 rounded font-black whitespace-nowrap">
-                      {t('driverPayouts.departmentName')}
-                    </span>
-                    <span className="text-[9px] text-slate-500 font-semibold whitespace-nowrap">
-                      {t('driverPayouts.deptSub')}
-                    </span>
-                  </div>
+          <div className="driver-print-header">
+            {/* Company Logo & Identity */}
+            <div className="driver-brand-group">
+              <img
+                src={logo || newHopeLogo}
+                alt="New Hope Egypt"
+                className="driver-brand-logo"
+              />
+              <div className="driver-brand-titles">
+                <div
+                  dir="ltr"
+                  className={cn(
+                    'driver-company-en',
+                    isRtl ? 'text-right' : 'text-left'
+                  )}
+                >
+                  {settings.companyName || t('driverPayouts.companyNameEn')}
                 </div>
-              </div>
-
-              {/* Center: Title & Period */}
-              <div className="text-center px-2 shrink-0">
-                <h1 className="text-base md:text-lg font-black text-slate-950 tracking-tight whitespace-nowrap leading-tight">
-                  {t('driverPayouts.weeklySheetTitle')}
-                </h1>
-                <div className="text-[10px] font-bold text-slate-500 tracking-wide mt-0.5 whitespace-nowrap">
-                  {t('driverPayouts.printSheetSubtitle')}
+                <div className="driver-company-ar">
+                  {settings.companyNameAr || t('driverPayouts.companyName')}
                 </div>
-                <div className="inline-flex items-center gap-1.5 bg-slate-100 text-slate-800 text-[11px] font-bold px-3 py-0.5 rounded-full mt-1 border border-slate-300 whitespace-nowrap">
-                  <span className="text-slate-500">{t('driverPayouts.weekPeriodLabel')}</span>
-                  <span className="font-black text-slate-950">
-                    {summary?.weekLabel || summary?.weekPeriod || ''}
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className="driver-dept-tag">
+                    {t('driverPayouts.departmentName')}
+                  </span>
+                  <span className="text-[8.5px] text-slate-500 font-semibold whitespace-nowrap">
+                    {t('driverPayouts.deptSub')}
                   </span>
                 </div>
               </div>
+            </div>
 
-              {/* Side: Mini KPI Box */}
-              <div className="border-2 border-slate-800 rounded-lg overflow-hidden text-xs shrink-0 w-[250px] bg-slate-50/50">
-                <table className="w-full text-xs border-collapse">
-                  <tbody>
-                    <tr className="border-b border-slate-300 bg-slate-100/70">
-                      <td className={cn("py-1.5 px-3 font-bold text-slate-700 whitespace-nowrap", isRtl ? "text-right" : "text-left")}>
-                        {t('driverPayouts.kpiTotalDrivers')}:
-                      </td>
-                      <td className={cn("py-1.5 px-3 font-black text-slate-950 whitespace-nowrap", isRtl ? "text-left" : "text-right")}>
-                        {totalDrivers}
-                      </td>
-                    </tr>
-                    <tr className="border-b border-slate-300 bg-white">
-                      <td className={cn("py-1.5 px-3 font-bold text-slate-700 whitespace-nowrap", isRtl ? "text-right" : "text-left")}>
-                        {t('driverPayouts.kpiTotalAmount')}:
-                      </td>
-                      <td className={cn("py-1.5 px-3 font-black text-emerald-700 whitespace-nowrap", isRtl ? "text-left" : "text-right")}>
-                        {totalAmount.toLocaleString()} {t('driverPayouts.egp')}
-                      </td>
-                    </tr>
-                    <tr className="border-b border-slate-300 bg-slate-100/70">
-                      <td className={cn("py-1.5 px-3 font-bold text-slate-700 whitespace-nowrap", isRtl ? "text-right" : "text-left")}>
-                        {t('driverPayouts.kpiTotalOperations')}:
-                      </td>
-                      <td className={cn("py-1.5 px-3 font-black text-slate-950 whitespace-nowrap", isRtl ? "text-left" : "text-right")}>
-                        {totalOperations}
-                      </td>
-                    </tr>
-                    <tr className="bg-white">
-                      <td className={cn("py-1.5 px-3 font-bold text-slate-700 whitespace-nowrap", isRtl ? "text-right" : "text-left")}>
-                        {t('driverPayouts.kpiAveragePayout')}:
-                      </td>
-                      <td className={cn("py-1.5 px-3 font-black text-indigo-800 whitespace-nowrap", isRtl ? "text-left" : "text-right")}>
-                        {averagePayout.toLocaleString()} {t('driverPayouts.egp')}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+            {/* Center: Title & Period */}
+            <div className="driver-center-title">
+              <h1 className="driver-title-h1">
+                {t('driverPayouts.weeklySheetTitle')}
+              </h1>
+              <div className="driver-subtitle">
+                {t('driverPayouts.printSheetSubtitle')}
               </div>
+              <div className="driver-week-badge">
+                <span className="text-slate-500">{t('driverPayouts.weekPeriodLabel')}</span>
+                <span className="font-black text-slate-950">
+                  {summary?.weekLabel || summary?.weekPeriod || ''}
+                </span>
+              </div>
+            </div>
+
+            {/* Side: Mini KPI Box */}
+            <div className="driver-kpi-box">
+              <table className="driver-kpi-table">
+                <tbody>
+                  <tr className="bg-slate-100/70">
+                    <td className={cn("font-bold text-slate-700 whitespace-nowrap", isRtl ? "text-right" : "text-left")}>
+                      {t('driverPayouts.kpiTotalDrivers')}:
+                    </td>
+                    <td className={cn("font-black text-slate-950 whitespace-nowrap", isRtl ? "text-left" : "text-right")}>
+                      {totalDrivers}
+                    </td>
+                  </tr>
+                  <tr className="bg-white">
+                    <td className={cn("font-bold text-slate-700 whitespace-nowrap", isRtl ? "text-right" : "text-left")}>
+                      {t('driverPayouts.kpiTotalAmount')}:
+                    </td>
+                    <td className={cn("font-black text-emerald-700 whitespace-nowrap", isRtl ? "text-left" : "text-right")}>
+                      {totalAmount.toLocaleString()} {t('driverPayouts.egp')}
+                    </td>
+                  </tr>
+                  <tr className="bg-slate-100/70">
+                    <td className={cn("font-bold text-slate-700 whitespace-nowrap", isRtl ? "text-right" : "text-left")}>
+                      {t('driverPayouts.kpiTotalOperations')}:
+                    </td>
+                    <td className={cn("font-black text-slate-950 whitespace-nowrap", isRtl ? "text-left" : "text-right")}>
+                      {totalOperations}
+                    </td>
+                  </tr>
+                  <tr className="bg-white">
+                    <td className={cn("font-bold text-slate-700 whitespace-nowrap", isRtl ? "text-right" : "text-left")}>
+                      {t('driverPayouts.kpiAveragePayout')}:
+                    </td>
+                    <td className={cn("font-black text-indigo-800 whitespace-nowrap", isRtl ? "text-left" : "text-right")}>
+                      {averagePayout.toLocaleString()} {t('driverPayouts.egp')}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
 
           {/* Matrix Table */}
-          <div className="overflow-x-auto mb-4 print:overflow-visible">
-            <table className="w-full text-center border-collapse text-[10px] border-2 border-slate-800 table-fixed">
+          <div className="overflow-x-auto mb-3 print:overflow-visible">
+            <table className="driver-matrix-table">
               {/* Driver Headers */}
               <thead>
-                <tr className="bg-[#FFC000] text-slate-950 font-black border-b-2 border-slate-800">
+                <tr>
                   {columns.map(col => (
-                    <th
-                      key={col.driver.id}
-                      className="py-1.5 px-0.5 border border-slate-700 font-bold leading-tight"
-                    >
-                      <div className="font-black text-[10px] leading-tight break-words">{col.driver.name}</div>
-                      <div className="text-[8px] font-bold text-slate-900 mt-0.5">
+                    <th key={col.driver.id}>
+                      <span className="driver-name-text">{col.driver.name}</span>
+                      <span className="driver-vehicle-badge">
                         {col.driver.vehicleType === 'عربية فان'
                           ? t('driverPayouts.vehicleVan', 'عربية فان')
                           : t('driverPayouts.vehicleMicrobus', 'ميكروباص')}
-                      </div>
+                      </span>
                     </th>
                   ))}
                 </tr>
               </thead>
 
               {/* Rows */}
-              <tbody className="divide-y divide-slate-300 bg-white">
+              <tbody>
                 {Array.from({ length: maxRows || 4 }).map((_, rIdx) => (
-                  <tr key={rIdx} className="border-b border-slate-300">
+                  <tr key={rIdx}>
                     {columns.map(col => {
                       const tx = col.transactions[rIdx];
                       const isManagement = tx?.category === 'management';
                       return (
-                        <td
-                          key={col.driver.id}
-                          className="py-1 px-0.5 border border-slate-300 font-bold text-[10px]"
-                        >
+                        <td key={col.driver.id}>
                           {tx ? (
-                            <span className={isManagement ? 'text-[#c00000] font-black' : 'text-slate-900'}>
+                            <span className={isManagement ? 'mgmt-val' : 'text-slate-900 font-bold'}>
                               {tx.amount.toLocaleString()}
                             </span>
                           ) : (
@@ -333,21 +642,29 @@ export const DriverPrintReportModal: React.FC<DriverPrintReportModalProps> = ({
                 ))}
 
                 {/* Total Row */}
-                <tr className="bg-[#bbf7d0] text-emerald-950 font-black border-t-2 border-slate-800">
+                <tr className="total-row">
                   {columns.map(col => (
-                    <td key={col.driver.id} className="py-1.5 px-0.5 border border-slate-400 text-[10px] leading-tight">
-                      <div className="font-black">{col.totalAmount.toLocaleString()} {t('driverPayouts.egp')}</div>
-                      <div className="text-[8px] text-emerald-900 font-bold">{t('driverPayouts.totalPayout')}</div>
+                    <td key={col.driver.id}>
+                      <div className="driver-total-amount">
+                        {col.totalAmount.toLocaleString()} {t('driverPayouts.egp')}
+                      </div>
+                      <div className="driver-total-label">
+                        {t('driverPayouts.totalPayout')}
+                      </div>
                     </td>
                   ))}
                 </tr>
 
                 {/* Count Row */}
-                <tr className="bg-[#bfdbfe] text-blue-950 font-black border-t border-slate-400">
+                <tr className="count-row">
                   {columns.map(col => (
-                    <td key={col.driver.id} className="py-1 px-0.5 border border-slate-400 text-[10px] leading-tight">
-                      <div className="font-black">{col.operationsCount}</div>
-                      <div className="text-[8px] text-blue-900 font-bold">{t('driverPayouts.tripsCount')}</div>
+                    <td key={col.driver.id}>
+                      <div className="driver-count-val">
+                        {col.operationsCount}
+                      </div>
+                      <div className="driver-count-label">
+                        {t('driverPayouts.tripsCount')}
+                      </div>
                     </td>
                   ))}
                 </tr>
@@ -355,31 +672,31 @@ export const DriverPrintReportModal: React.FC<DriverPrintReportModalProps> = ({
             </table>
           </div>
 
-          {/* Master Breakdown Banners (Matching Excel bottom rows) */}
-          <div className="grid grid-cols-3 gap-3 mb-4">
-            <div className="bg-[#2e6930] text-white p-2.5 rounded-lg text-center font-bold">
-              <span className="text-[11px] block text-emerald-100 font-medium">
+          {/* Master Breakdown Banners */}
+          <div className="driver-breakdown-grid">
+            <div className="driver-stat-card card-grand-total">
+              <span className="stat-card-title">
                 {t('driverPayouts.grandTotal')}
               </span>
-              <span className="text-lg font-black block mt-0.5">
+              <span className="stat-card-amount">
                 {totalAmount.toLocaleString()} {t('driverPayouts.egp')}
               </span>
             </div>
 
-            <div className="bg-[#c00000] text-white p-2.5 rounded-lg text-center font-bold">
-              <span className="text-[11px] block text-rose-100 font-medium">
+            <div className="driver-stat-card card-mgmt-total">
+              <span className="stat-card-title">
                 {t('driverPayouts.managementTotal')}
               </span>
-              <span className="text-lg font-black block mt-0.5">
+              <span className="stat-card-amount">
                 {managementTotal.toLocaleString()} {t('driverPayouts.egp')}
               </span>
             </div>
 
-            <div className="bg-[#f8cbad] text-slate-950 p-2.5 rounded-lg text-center font-bold">
-              <span className="text-[11px] block text-slate-800 font-medium">
+            <div className="driver-stat-card card-prod-total">
+              <span className="stat-card-title">
                 {t('driverPayouts.productionTotal')}
               </span>
-              <span className="text-lg font-black block mt-0.5">
+              <span className="stat-card-amount">
                 {productionTotal.toLocaleString()} {t('driverPayouts.egp')}
               </span>
             </div>
@@ -387,28 +704,28 @@ export const DriverPrintReportModal: React.FC<DriverPrintReportModalProps> = ({
 
           {/* Official Signatures */}
           {includeSignatures && (
-            <div className="border-t-2 border-slate-400 pt-3 mt-3 grid grid-cols-3 gap-4 text-center text-xs">
+            <div className="driver-signatures-grid">
               <div>
-                <span className="font-bold text-slate-700 block mb-6">
+                <span className="sig-label-top">
                   {t('driverPayouts.signatureFleetOfficer')}
                 </span>
-                <span className="border-t border-slate-400 pt-1 px-6 inline-block text-slate-500 font-mono">
+                <span className="sig-underline">
                   {t('driverPayouts.signatureLabel')}
                 </span>
               </div>
               <div>
-                <span className="font-bold text-slate-700 block mb-6">
+                <span className="sig-label-top">
                   {t('driverPayouts.signatureAccounting')}
                 </span>
-                <span className="border-t border-slate-400 pt-1 px-6 inline-block text-slate-500 font-mono">
+                <span className="sig-underline">
                   {t('driverPayouts.signatureLabel')}
                 </span>
               </div>
               <div>
-                <span className="font-bold text-slate-700 block mb-6">
+                <span className="sig-label-top">
                   {t('driverPayouts.signatureDirector')}
                 </span>
-                <span className="border-t border-slate-400 pt-1 px-6 inline-block text-slate-500 font-mono">
+                <span className="sig-underline">
                   {t('driverPayouts.stampLabel')}
                 </span>
               </div>
@@ -416,7 +733,7 @@ export const DriverPrintReportModal: React.FC<DriverPrintReportModalProps> = ({
           )}
 
           {/* Footer date */}
-          <div className="text-[10px] text-slate-500 flex items-center justify-between mt-3 pt-1.5 border-t border-slate-200">
+          <div className="driver-print-footer">
             <span className="font-semibold">
               {t('driverPayouts.companyNameEn')} - {t('driverPayouts.printFooterSystem')}
             </span>
@@ -429,4 +746,3 @@ export const DriverPrintReportModal: React.FC<DriverPrintReportModalProps> = ({
     </Modal>
   );
 };
-

@@ -22,7 +22,15 @@ import {
   FileCheck,
   ArrowRight,
   ArrowLeft,
+  Sparkles,
+  CheckCircle2,
+  AlertCircle,
 } from 'lucide-react';
+import { NationalIdScannerModal } from './components/NationalIdScannerModal';
+import { parseEgyptianNationalId } from '../../utils/nationalIdParser';
+import { transliterateArabicNameToEnglish } from '../../utils/arabicNameTransliteration';
+import { documentService } from '../../services/documentService';
+import { employeeService } from '../../services/employeeService';
 
 const getEmployeeSchema = (t: (key: string, def?: string) => string) =>
   z.object({
@@ -62,7 +70,7 @@ type EmployeeFormData = z.infer<ReturnType<typeof getEmployeeSchema>>;
 interface EmployeeFormModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: Partial<Employee>) => Promise<void>;
+  onSubmit: (data: Partial<Employee>) => Promise<any>;
   initialData?: Employee | null;
 }
 
@@ -98,6 +106,9 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [avatarData, setAvatarData] = useState<string | undefined>(initialData?.avatar);
+  const [isScannerModalOpen, setIsScannerModalOpen] = useState(false);
+  const [scannedCardImage, setScannedCardImage] = useState<string | null>(null);
+  const [scannedBackCardImage, setScannedBackCardImage] = useState<string | null>(null);
   const { success, info, error: toastError } = useToast();
 
   const employeeSchema = useMemo(() => getEmployeeSchema(t), [t]);
@@ -134,14 +145,14 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
       basicSalary: 4325,
       housingAllowance: 0,
       transportAllowance: 0,
-      workLocation: 'مصنع السادات - New Hope Sadat',
+      workLocation: 'مصنع جمصة - New Hope Gamasa',
       insuranceStatus: 'insured',
       insuranceNumber: '',
       insuranceSalary: 4325,
-      idCardStatus: 'available',
-      qualificationCertificateStatus: 'available',
-      birthCertificateStatus: 'available',
-      contractDocStatus: 'available',
+      idCardStatus: 'missing',
+      qualificationCertificateStatus: 'missing',
+      birthCertificateStatus: 'missing',
+      contractDocStatus: 'missing',
     },
   });
 
@@ -185,7 +196,7 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
           basicSalary: Number(initialData.basicSalary ?? 4325),
           housingAllowance: Number(initialData.housingAllowance ?? 0),
           transportAllowance: Number(initialData.transportAllowance ?? 0),
-          workLocation: initialData.workLocation || 'مصنع السادات - New Hope Sadat',
+          workLocation: initialData.workLocation || 'مصنع جمصة - New Hope Gamasa',
           insuranceStatus: initialData.insuranceStatus || 'insured',
           insuranceNumber: initialData.insuranceNumber || '',
           insuranceSalary: Number(initialData.insuranceSalary ?? initialData.basicSalary ?? 4325),
@@ -218,14 +229,14 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
           basicSalary: 4325,
           housingAllowance: 0,
           transportAllowance: 0,
-          workLocation: 'مصنع السادات - New Hope Sadat',
+          workLocation: 'مصنع جمصة - New Hope Gamasa',
           insuranceStatus: 'insured',
           insuranceNumber: '',
           insuranceSalary: 4325,
-          idCardStatus: 'available',
-          qualificationCertificateStatus: 'available',
-          birthCertificateStatus: 'available',
-          contractDocStatus: 'available',
+          idCardStatus: 'missing',
+          qualificationCertificateStatus: 'missing',
+          birthCertificateStatus: 'missing',
+          contractDocStatus: 'missing',
         });
       }
     }
@@ -265,18 +276,69 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
   ];
 
   // Auto extract birth date and gender from 14-digit Egyptian National ID
+  const watchedNationalId = watch('nationalId');
+  const parsedNationalId = useMemo(() => {
+    if (!watchedNationalId || watchedNationalId.length < 14) return null;
+    return parseEgyptianNationalId(watchedNationalId);
+  }, [watchedNationalId]);
+
   const handleNationalIdInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value.trim().replace(/[^0-9]/g, '');
     setValue('nationalId', val);
     if (val.length === 14) {
-      const century = parseInt(val[0], 10) === 3 ? 2000 : 1900;
-      const yr = parseInt(val.substring(1, 3), 10);
-      const mo = val.substring(3, 5);
-      const da = val.substring(5, 7);
-      setValue('dateOfBirth', `${century + yr}-${mo}-${da}`);
-      const genderDigit = parseInt(val[12], 10);
-      setValue('gender', genderDigit % 2 === 0 ? 'female' : 'male');
+      const parsed = parseEgyptianNationalId(val);
+      if (parsed.isValid && parsed.birthDate) {
+        setValue('dateOfBirth', parsed.birthDate);
+        if (parsed.gender) {
+          setValue('gender', parsed.gender);
+        }
+      }
     }
+  };
+
+  const handleApplyScannedData = (data: {
+    fullNameAr?: string;
+    firstName?: string;
+    lastName?: string;
+    firstNameEn?: string;
+    lastNameEn?: string;
+    nationalId?: string;
+    dateOfBirth?: string;
+    gender?: 'male' | 'female';
+    governorateAr?: string;
+    address?: string;
+    avatarData?: string;
+    qualification?: string;
+    profession?: string;
+    maritalStatus?: string;
+    idExpiryDate?: string;
+    idCardImage?: string;
+    backCardImage?: string;
+  }) => {
+    // 1. Arabic Name
+    if (data.fullNameAr) setValue('arabicName', data.fullNameAr, { shouldValidate: true });
+
+    // 2. Pure English Auto-Transliteration
+    const trans = transliterateArabicNameToEnglish(data.fullNameAr || '');
+    const firstEn = data.firstNameEn?.trim() || trans.firstNameEn;
+    const lastEn = data.lastNameEn?.trim() || trans.lastNameEn;
+    if (firstEn) setValue('firstName', firstEn, { shouldValidate: true });
+    if (lastEn) setValue('lastName', lastEn, { shouldValidate: true });
+
+    // 3. National ID and Demographics
+    if (data.nationalId) setValue('nationalId', data.nationalId, { shouldValidate: true });
+    if (data.dateOfBirth) setValue('dateOfBirth', data.dateOfBirth, { shouldValidate: true });
+    if (data.gender) setValue('gender', data.gender, { shouldValidate: true });
+    setValue('nationality', 'Egyptian', { shouldValidate: true });
+    if (data.address) setValue('address', data.address);
+    if (data.avatarData) setAvatarData(data.avatarData);
+
+    // 4. Document Checklist: Mark ONLY National ID as available! (Do not touch qualification certificate)
+    setValue('idCardStatus', 'available', { shouldValidate: true });
+
+    // 5. Store Scanned Images to automatically save in employee documents on submit
+    if (data.idCardImage) setScannedCardImage(data.idCardImage);
+    if (data.backCardImage) setScannedBackCardImage(data.backCardImage);
   };
 
   const handleNext = async (e?: React.MouseEvent) => {
@@ -318,7 +380,7 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
       const selectedDept = departments.find(d => d.id === data.departmentId);
       const selectedPos = allPositions.find(p => p.id === data.positionId);
 
-      await onSubmit({
+      const empPayload: Partial<Employee> = {
         firstName: data.firstName.trim(),
         lastName: data.lastName.trim(),
         arabicName: data.arabicName?.trim() || `${data.firstName.trim()} ${data.lastName.trim()}`,
@@ -356,15 +418,62 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
         qualificationCertificateStatus: data.qualificationCertificateStatus,
         birthCertificateStatus: data.birthCertificateStatus,
         contractDocStatus: data.contractDocStatus,
-      });
+      };
+
+      const result: any = await onSubmit(empPayload);
+
+      // Auto-upload scanned ID card images to employee documents folder
+      if (scannedCardImage || scannedBackCardImage) {
+        try {
+          let targetEmpId = initialData?.id || result?.id || result?.data?.id;
+          if (!targetEmpId && data.nationalId) {
+            const found = await employeeService.getEmployees({ search: data.nationalId });
+            targetEmpId = found?.data?.[0]?.id;
+          }
+
+          if (targetEmpId) {
+            if (scannedCardImage) {
+              await documentService.uploadDocument({
+                employeeId: targetEmpId,
+                employeeName: `${data.firstName.trim()} ${data.lastName.trim()}`,
+                department: selectedDept?.name || selectedDept?.nameAr || 'Operations',
+                type: 'national_id',
+                title: 'صورة بطاقة الرقم القومي (الوجه الأمامي)',
+                fileUrl: scannedCardImage,
+                status: 'verified',
+                notes: 'تم فحص وقراءة بطاقة الرقم القومي آلياً وحفظ صورة الوجه الأمامي في ملف الموظف.',
+              });
+            }
+
+            if (scannedBackCardImage) {
+              await documentService.uploadDocument({
+                employeeId: targetEmpId,
+                employeeName: `${data.firstName.trim()} ${data.lastName.trim()}`,
+                department: selectedDept?.name || selectedDept?.nameAr || 'Operations',
+                type: 'national_id',
+                title: 'صورة ظهر بطاقة الرقم القومي (الوجه الخلفي)',
+                fileUrl: scannedBackCardImage,
+                status: 'verified',
+                notes: 'تم فحص صورة ظهر بطاقة الرقم القومي وحفظها في مسوغات التعيين للموظف.',
+              });
+            }
+          }
+        } catch (uploadErr) {
+          console.warn('Auto-save ID card documents failed:', uploadErr);
+        }
+      }
 
       success(
         initialData
           ? t('employees.toastEditSuccessTitle', 'تم تعديل وحفظ بيانات الموظف بنجاح')
           : t('employees.toastAddSuccessTitle', 'تم إضافة الموظف الجديد بنجاح'),
-        t('employees.toastSaveSuccessDesc', 'تم حفظ السجل بالكامل في قاعدة البيانات')
+        scannedCardImage
+          ? 'تم حفظ السجل ورفع صورة البطاقة تلقائياً في ملف المستندات الخاص بالموظف ✓'
+          : t('employees.toastSaveSuccessDesc', 'تم حفظ السجل بالكامل في قاعدة البيانات')
       );
       reset();
+      setScannedCardImage(null);
+      setScannedBackCardImage(null);
       setCurrentStep(1);
       onClose();
     } catch (err: any) {
@@ -447,6 +556,45 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
           {/* STEP 1: Personal Information */}
           {currentStep === 1 && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in">
+              {/* AI National ID OCR Extraction Banner */}
+              <div className="md:col-span-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-gradient-to-r from-brand-50 to-indigo-50/60 dark:from-brand-950/40 dark:to-indigo-950/30 border border-brand-200/80 dark:border-brand-800/40 rounded-xl shadow-2xs">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-brand-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                    <Sparkles className="w-5 h-5 animate-pulse" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-slate-900 dark:text-slate-100 block">
+                      استخراج البيانات آلياً من صورة البطاقة (AI ID Scanner)
+                    </span>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                      ارفع صورة البطاقة لتعبئة الاسم، الرقم القومي، تاريخ الميلاد، والنوع والصورة الشخصية فوراً
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => setIsScannerModalOpen(true)}
+                  className="text-xs bg-brand-600 hover:bg-brand-700 text-white shrink-0 flex items-center justify-center gap-1.5 shadow-xs"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>مسح البطاقة بالذكاء الاصطناعي</span>
+                </Button>
+              </div>
+
+              {/* Card Scanned Confirmation Pill */}
+              {scannedCardImage && (
+                <div className="md:col-span-2 flex items-center justify-between p-2.5 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/40 rounded-xl text-xs text-emerald-800 dark:text-emerald-200 animate-in fade-in">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>تم قراءة واستخراج بيانات البطاقة بنجاح، وسيتم حفظ صورة البطاقة تلقائياً في ملف ومستندات الموظف عند الحفظ.</span>
+                  </div>
+                  <span className="text-[10px] font-bold bg-emerald-600 text-white px-2 py-0.5 rounded-full shrink-0">
+                    مرفقة بالملف ✓
+                  </span>
+                </div>
+              )}
+
               {/* Photo Upload Section */}
               <div className="md:col-span-2 flex items-center gap-4 p-3 bg-slate-50 dark:bg-[#111827]/60 border border-slate-200 dark:border-[#1E293B] rounded-xl">
                 <div className="relative w-16 h-16 rounded-xl overflow-hidden border border-slate-300 dark:border-[#1E293B] bg-white dark:bg-[#0B0F19] shrink-0 shadow-xs">
@@ -540,16 +688,51 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
               <Input
                 label={t('employees.arabicFullName', 'الاسم بالكامل باللغة العربية')}
                 {...register('arabicName')}
+                onChange={(e) => {
+                  register('arabicName').onChange(e);
+                  const val = e.target.value;
+                  if (val && val.trim().length > 1) {
+                    const trans = transliterateArabicNameToEnglish(val);
+                    if (trans.firstNameEn) setValue('firstName', trans.firstNameEn, { shouldValidate: true });
+                    if (trans.lastNameEn) setValue('lastName', trans.lastNameEn, { shouldValidate: true });
+                  }
+                }}
                 placeholder={t('employees.placeholderArabicName', 'أحمد سعيد محمد')}
               />
-              <Input
-                label={t('employees.nationalId14', 'الرقم القومي (14 رقم)')}
-                required
-                {...register('nationalId')}
-                onChange={handleNationalIdInput}
-                error={errors.nationalId?.message}
-                placeholder="29805121234567"
-              />
+              <div className="space-y-1">
+                <Input
+                  label={t('employees.nationalId14', 'الرقم القومي (14 رقم)')}
+                  required
+                  {...register('nationalId')}
+                  onChange={handleNationalIdInput}
+                  error={errors.nationalId?.message}
+                  placeholder="29805121234567"
+                  className="font-mono tracking-wider font-semibold"
+                />
+                {parsedNationalId && (
+                  <div
+                    className={`p-2 rounded-lg text-[11px] flex items-center gap-1.5 border transition-all ${
+                      parsedNationalId.isValid
+                        ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-200 border-emerald-200 dark:border-emerald-800/50'
+                        : 'bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-200 border-amber-200 dark:border-amber-800/50'
+                    }`}
+                  >
+                    {parsedNationalId.isValid ? (
+                      <>
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                        <span className="font-semibold">
+                          {parsedNationalId.birthDateFormatted} (السن: {parsedNationalId.age} سنة) • {parsedNationalId.governorateAr} • {parsedNationalId.genderAr}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                        <span>{parsedNationalId.errorMessage}</span>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
               <Input
                 label={t('employees.dateOfBirth', 'تاريخ الميلاد')}
                 type="date"
@@ -599,7 +782,7 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
                   label={t('employees.addressOptional', 'محل الإقامة / العنوان الحالي (اختياري)')}
                   {...register('address')}
                   error={errors.address?.message}
-                  placeholder={t('employees.addressPlaceholder', 'مدينة السادات، المنوفية، مصر')}
+                  placeholder={t('employees.addressPlaceholder', 'المنطقة الصناعية، مدينة جمصة، محافظة الدقهلية')}
                   leftIcon={<MapPin className="w-4 h-4 text-slate-400" />}
                 />
               </div>
@@ -663,7 +846,7 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
                 required
                 {...register('workLocation')}
                 error={errors.workLocation?.message}
-                placeholder={t('employees.workLocationPlaceholder', 'مصنع السادات - New Hope Sadat')}
+                placeholder={t('employees.workLocationPlaceholder', 'مصنع جمصة - New Hope Gamasa')}
               />
               <Input
                 label={t('employees.basicSalaryEgp', 'الراتب الأساسي (ج.م / شهرياً)')}
@@ -729,7 +912,14 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                   <label className="flex items-center justify-between p-2.5 border border-slate-200 dark:border-[#1E293B] bg-white dark:bg-[#151D2E]/60 rounded-lg hover:bg-slate-50 dark:hover:bg-[#1E293B]/70 cursor-pointer">
-                    <span className="font-medium text-slate-700 dark:text-slate-300">{t('employees.docNationalIdCopy', 'صورة بطاقة الرقم القومي')}</span>
+                    <div className="flex flex-col">
+                      <span className="font-medium text-slate-700 dark:text-slate-300">{t('employees.docNationalIdCopy', 'صورة بطاقة الرقم القومي')}</span>
+                      {scannedCardImage && (
+                        <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">
+                          ✓ تم إرفاق الصورة آلياً وستُرفع لملفاته
+                        </span>
+                      )}
+                    </div>
                     <select
                       className="text-xs border border-slate-300 dark:border-[#1E293B] rounded px-2 py-1 bg-white dark:bg-[#0B0F19] font-semibold text-slate-800 dark:text-[#F8FAFC]"
                       {...register('idCardStatus')}
@@ -981,6 +1171,12 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
           </div>
         </form>
       </div>
+
+      <NationalIdScannerModal
+        isOpen={isScannerModalOpen}
+        onClose={() => setIsScannerModalOpen(false)}
+        onApplyData={handleApplyScannedData}
+      />
     </Modal>
   );
 };

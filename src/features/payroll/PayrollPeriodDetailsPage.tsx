@@ -93,7 +93,7 @@ export const PayrollPeriodDetailsPage: React.FC = () => {
                     <h2 className="text-lg font-bold text-slate-900 dark:text-[#F8FAFC]">{companyName}</h2>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
                       {settings.crNumber ? `CR: ${settings.crNumber} • ` : ''}
-                      {settings.address || 'Sadat City, Menofia, Egypt'}
+                      {settings.address || 'Gamasa Industrial Zone, Dakahlia, Egypt'}
                     </p>
                   </div>
                 </div>

@@ -21,6 +21,7 @@ import {
   Lock,
   Edit,
   Download,
+  Eye,
   AlertCircle,
   CheckCircle2,
   Sparkles,
@@ -251,11 +252,15 @@ export const EmployeeProfilePage: React.FC = () => {
   const handleUpdateFromModal = async (data: Partial<Employee>) => {
     if (!employee) return;
     try {
-      await employeeService.updateEmployee(employee.id, data);
+      const updated = await employeeService.updateEmployee(employee.id, data);
       setEmployee(prev => prev ? { ...prev, ...data } : null);
       await queryClient.invalidateQueries({ queryKey: employeeKeys.all });
+      // Reload documents to immediately show the newly uploaded ID card
+      const docs = await documentService.getDocuments({ employeeId: employee.id }).catch(() => []);
+      setDocuments(Array.isArray(docs) ? docs : (docs as any)?.data || []);
       setIsEditModalOpen(false);
       success(t('employees.updateSuccess', 'تم تحديث بيانات الموظف بنجاح'));
+      return updated;
     } catch (err) {
       console.error('Failed to update employee:', err);
       toastError(t('employees.toastSubmitError', 'فشل في حفظ بيانات الموظف'));
@@ -615,7 +620,13 @@ export const EmployeeProfilePage: React.FC = () => {
                   documents.map(doc => (
                     <div key={doc.id} className="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-[#1E293B]/50 transition-colors">
                       <div className="flex items-center gap-3">
-                        <FileText className="w-5 h-5 text-brand-600 dark:text-[#38BDF8] shrink-0" />
+                        {doc.fileUrl ? (
+                          <div className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 shrink-0 bg-slate-100 dark:bg-slate-800">
+                            <img src={doc.fileUrl} alt={doc.title} className="w-full h-full object-cover" />
+                          </div>
+                        ) : (
+                          <FileText className="w-5 h-5 text-brand-600 dark:text-[#38BDF8] shrink-0" />
+                        )}
                         <div>
                           <div className="font-semibold text-slate-900 dark:text-[#F8FAFC]">{doc.title}</div>
                           <div className="text-[11px] text-slate-400 dark:text-slate-500">
@@ -623,7 +634,7 @@ export const EmployeeProfilePage: React.FC = () => {
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
                         <Badge
                           variant={
                             doc.status === 'verified'
@@ -645,7 +656,58 @@ export const EmployeeProfilePage: React.FC = () => {
                             ? t('common.expired')
                             : t('documents.statusUploaded', 'Uploaded')}
                         </Badge>
-                        <Button variant="outline" size="sm" leftIcon={<Download className="w-3.5 h-3.5" />}>
+                        {doc.fileUrl && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            leftIcon={<Eye className="w-3.5 h-3.5" />}
+                            onClick={() => {
+                              const w = window.open('');
+                              if (w) {
+                                w.document.write(`
+                                  <!DOCTYPE html>
+                                  <html dir="rtl">
+                                  <head>
+                                    <meta charset="utf-8">
+                                    <title>${doc.title}</title>
+                                    <style>
+                                      body { margin:0; background:#0b0f19; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; font-family:sans-serif; color:white; }
+                                      h3 { margin-bottom:14px; font-size:16px; color:#38bdf8; }
+                                      img { max-width:90vw; max-height:80vh; border-radius:10px; box-shadow:0 20px 40px rgba(0,0,0,0.6); object-fit:contain; border:2px solid #334155; }
+                                      .actions { margin-top:16px; display:flex; gap:12px; }
+                                      a { background:#2563eb; color:white; padding:8px 18px; border-radius:8px; text-decoration:none; font-size:13px; font-weight:bold; }
+                                    </style>
+                                  </head>
+                                  <body>
+                                    <h3>${doc.title}</h3>
+                                    <img src="${doc.fileUrl}" alt="${doc.title}" />
+                                    <div class="actions">
+                                      <a href="${doc.fileUrl}" download="${doc.fileName || 'national-id.jpg'}">تحميل الصورة</a>
+                                    </div>
+                                  </body>
+                                  </html>
+                                `);
+                              }
+                            }}
+                          >
+                            عرض
+                          </Button>
+                        )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          leftIcon={<Download className="w-3.5 h-3.5" />}
+                          onClick={() => {
+                            if (doc.fileUrl) {
+                              const a = document.createElement('a');
+                              a.href = doc.fileUrl;
+                              a.download = doc.fileName || `${doc.title}.jpg`;
+                              document.body.appendChild(a);
+                              a.click();
+                              document.body.removeChild(a);
+                            }
+                          }}
+                        >
                           {t('common.download')}
                         </Button>
                       </div>

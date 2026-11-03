@@ -237,11 +237,17 @@ export const DocumentsPage: React.FC = () => {
         sortable: true,
         render: row => (
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-lg bg-slate-100 text-slate-600">
-              <FileText className="w-4 h-4" />
-            </div>
+            {row.fileUrl ? (
+              <div className="w-8 h-8 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 shrink-0 bg-slate-100 dark:bg-slate-800">
+                <img src={row.fileUrl} alt={row.title} className="w-full h-full object-cover" />
+              </div>
+            ) : (
+              <div className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                <FileText className="w-4 h-4" />
+              </div>
+            )}
             <div>
-              <span className="font-semibold text-slate-800 block">{row.title}</span>
+              <span className="font-semibold text-slate-800 dark:text-slate-200 block">{row.title}</span>
               <span className="text-[11px] font-mono text-slate-400">{row.fileName} • {row.fileSize}</span>
             </div>
           </div>
@@ -488,22 +494,43 @@ export const DocumentsPage: React.FC = () => {
                 size="sm"
                 leftIcon={<Download className="w-3.5 h-3.5" />}
                 onClick={() => {
-                  success(t('documents.downloading', { fileName: previewDoc.fileName }));
+                  if (previewDoc.fileUrl) {
+                    const a = document.createElement('a');
+                    a.href = previewDoc.fileUrl;
+                    a.download = previewDoc.fileName || `${previewDoc.title}.jpg`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                  } else {
+                    success(t('documents.downloading', { fileName: previewDoc.fileName }));
+                  }
                   setPreviewDoc(null);
                 }}
               >
-                {t('documents.downloadPDF')}
+                {previewDoc.fileUrl ? 'تحميل الصورة' : t('documents.downloadPDF')}
               </Button>
             </div>
           }
         >
           <div className="space-y-4">
-            <div className="bg-slate-100 dark:bg-[#0B0F19] rounded-xl p-8 border border-slate-200 dark:border-[#1E293B] flex flex-col items-center justify-center text-center">
-              <FileText className="w-16 h-16 text-slate-400 dark:text-slate-500 mb-3" />
-              <h4 className="text-sm font-semibold text-slate-800 dark:text-[#F8FAFC]">{previewDoc.fileName}</h4>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                {t('documents.simulatedDoc', { fileSize: previewDoc.fileSize })}
-              </p>
+            <div className="bg-slate-100 dark:bg-[#0B0F19] rounded-xl p-4 sm:p-6 border border-slate-200 dark:border-[#1E293B] flex flex-col items-center justify-center text-center">
+              {previewDoc.fileUrl ? (
+                <div className="w-full max-h-80 overflow-hidden rounded-lg flex items-center justify-center bg-black/5 dark:bg-black/20 p-2">
+                  <img
+                    src={previewDoc.fileUrl}
+                    alt={previewDoc.title}
+                    className="max-h-72 max-w-full object-contain rounded-lg shadow-sm border border-slate-300 dark:border-slate-700"
+                  />
+                </div>
+              ) : (
+                <>
+                  <FileText className="w-16 h-16 text-slate-400 dark:text-slate-500 mb-3" />
+                  <h4 className="text-sm font-semibold text-slate-800 dark:text-[#F8FAFC]">{previewDoc.fileName}</h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    {t('documents.simulatedDoc', { fileSize: previewDoc.fileSize })}
+                  </p>
+                </>
+              )}
               <div className="mt-4 flex gap-2">
                 {getStatusBadge(previewDoc.status)}
               </div>

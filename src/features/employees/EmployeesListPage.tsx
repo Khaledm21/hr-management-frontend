@@ -121,13 +121,15 @@ export const EmployeesListPage: React.FC = () => {
   const employees = employeesResponse?.data || [];
 
   const handleCreateOrUpdate = async (data: Partial<Employee>) => {
+    let result: Employee | null = null;
     if (editingEmployee) {
-      await employeeService.updateEmployee(editingEmployee.id, data);
+      result = await employeeService.updateEmployee(editingEmployee.id, data);
     } else {
-      await employeeService.createEmployee(data);
+      result = await employeeService.createEmployee(data);
     }
     await queryClient.invalidateQueries({ queryKey: employeeKeys.all });
     refetch();
+    return result;
   };
 
   const handleConfirmDeactivate = async () => {

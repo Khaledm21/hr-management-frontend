@@ -31,6 +31,54 @@ let insuranceState = getStored<InsuranceItem[]>(STORAGE_KEYS.INSURANCE_AUDIT, []
 let socialInsuranceState = getStored<SocialInsuranceRecord[]>(STORAGE_KEYS.SOCIAL_INSURANCE, []);
 let missingDocumentsState = getStored<MissingDocumentRecord[]>(STORAGE_KEYS.MISSING_DOCS, []);
 
+// Auto-purge any corrupted fake records generated from Excel department summary tables (e.g. "Insured 110", ID "2451.4")
+const cleanSocialRecords = (records: SocialInsuranceRecord[]): SocialInsuranceRecord[] => {
+  if (!Array.isArray(records)) return [];
+  return records.filter(r => {
+    if (!r) return false;
+    const name = String(r.employeeName || '').trim();
+    const natId = String(r.nationalId || '').trim();
+    // Match fake department summaries like "Insured 110" with decimal ID or short numbers
+    if (/^Insured\s+\d+$/i.test(name) && (natId.includes('.') || natId.replace(/\D/g, '').length < 10)) {
+      return false;
+    }
+    if (/^(total|grand\s*total|subtotal|إجمالي|الإجمالي|المجموع|مجموع)$/i.test(name)) {
+      return false;
+    }
+    return true;
+  });
+};
+
+const initialSocialLen = Array.isArray(socialInsuranceState) ? socialInsuranceState.length : 0;
+socialInsuranceState = cleanSocialRecords(socialInsuranceState);
+if (socialInsuranceState.length !== initialSocialLen) {
+  socialInsuranceState = socialInsuranceState.map((r, i) => ({ ...r, serialNo: i + 1 }));
+  persistItem(STORAGE_KEYS.SOCIAL_INSURANCE, socialInsuranceState);
+}
+
+const cleanMissingRecords = (records: MissingDocumentRecord[]): MissingDocumentRecord[] => {
+  if (!Array.isArray(records)) return [];
+  return records.filter(r => {
+    if (!r) return false;
+    const name = String(r.employeeName || '').trim();
+    const natId = String(r.nationalId || '').trim();
+    if (/^Employee\s+\d+$/i.test(name) && (natId.includes('.') || natId.replace(/\D/g, '').length < 10)) {
+      return false;
+    }
+    if (/^(total|grand\s*total|subtotal|إجمالي|الإجمالي|المجموع|مجموع)$/i.test(name)) {
+      return false;
+    }
+    return true;
+  });
+};
+
+const initialMissingLen = Array.isArray(missingDocumentsState) ? missingDocumentsState.length : 0;
+missingDocumentsState = cleanMissingRecords(missingDocumentsState);
+if (missingDocumentsState.length !== initialMissingLen) {
+  missingDocumentsState = missingDocumentsState.map((r, i) => ({ ...r, serialNo: i + 1 }));
+  persistItem(STORAGE_KEYS.MISSING_DOCS, missingDocumentsState);
+}
+
 export interface InsuranceFilterParams {
   search?: string;
   department?: string;
@@ -354,26 +402,28 @@ export const insuranceService = {
     }
 
     await new Promise(res => setTimeout(res, 80));
-    const formatted: SocialInsuranceRecord[] = records.map((r, i) => {
-      const salary = Number(r.insuranceSalary) || 4325.00;
-      const worker = Number(r.workerShare) || Number((salary * 0.11).toFixed(2));
-      const comp = Number(r.companyShare) || Number((salary * 0.1875).toFixed(2));
-      return {
-        id: `soc-imp-${Date.now()}-${i}`,
-        serialNo: r.serialNo || i + 1,
-        nationalId: String(r.nationalId || ''),
-        employeeName: String(r.employeeName || 'Unknown'),
-        department: String(r.department || 'HR'),
-        insuranceNumber: String(r.insuranceNumber || ''),
-        insuranceSalary: salary,
-        workerShare: worker,
-        companyShare: comp,
-        totalContribution: Number((worker + comp).toFixed(2)),
-        note: String(r.note || ''),
-        employeeListStatus: r.employeeListStatus === 'not_found' ? 'not_found' : 'found',
-        employeeCode: r.employeeCode,
-      };
-    });
+    const formatted: SocialInsuranceRecord[] = cleanSocialRecords(
+      records.map((r, i) => {
+        const salary = Number(r.insuranceSalary) || 4325.00;
+        const worker = Number(r.workerShare) || Number((salary * 0.11).toFixed(2));
+        const comp = Number(r.companyShare) || Number((salary * 0.1875).toFixed(2));
+        return {
+          id: `soc-imp-${Date.now()}-${i}`,
+          serialNo: r.serialNo || i + 1,
+          nationalId: String(r.nationalId || ''),
+          employeeName: String(r.employeeName || 'Unknown'),
+          department: String(r.department || 'HR'),
+          insuranceNumber: String(r.insuranceNumber || ''),
+          insuranceSalary: salary,
+          workerShare: worker,
+          companyShare: comp,
+          totalContribution: Number((worker + comp).toFixed(2)),
+          note: String(r.note || ''),
+          employeeListStatus: r.employeeListStatus === 'not_found' ? 'not_found' : 'found',
+          employeeCode: r.employeeCode,
+        };
+      })
+    ).map((r, i) => ({ ...r, serialNo: i + 1 }));
 
     if (overwrite) {
       socialInsuranceState = formatted;
@@ -462,37 +512,39 @@ export const insuranceService = {
     }
 
     await new Promise(res => setTimeout(res, 80));
-    const formatted: MissingDocumentRecord[] = records.map((r, i) => {
-      const qual = r.qualificationCert === 'available' ? 'available' : 'missing';
-      const birth = r.birthCert === 'available' ? 'available' : 'missing';
-      const id = r.idCard === 'available' ? 'available' : 'missing';
-      const cont = r.contract === 'available' ? 'available' : 'missing';
-      let count = 0;
-      if (qual === 'missing') count++;
-      if (birth === 'missing') count++;
-      if (id === 'missing') count++;
-      if (cont === 'missing') count++;
+    const formatted: MissingDocumentRecord[] = cleanMissingRecords(
+      records.map((r, i) => {
+        const qual = r.qualificationCert === 'available' ? 'available' : 'missing';
+        const birth = r.birthCert === 'available' ? 'available' : 'missing';
+        const id = r.idCard === 'available' ? 'available' : 'missing';
+        const cont = r.contract === 'available' ? 'available' : 'missing';
+        let count = 0;
+        if (qual === 'missing') count++;
+        if (birth === 'missing') count++;
+        if (id === 'missing') count++;
+        if (cont === 'missing') count++;
 
-      return {
-        id: `doc-imp-${Date.now()}-${i}`,
-        serialNo: r.serialNo || i + 1,
-        department: String(r.department || 'HR'),
-        employeeName: String(r.employeeName || 'Unknown'),
-        nationalId: String(r.nationalId || ''),
-        position: String(r.position || 'Employee'),
-        startDate: String(r.startDate || ''),
-        resignationDate: r.resignationDate,
-        employeeCode: String(r.employeeCode || ''),
-        insuranceStatus: r.insuranceStatus || 'not_insured',
-        qualificationCert: qual,
-        birthCert: birth,
-        idCard: id,
-        contract: cont,
-        missingCount: count,
-        notes: r.notes || (count === 0 ? 'All documents submitted' : `${count} document(s) pending`),
-        status: count === 0 ? 'complete' : 'incomplete',
-      };
-    });
+        return {
+          id: `doc-imp-${Date.now()}-${i}`,
+          serialNo: r.serialNo || i + 1,
+          department: String(r.department || 'HR'),
+          employeeName: String(r.employeeName || 'Unknown'),
+          nationalId: String(r.nationalId || ''),
+          position: String(r.position || 'Employee'),
+          startDate: String(r.startDate || ''),
+          resignationDate: r.resignationDate,
+          employeeCode: String(r.employeeCode || ''),
+          insuranceStatus: r.insuranceStatus || 'not_insured',
+          qualificationCert: qual,
+          birthCert: birth,
+          idCard: id,
+          contract: cont,
+          missingCount: count,
+          notes: r.notes || (count === 0 ? 'All documents submitted' : `${count} document(s) pending`),
+          status: count === 0 ? 'complete' : 'incomplete',
+        };
+      })
+    ).map((r, i) => ({ ...r, serialNo: i + 1 }));
 
     if (overwrite) {
       missingDocumentsState = formatted;

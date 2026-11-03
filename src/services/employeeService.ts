@@ -35,6 +35,29 @@ function persistEmployees(state: Employee[]) {
 
 let employeesState: Employee[] = loadEmployeesState();
 
+// Purge any corrupted fake employees generated from Excel department summary tables (e.g. "Employee 110", ID "2451.4")
+const cleanEmployeesList = (list: Employee[]): Employee[] => {
+  if (!Array.isArray(list)) return [];
+  return list.filter(e => {
+    if (!e) return false;
+    const name = String(e.name || `${e.firstName} ${e.lastName}` || '').trim();
+    const natId = String(e.nationalId || '').trim();
+    if (/^Employee\s+\d+$/i.test(name) && (natId.includes('.') || natId.replace(/\D/g, '').length < 10)) {
+      return false;
+    }
+    if (/^(total|grand\s*total|subtotal|إجمالي|المجموع)$/i.test(name)) {
+      return false;
+    }
+    return true;
+  });
+};
+
+const initialEmpLen = Array.isArray(employeesState) ? employeesState.length : 0;
+employeesState = cleanEmployeesList(employeesState);
+if (employeesState.length !== initialEmpLen) {
+  persistEmployees(employeesState);
+}
+
 export interface EmployeeFilterParams {
   search?: string;
   departmentId?: string;
@@ -411,7 +434,8 @@ export const employeeService = {
     }
 
     await new Promise(res => setTimeout(res, 80));
-    const formatted: Employee[] = newRecords.map((r, i) => {
+    const formatted: Employee[] = cleanEmployeesList(
+      newRecords.map((r, i) => {
       const isInsured = r.insuranceStatus === 'insured';
       return {
         id: r.id || `emp-imp-${Date.now()}-${i}`,
@@ -461,7 +485,8 @@ export const employeeService = {
         contractDocStatus: r.contractDocStatus || (isInsured ? 'available' : 'missing'),
         documentChecklistStatus: r.documentChecklistStatus || (isInsured ? 'complete' : 'incomplete'),
       };
-    });
+    })
+  );
 
     if (overwrite) {
       employeesState = formatted;

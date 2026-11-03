@@ -17,6 +17,7 @@ import {
   Check,
   Trash2,
   FileText,
+  Printer,
 } from 'lucide-react';
 import { DataTable, Column } from '../../components/ui/DataTable';
 import { Card, CardContent } from '../../components/ui/Card';
@@ -35,6 +36,7 @@ import { SocialInsuranceRecord, MissingDocumentRecord } from '../../types';
 import { ExcelImportModal, ImportTargetType } from '../../components/ui/ExcelImportModal';
 import { insuranceService } from '../../services/insuranceService';
 import { InsuranceForm1GuideModal } from './components/InsuranceForm1GuideModal';
+import { InsurancePrintTableModal } from './components/InsurancePrintTableModal';
 import { cn } from '../../lib/utils';
 
 type ActiveTab = 'social_insurance' | 'missing_documents' | 'reconciliation';
@@ -60,6 +62,9 @@ export const InsurancePage: React.FC = () => {
   // Form 1 Guide Modal
   const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
   const [selectedGuideRecord, setSelectedGuideRecord] = useState<SocialInsuranceRecord | null>(null);
+
+  // Print Table Modal
+  const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
 
   // Selection & Deletion for Social Insurance
   const [selectedSocialIds, setSelectedSocialIds] = useState<string[]>([]);
@@ -99,6 +104,9 @@ export const InsurancePage: React.FC = () => {
     isLoading: isLoadingSocial,
     refetch: refetchSocial,
   } = useSocialInsurance(socialParams);
+
+  // Unfiltered social records for full scope in print modal
+  const { data: allSocialRecords = [] } = useSocialInsurance({});
 
   const {
     data: missingRecords = [],
@@ -524,7 +532,7 @@ export const InsurancePage: React.FC = () => {
                 setIsGuideModalOpen(true);
               }}
               className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-colors"
-              title="دليل تعبئة استمارة 1 تأمينات لهذا الموظف"
+              title={t('insurance.form1GuideTooltip')}
             >
               <FileText className="w-4 h-4" />
             </button>
@@ -759,7 +767,17 @@ export const InsurancePage: React.FC = () => {
             }}
             className="border-blue-200 dark:border-blue-800/60 text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/30 font-bold"
           >
-            استمارة 1 تأمينات
+            {t('insurance.form1GuideBtn')}
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            leftIcon={<Printer className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400" />}
+            onClick={() => setIsPrintModalOpen(true)}
+            className="font-bold border-brand-200 dark:border-brand-800 text-brand-700 dark:text-brand-300 hover:bg-brand-50 dark:hover:bg-brand-950/30"
+          >
+            {t('insurance.printReportBtn')}
           </Button>
 
           <Button
@@ -975,6 +993,14 @@ export const InsurancePage: React.FC = () => {
                   {t('insurance.exportSelected')} ({ids.length})
                 </Button>
                 <Button
+                  variant="outline"
+                  size="sm"
+                  leftIcon={<Printer className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400" />}
+                  onClick={() => setIsPrintModalOpen(true)}
+                >
+                  {t('insurance.printSelectedCount', { count: ids.length })}
+                </Button>
+                <Button
                   variant="danger"
                   size="sm"
                   leftIcon={<Trash2 className="w-3.5 h-3.5" />}
@@ -1120,6 +1146,14 @@ export const InsurancePage: React.FC = () => {
                   onClick={handleExportSelectedMissing}
                 >
                   {t('insurance.exportSelected')} ({ids.length})
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  leftIcon={<Printer className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400" />}
+                  onClick={() => setIsPrintModalOpen(true)}
+                >
+                  {t('insurance.printSelectedCount', { count: ids.length })}
                 </Button>
                 <Button
                   variant="danger"
@@ -1502,6 +1536,23 @@ export const InsurancePage: React.FC = () => {
           setSelectedGuideRecord(null);
         }}
         insuranceRecord={selectedGuideRecord}
+      />
+
+      {/* Insurance Table Print Modal */}
+      <InsurancePrintTableModal
+        isOpen={isPrintModalOpen}
+        onClose={() => setIsPrintModalOpen(false)}
+        defaultTab={activeTab === 'missing_documents' ? 'missing_documents' : 'social_insurance'}
+        missingRecords={filteredMissingRecords}
+        socialRecords={socialRecords}
+        allSocialRecords={allSocialRecords}
+        initialSelectedMissingIds={selectedMissingIds}
+        initialSelectedSocialIds={selectedSocialIds}
+        departmentFilter={selectedDept}
+        missingDocFilter={selectedDocFilter}
+        docStatusFilter={selectedDocStatusFilter}
+        insuranceFilter={selectedMissingInsFilter}
+        initialListStatusFilter={selectedListStatus as any}
       />
     </div>
   );

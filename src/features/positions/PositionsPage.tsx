@@ -8,7 +8,7 @@ import { Modal } from '../../components/ui/Modal';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { useToast } from '../../components/ui/Toast';
-import { Briefcase, Plus, RefreshCw, Edit2, Trash2 } from 'lucide-react';
+import { Briefcase, Plus, RefreshCw, Edit2, Trash2, Sparkles } from 'lucide-react';
 import { useDirection } from '../../context/DirectionContext';
 import {
   usePositionsQuery,
@@ -17,6 +17,7 @@ import {
   useUpdatePositionMutation,
   useDeletePositionMutation,
 } from '../../hooks/queries';
+import { AiJobArchitectModal } from './components/AiJobArchitectModal';
 
 export const PositionsPage: React.FC = () => {
   const { t } = useTranslation();
@@ -43,6 +44,36 @@ export const PositionsPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPos, setEditingPos] = useState<Position | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isAiModalOpen, setIsAiModalOpen] = useState(false);
+
+  const handleApplyAiPosition = async (data: {
+    code: string;
+    title: string;
+    titleAr: string;
+    titleZh: string;
+    departmentId: string;
+    minSalary: string;
+    maxSalary: string;
+    level: string;
+  }) => {
+    const selectedDepartment = departments.find(d => d.id === data.departmentId);
+    try {
+      await createMutation.mutateAsync({
+        code: data.code,
+        title: data.title,
+        titleAr: data.titleAr,
+        titleZh: data.titleZh,
+        departmentId: data.departmentId,
+        departmentName: selectedDepartment?.name || 'General',
+        minSalary: Number(data.minSalary) || 4000,
+        maxSalary: Number(data.maxSalary) || 8000,
+        level: data.level,
+      });
+      refetch();
+    } catch (err: any) {
+      toastError(err?.message || 'فشل حفظ المسمى الوظيفي');
+    }
+  };
 
   const [form, setForm] = useState({
     code: '',
@@ -264,6 +295,15 @@ export const PositionsPage: React.FC = () => {
             {t('common.refresh')}
           </Button>
           <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsAiModalOpen(true)}
+            className="text-xs font-bold border-brand-300 dark:border-brand-700 text-brand-600 dark:text-brand-400 bg-brand-50/50 dark:bg-brand-950/30 hover:bg-brand-100 dark:hover:bg-brand-900/40"
+          >
+            <Sparkles className="w-3.5 h-3.5 mr-1.5 rtl:ml-1.5 rtl:mr-0 text-brand-500 animate-pulse" />
+            <span>الوصف والـ KPIs الذكي ✨</span>
+          </Button>
+          <Button
             variant="primary"
             size="sm"
             onClick={handleOpenAddModal}
@@ -408,6 +448,12 @@ export const PositionsPage: React.FC = () => {
           </div>
         </form>
       </Modal>
+
+      <AiJobArchitectModal
+        isOpen={isAiModalOpen}
+        onClose={() => setIsAiModalOpen(false)}
+        onApplyPosition={handleApplyAiPosition}
+      />
     </div>
   );
 };
