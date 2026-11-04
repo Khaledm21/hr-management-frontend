@@ -4,25 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import { useDirection, LanguageCode } from '../../context/DirectionContext';
 import { useCompany } from '../../context/CompanyContext';
-import {
-  Lock,
-  Mail,
-  Eye,
-  EyeOff,
-  Globe,
-  ArrowRight,
-  ShieldCheck,
-  AlertCircle,
-  Sparkles,
-  KeyRound,
-  RotateCcw,
-  Building2,
-  Maximize2,
-  Minimize2,
-} from 'lucide-react';
+import { Lock, Mail, Eye, EyeOff, Globe, ArrowRight, ShieldCheck, AlertCircle, Sparkles, KeyRound, RotateCcw } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
-import panoramaImg from '../../assets/Panda-Global-Harvest-Panorama.png';
-import pandaLogoBadge from '../../assets/New Hope Liuhe HR Panda Logo.png';
 
 const DEFAULT_ADMIN_EMAIL = 'khaled.mossad@enterprise.com';
 const DEFAULT_ADMIN_PASS = 'Admin@123456';
@@ -40,7 +23,6 @@ export const LoginPage: React.FC = () => {
   const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-  const [isMinimized, setIsMinimized] = useState(false);
 
   const executeLogin = async (loginEmail: string, loginPass: string) => {
     setErrorMsg('');
@@ -55,10 +37,7 @@ export const LoginPage: React.FC = () => {
       await login(cleanEmail, loginPass, rememberMe);
       navigate('/dashboard', { replace: true });
     } catch (err: any) {
-      setErrorMsg(
-        err.message ||
-          t('auth.loginFailed', 'فشل تسجيل الدخول. يرجى التأكد من البريد الإلكتروني وكلمة المرور.')
-      );
+      setErrorMsg(err.message || t('auth.loginFailed', 'فشل تسجيل الدخول. يرجى التأكد من البريد الإلكتروني وكلمة المرور.'));
     } finally {
       setIsLoading(false);
     }
@@ -82,280 +61,188 @@ export const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="relative min-h-screen w-full flex flex-col justify-between overflow-x-hidden selection:bg-brand-500 selection:text-white">
-      
-      {/* ========================================================
-          FULL-SCREEN PANORAMIC BACKGROUND:
-          Anchored at bottom ('object-bottom') so the Panda,
-          the desk, laptop, Pyramids, factory, flags and animals
-          are 100% visible in the lower half of the screen.
-      ======================================================== */}
-      <img
-        src={panoramaImg}
-        alt="New Hope Liuhe - Panda's Global Harvest Panorama"
-        className="fixed inset-0 w-full h-full object-cover object-bottom select-none pointer-events-none -z-10"
-      />
+    <div className="min-h-screen bg-slate-100 dark:bg-[#0B0F19] flex flex-col justify-center py-12 sm:px-6 lg:px-8 transition-colors">
+      {/* Top Language bar */}
+      <div className="absolute top-6 right-6 rtl:right-auto rtl:left-6 flex items-center gap-2">
+        <Globe className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+        <select
+          value={language}
+          onChange={e => changeLanguage(e.target.value as LanguageCode)}
+          className="text-xs font-semibold bg-white dark:bg-[#151D2E] border border-slate-300 dark:border-[#1E293B] rounded-lg px-2.5 py-1.5 text-slate-700 dark:text-[#F8FAFC] focus:outline-none focus:ring-1 focus:ring-brand-500 cursor-pointer shadow-xs [&>option]:bg-white [&>option]:dark:bg-[#151D2E]"
+        >
+          <option value="en">English</option>
+          <option value="ar">العربية (RTL)</option>
+          <option value="zh-CN">简体中文</option>
+        </select>
+      </div>
 
-      {/* Gentle gradient at very top to enhance text readability against sky */}
-      <div className="fixed inset-x-0 top-0 h-44 bg-gradient-to-b from-sky-950/40 via-sky-900/10 to-transparent pointer-events-none -z-10" />
-
-      {/* ========================================================
-          TOP NAVIGATION BAR:
-          Company pill on one side, Language switcher & Panorama view toggle on other side
-      ======================================================== */}
-      <header className="relative z-20 w-full px-4 sm:px-6 pt-3 sm:pt-4 flex items-center justify-between gap-2 flex-wrap">
-        
-        {/* Company Identity Pill */}
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-white/60 dark:border-slate-700/60 text-slate-800 dark:text-slate-100 text-xs font-bold shadow-md">
-          <Building2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-          <span className="hidden sm:inline">شركة نيو هوب إيجيبت أكواتك تكنولوجي المحدودة • مصنع جمصة</span>
-          <span className="sm:hidden">نيو هوب إيجيبت • جمصة</span>
-          <span className="px-1.5 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-950/80 text-[10px] text-emerald-800 dark:text-emerald-300 font-extrabold">
-            🇪🇬 مصر & 🇨🇳 الصين
-          </span>
+      <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
+        <div className="mx-auto flex h-16 w-auto max-w-[220px] items-center justify-center rounded-2xl bg-white dark:bg-[#151D2E] p-2 shadow-lg shadow-slate-200/80 dark:shadow-none border border-slate-200 dark:border-[#1E293B] mb-4">
+          <img src={logo} alt="Company Logo" className="h-full w-auto object-contain" />
         </div>
+        <h2 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-[#F8FAFC] leading-snug px-3">
+          {companyName}
+        </h2>
+        <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400 font-medium">
+          {t('auth.loginSubtitle', 'نظام إدارة الموارد البشرية والمؤسسية المتكامل')} • Enterprise Workforce Platform
+        </p>
+      </div>
 
-        {/* Controls: Language Selector + Cinema View Toggle */}
-        <div className="flex items-center gap-2">
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md px-4 sm:px-0">
+        <div className="bg-white dark:bg-[#151D2E] py-8 px-6 shadow-xl shadow-slate-200/60 dark:shadow-none rounded-2xl border border-slate-200 dark:border-[#1E293B] sm:px-10">
           
-          {/* Cinema / Panorama Fullscreen View Toggle */}
+          {/* Quick 1-Click Master Admin Login Button */}
           <button
             type="button"
-            onClick={() => setIsMinimized(!isMinimized)}
-            title={isMinimized ? 'عرض لوحة تسجيل الدخول' : 'معاينة البانوراما كاملة بدون بطاقة'}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-white/60 dark:border-slate-700/60 text-slate-800 dark:text-slate-100 text-xs font-bold shadow-md hover:bg-white transition-all cursor-pointer"
+            onClick={handleQuickAdminLogin}
+            disabled={isLoading}
+            className="w-full mb-5 flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl bg-gradient-to-r from-brand-600 via-indigo-600 to-brand-700 hover:from-brand-500 hover:to-brand-600 text-white font-bold text-xs shadow-md shadow-brand-500/25 active:scale-[0.99] transition-all cursor-pointer border border-brand-400/30"
           >
-            {isMinimized ? (
-              <>
-                <Minimize2 className="w-3.5 h-3.5 text-brand-600" />
-                <span>تسجيل الدخول</span>
-              </>
-            ) : (
-              <>
-                <Maximize2 className="w-3.5 h-3.5 text-emerald-600" />
-                <span className="hidden sm:inline">معاينة الصورة كاملة</span>
-              </>
-            )}
+            <Sparkles className="w-4 h-4 text-amber-300 animate-pulse shrink-0" />
+            <span>{t('auth.quickAdminLogin', 'تسجيل الدخول السريع (مدير النظام - خالد مسعد)')}</span>
           </button>
 
-          {/* Language Switcher */}
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-white/60 dark:border-slate-700/60 text-slate-800 dark:text-slate-100 text-xs font-semibold shadow-md">
-            <Globe className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400" />
-            <select
-              value={language}
-              onChange={e => changeLanguage(e.target.value as LanguageCode)}
-              className="bg-transparent text-slate-900 dark:text-slate-100 font-bold text-xs focus:outline-none cursor-pointer [&>option]:bg-white [&>option]:dark:bg-slate-900"
-            >
-              <option value="ar">العربية (RTL)</option>
-              <option value="en">English (LTR)</option>
-              <option value="zh-CN">简体中文</option>
-            </select>
+          <div className="relative flex items-center justify-center mb-5">
+            <div className="w-full border-t border-slate-200 dark:border-[#1E293B]" />
+            <span className="absolute px-3 bg-white dark:bg-[#151D2E] text-[11px] text-slate-400 font-medium">
+              {t('common.or', 'أو تسجيل الدخول اليدوي')}
+            </span>
           </div>
-        </div>
-      </header>
 
-      {/* ========================================================
-          LOGIN CARD (POSITIONED IN THE OPEN SKY):
-          Carefully tuned compact width & height so it sits high in the sky
-          and leaves the Panda, his laptop, and the ground 100% visible!
-      ======================================================== */}
-      <main className="relative z-20 flex-1 flex flex-col justify-start items-center pt-2 sm:pt-4 pb-6 px-3 sm:px-4">
-        
-        {isMinimized ? (
-          /* Minimized pill when user wants to admire the wallpaper */
-          <div className="mt-8 animate-in fade-in zoom-in-95 duration-200">
-            <button
-              onClick={() => setIsMinimized(false)}
-              className="flex items-center gap-3 px-5 py-2.5 rounded-2xl bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-white/80 dark:border-slate-700 shadow-2xl text-slate-900 dark:text-white font-bold text-sm hover:scale-105 transition-all cursor-pointer group"
-            >
-              <div className="w-7 h-7 rounded-xl bg-emerald-500/10 flex items-center justify-center">
-                <img src={pandaLogoBadge || logo} alt="Panda Logo" className="w-5 h-5 object-contain" />
+          {errorMsg && (
+            <div className="mb-4 p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/60 flex flex-col gap-2 text-rose-700 dark:text-rose-300 text-xs animate-in fade-in">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-600 dark:text-rose-400" />
+                <span className="font-semibold">{errorMsg}</span>
               </div>
-              <span>مرحباً بك! انقر هنا لفتح لوحة تسجيل الدخول 🔑</span>
-              <Sparkles className="w-4 h-4 text-amber-500 group-hover:rotate-12 transition-transform" />
-            </button>
-          </div>
-        ) : (
-          /* Main Compact Glassmorphic Card */
-          <div className="w-full max-w-xl animate-in fade-in slide-in-from-top-4 duration-300">
-            <div className="bg-white/85 dark:bg-[#0F172A]/85 backdrop-blur-xl rounded-3xl p-5 sm:p-6 shadow-2xl shadow-sky-950/20 border border-white/70 dark:border-white/10">
-              
-              {/* Header: Panda Badge + Title (Compact Horizontal Flex) */}
-              <div className="flex items-center gap-3.5 mb-4 pb-3 border-b border-slate-200/70 dark:border-slate-700/60">
-                <div className="flex h-13 w-13 shrink-0 items-center justify-center rounded-2xl bg-white p-1 shadow-md border border-slate-200/80 hover:scale-105 transition-transform">
-                  <img
-                    src={pandaLogoBadge || logo}
-                    alt="New Hope Panda Logo"
-                    className="h-full w-full object-contain"
-                  />
+              <div className="text-[11px] text-rose-700 dark:text-rose-300 bg-white/70 dark:bg-black/30 p-2 rounded-lg border border-rose-200/60 space-y-1">
+                <div className="font-medium text-[11px]">
+                  {t('auth.loginHint', 'يرجى استخدام الحساب المعتمد أو الضغط على زر تسجيل الدخول السريع:')}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <h1 className="text-sm sm:text-base font-black text-slate-900 dark:text-white tracking-tight leading-tight truncate">
-                    {companyName || 'NEW HOPE EGYPT AQUATIC TECHNOLOGY CO., LTD'}
-                  </h1>
-                  <p className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 mt-0.5 truncate">
-                    {t('auth.loginSubtitle', 'Enterprise Workforce Management System')}
-                  </p>
+                <div className="font-mono text-[11px] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 text-slate-700 dark:text-slate-300">
+                  <span>✉️ {DEFAULT_ADMIN_EMAIL}</span>
+                  <span>🔑 {DEFAULT_ADMIN_PASS}</span>
                 </div>
               </div>
-
-              {/* Quick 1-Click Master Admin Login */}
               <button
                 type="button"
                 onClick={handleQuickAdminLogin}
-                disabled={isLoading}
-                className="w-full mb-3.5 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 via-brand-600 to-indigo-600 hover:from-emerald-500 hover:to-indigo-500 text-white font-bold text-xs shadow-md shadow-brand-500/20 active:scale-[0.99] transition-all cursor-pointer border border-brand-400/30"
+                className="self-start text-[11px] font-bold text-rose-800 dark:text-rose-200 hover:underline flex items-center gap-1 cursor-pointer mt-0.5"
               >
-                <Sparkles className="w-4 h-4 text-amber-300 animate-pulse shrink-0" />
-                <span>{t('auth.quickAdminLogin', 'Quick 1-Click Login (Master Admin - Khaled Mossad)')}</span>
+                <KeyRound className="w-3.5 h-3.5" />
+                <span>{t('auth.retryWithAdmin', 'دخول فوري بحساب المدير العام')}</span>
               </button>
+            </div>
+          )}
 
-              {/* Divider */}
-              <div className="relative flex items-center justify-center mb-3">
-                <div className="w-full border-t border-slate-200 dark:border-slate-700/60" />
-                <span className="absolute px-3 bg-white/90 dark:bg-[#0F172A] text-[10px] text-slate-500 dark:text-slate-400 font-semibold rounded-full">
-                  {t('common.or', 'أو تسجيل الدخول اليدوي')}
-                </span>
-              </div>
-
-              {/* Error Message Alert */}
-              {errorMsg && (
-                <div className="mb-3 p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 flex items-center gap-2 text-rose-700 dark:text-rose-300 text-xs">
-                  <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
-                  <span className="font-semibold">{errorMsg}</span>
+          <form className="space-y-4" onSubmit={handleSubmit}>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                {t('auth.emailLabel', 'البريد الإلكتروني للعمل')}
+              </label>
+              <div className="relative rounded-lg shadow-xs">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 dark:text-slate-500 rtl:left-auto rtl:right-0 rtl:pl-0 rtl:pr-3">
+                  <Mail className="w-4 h-4" />
                 </div>
-              )}
-
-              {/* Form: Side-by-side on sm+ screens to preserve vertical space! */}
-              <form onSubmit={handleSubmit} className="space-y-3">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  
-                  {/* Email Input */}
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
-                      {t('auth.emailLabel', 'Work Email Address')}
-                    </label>
-                    <div className="relative rounded-lg">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 rtl:left-auto rtl:right-0 rtl:pl-0 rtl:pr-3">
-                        <Mail className="w-3.5 h-3.5" />
-                      </div>
-                      <input
-                        type="email"
-                        required
-                        autoComplete="username"
-                        placeholder="khaled.mossad@enterprise.com"
-                        value={email}
-                        onChange={e => {
-                          setEmail(e.target.value);
-                          setErrorMsg('');
-                        }}
-                        className="block w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white/90 dark:bg-slate-900/90 pl-9 pr-3 rtl:pl-3 rtl:pr-9 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 transition-colors shadow-xs"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Password Input */}
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
-                      {t('auth.passwordLabel', 'Password')}
-                    </label>
-                    <div className="relative rounded-lg">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 rtl:left-auto rtl:right-0 rtl:pl-0 rtl:pr-3">
-                        <Lock className="w-3.5 h-3.5" />
-                      </div>
-                      <input
-                        type={showPassword ? 'text' : 'password'}
-                        required
-                        autoComplete="current-password"
-                        placeholder="••••••••••••"
-                        value={password}
-                        onChange={e => {
-                          setPassword(e.target.value);
-                          setErrorMsg('');
-                        }}
-                        className="block w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white/90 dark:bg-slate-900/90 pl-9 pr-9 rtl:pr-9 rtl:pl-9 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 transition-colors shadow-xs"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rtl:right-auto rtl:left-0 rtl:pr-0 rtl:pl-2.5 cursor-pointer"
-                      >
-                        {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Remember Me & Restore Credentials */}
-                <div className="flex items-center justify-between text-[11px]">
-                  <div className="flex items-center">
-                    <input
-                      id="remember-me"
-                      type="checkbox"
-                      checked={rememberMe}
-                      onChange={e => setRememberMe(e.target.checked)}
-                      className="h-3.5 w-3.5 rounded border-slate-300 text-brand-600 focus:ring-brand-500 cursor-pointer accent-brand-600"
-                    />
-                    <label
-                      htmlFor="remember-me"
-                      className="ml-2 rtl:ml-0 rtl:mr-2 text-slate-700 dark:text-slate-300 cursor-pointer font-medium"
-                    >
-                      {t('auth.rememberMe', 'Remember this session for 30 days')}
-                    </label>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={handleResetDefaults}
-                    className="text-brand-600 dark:text-brand-400 hover:underline flex items-center gap-1 cursor-pointer font-semibold"
-                  >
-                    <RotateCcw className="w-3 h-3" />
-                    <span>{t('auth.fillCredentials', 'Restore & Fill Credentials')}</span>
-                  </button>
-                </div>
-
-                {/* Sign In Button */}
-                <Button
-                  type="submit"
-                  className="w-full py-2.5 text-xs font-bold shadow-md shadow-brand-500/20"
-                  size="md"
-                  isLoading={isLoading}
-                  rightIcon={<ArrowRight className="w-4 h-4 rtl:rotate-180" />}
-                >
-                  {t('auth.signInButton', 'Sign In to Dashboard →')}
-                </Button>
-              </form>
-
-              {/* Bottom Credentials & Security Indicator */}
-              <div className="mt-3 pt-2.5 border-t border-slate-200/70 dark:border-slate-700/60 flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400">
-                <div className="flex items-center gap-1 font-mono">
-                  <KeyRound className="w-3 h-3 text-brand-500 shrink-0" />
-                  <span className="truncate max-w-[160px] sm:max-w-none">{DEFAULT_ADMIN_EMAIL}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 font-semibold border border-emerald-200 dark:border-emerald-900/50">
-                    Master Admin
-                  </span>
-                  <div className="flex items-center gap-1 text-slate-400 dark:text-slate-500">
-                    <ShieldCheck className="w-3 h-3 text-emerald-600" />
-                    <span className="hidden sm:inline">Secured</span>
-                  </div>
-                </div>
+                <input
+                  type="email"
+                  required
+                  autoComplete="username"
+                  placeholder="name@enterprise.com"
+                  value={email}
+                  onChange={e => {
+                    setEmail(e.target.value);
+                    setErrorMsg('');
+                  }}
+                  className="block w-full rounded-lg border border-slate-300 dark:border-[#1E293B] bg-white dark:bg-[#0B0F19] pl-10 pr-3.5 rtl:pl-3.5 rtl:pr-10 py-2 text-sm text-slate-900 dark:text-[#F8FAFC] placeholder-slate-400 dark:placeholder-slate-500 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                />
               </div>
             </div>
-          </div>
-        )}
-      </main>
 
-      {/* ========================================================
-          BOTTOM FOOTER:
-          Ultra-minimal glass pill at the bottom that doesn't block the desk
-      ======================================================== */}
-      <footer className="relative z-20 w-full px-4 pb-3 flex items-center justify-center pointer-events-none">
-        <div className="px-4 py-1 rounded-full bg-black/40 backdrop-blur-md text-[10px] text-white/90 font-medium shadow-lg border border-white/10 pointer-events-auto">
-          © {new Date().getFullYear()} New Hope Egypt Aquatic Technology Co., Ltd. • All rights reserved
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  {t('auth.passwordLabel', 'كلمة المرور')}
+                </label>
+              </div>
+              <div className="relative rounded-lg shadow-xs">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 dark:text-slate-500 rtl:left-auto rtl:right-0 rtl:pl-0 rtl:pr-3">
+                  <Lock className="w-4 h-4" />
+                </div>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  autoComplete="current-password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={e => {
+                    setPassword(e.target.value);
+                    setErrorMsg('');
+                  }}
+                  className="block w-full rounded-lg border border-slate-300 dark:border-[#1E293B] bg-white dark:bg-[#0B0F19] pl-10 pr-10 rtl:pr-10 rtl:pl-10 py-2 text-sm text-slate-900 dark:text-[#F8FAFC] placeholder-slate-400 dark:placeholder-slate-500 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rtl:right-auto rtl:left-0 rtl:pr-0 rtl:pl-3 cursor-pointer"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <input
+                  id="remember-me"
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={e => setRememberMe(e.target.checked)}
+                  className="h-4 w-4 rounded border-slate-300 dark:border-[#1E293B] dark:bg-[#0B0F19] text-brand-600 focus:ring-brand-500 cursor-pointer"
+                />
+                <label htmlFor="remember-me" className="ml-2 rtl:ml-0 rtl:mr-2 block text-xs text-slate-700 dark:text-slate-300 cursor-pointer">
+                  {t('auth.rememberMe', 'تذكر تسجيل الدخول')}
+                </label>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleResetDefaults}
+                className="text-[11px] text-brand-600 dark:text-brand-400 hover:underline flex items-center gap-1 cursor-pointer font-medium"
+              >
+                <RotateCcw className="w-3 h-3" />
+                <span>{t('auth.fillCredentials', 'استعادة البيانات الافتراضية')}</span>
+              </button>
+            </div>
+
+            <Button
+              type="submit"
+              className="w-full mt-2"
+              size="md"
+              isLoading={isLoading}
+              rightIcon={<ArrowRight className="w-4 h-4 rtl:rotate-180" />}
+            >
+              {t('auth.signInButton', 'تسجيل الدخول للمنصة')}
+            </Button>
+          </form>
+
+          {/* Credentials Info Badge */}
+          <div className="mt-4 pt-3.5 border-t border-slate-100 dark:border-[#1E293B]/80 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+            <div className="flex items-center gap-1.5 font-mono text-[11px]">
+              <KeyRound className="w-3.5 h-3.5 text-brand-500 shrink-0" />
+              <span>{DEFAULT_ADMIN_EMAIL}</span>
+            </div>
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 font-semibold border border-emerald-200 dark:border-emerald-900/50">
+              Master Admin
+            </span>
+          </div>
         </div>
-      </footer>
+
+        <div className="mt-6 text-center text-xs text-slate-400 dark:text-slate-500 flex items-center justify-center gap-1.5">
+          <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+          <span>Secured Enterprise Portal • ISO 27001 Ready • Live Backend Connected</span>
+        </div>
+      </div>
     </div>
   );
 };
