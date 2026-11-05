@@ -68,7 +68,6 @@ export const PandaAIWidget: React.FC = () => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [showTooltip, setShowTooltip] = useState(true);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -91,7 +90,6 @@ export const PandaAIWidget: React.FC = () => {
   useEffect(() => {
     if (isOpen && !isMinimized) {
       setTimeout(() => inputRef.current?.focus(), 200);
-      setShowTooltip(false);
     }
   }, [isOpen, isMinimized]);
 
@@ -206,41 +204,18 @@ export const PandaAIWidget: React.FC = () => {
 
   return (
     <>
-      {/* FLOATING TRIGGER BUTTON */}
-      <div className="fixed bottom-6 left-6 z-50 flex flex-col items-start gap-2 select-none">
-        {/* Welcome Tooltip */}
-        {showTooltip && !isOpen && (
-          <div className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 text-xs font-semibold px-3 py-2 rounded-2xl shadow-xl border border-emerald-300 dark:border-emerald-800 flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
-            <span>أهلاً بك! أنا باندا نيو هوب 🐼 محتاج أي مساعدة في الـ HR؟</span>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowTooltip(false);
-              }}
-              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs"
-            >
-              ✕
-            </button>
-          </div>
-        )}
-
+      {/* FLOATING TRIGGER BUTTON (STANDALONE CLEAN ICON - ENLARGED) */}
+      <div className="fixed bottom-6 left-6 z-50 select-none">
         <button
           onClick={() => {
             setIsOpen(!isOpen);
             setIsMinimized(false);
-            setShowTooltip(false);
           }}
-          className="group relative flex items-center gap-3 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-teal-600 text-white p-2.5 rounded-full shadow-2xl hover:shadow-emerald-500/40 transition-all duration-300 hover:scale-105 active:scale-95 border-2 border-white/40 dark:border-slate-800"
-          title="افتح مساعد باندا الذكي للـ HR (New Hope Panda AI 🐼)"
+          className="group relative flex items-center justify-center p-0 rounded-full transition-transform duration-300 hover:scale-110 active:scale-95 focus:outline-none cursor-pointer drop-shadow-xl hover:drop-shadow-[0_10px_25px_rgba(16,185,129,0.55)]"
+          title="New Hope Panda AI"
+          aria-label="New Hope Panda AI"
         >
-          <PandaMascot size="md" isThinking={isLoading} />
-          <div className="hidden sm:flex flex-col text-right pr-1 pl-3">
-            <span className="text-xs font-black tracking-wide flex items-center gap-1">
-              Panda AI 🐼
-              <span className="w-2 h-2 rounded-full bg-emerald-300 animate-ping" />
-            </span>
-            <span className="text-[10px] text-emerald-100 font-medium">مساعد نيو هوب الذكي</span>
-          </div>
+          <PandaMascot size="lg" isThinking={isLoading} />
         </button>
       </div>
 

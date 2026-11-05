@@ -17,7 +17,7 @@ export const PandaMascot: React.FC<PandaMascotProps> = ({
   const sizeMap = {
     sm: 'w-8 h-8',
     md: 'w-12 h-12',
-    lg: 'w-16 h-16',
+    lg: 'w-15 h-15 sm:w-16 sm:h-16',
     xl: 'w-24 h-24',
   };
 
@@ -26,10 +26,10 @@ export const PandaMascot: React.FC<PandaMascotProps> = ({
       <img
         src={pandaNeonBadge}
         alt="New Hope Panda AI Assistant"
-        className={`w-full h-full object-contain rounded-full select-none transition-transform duration-300 drop-shadow-md ${
+        className={`w-full h-full object-contain rounded-full select-none transition-all duration-300 drop-shadow-md ${
           isThinking
-            ? 'animate-bounce drop-shadow-[0_0_14px_rgba(16,185,129,0.85)]'
-            : 'hover:scale-105'
+            ? 'animate-bounce drop-shadow-[0_0_16px_rgba(16,185,129,0.9)] scale-105'
+            : 'hover:scale-105 group-hover:drop-shadow-[0_0_14px_rgba(16,185,129,0.6)]'
         }`}
       />
       {showStatusDot && (

@@ -52,12 +52,15 @@ import { EmployeeFormModal } from '../employees/EmployeeFormModal';
 import { Employee } from '../../types';
 import { parseEgyptianNationalId } from '../../lib/utils';
 import { useTheme } from '../../context/ThemeContext';
+import { useAuth } from '../../context/AuthContext';
+import pandaHREmblem from '../../assets/New-Hope-Liuhe-HR-Panda-Logo.png';
 
 export const DashboardPage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { success, error: toastError } = useToast();
   const { isDark } = useTheme();
+  const { user } = useAuth();
 
   const [selectedDept, setSelectedDept] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
@@ -372,6 +375,27 @@ export const DashboardPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* Simple, Elegant Welcome Card with 3-Language Support & Enlarged Image */}
+      <div className="flex items-center justify-between p-4 sm:p-6 rounded-2xl bg-white dark:bg-[#151D2E] border border-slate-200 dark:border-slate-800 shadow-xs">
+        <div className="space-y-1">
+          <h1 className="text-lg sm:text-2xl font-bold text-slate-900 dark:text-white">
+            {t('dashboard.welcomeUser', {
+              name: i18n.language === 'ar' ? (user?.name || 'خالد مسعد') : (user?.name || 'Khaled Mossad'),
+            })}
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+            {t('dashboard.plantSubtitle', 'شركة نيو هوب إيجيبت • مصنع جمصة')}
+          </p>
+        </div>
+
+        <div className="w-24 h-24 sm:w-28 sm:h-28 shrink-0 flex items-center justify-center">
+          <img
+            src={pandaHREmblem}
+            alt="New Hope Liuhe HR"
+            className="w-full h-full object-contain select-none hover:scale-105 transition-transform duration-200"
+          />
+        </div>
+      </div>
       {/* Top Header & Filters Bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>

@@ -216,7 +216,9 @@
     "auditFiles": "审查档案",
     "hiredOn": "入职时间:",
     "allLogs": "全部日志",
-    "expires": "到期时间:"
+    "expires": "到期时间:",
+    "welcomeUser": "欢迎您，{{name}} 先生 👋",
+    "plantSubtitle": "新希望埃及水产科技有限公司 • 佳美萨工厂"
   },
   "employees": {
     "directory": "员工信息名册",
@@ -888,14 +890,10 @@
     "colHireDate": "入职日期",
     "colInsStatus": "社保状态",
     "colQualCert": "学历证书",
-    "colBirthCert": "出生证明",
     "colIDCard": "身份证件",
-    "colContract": "劳动合同",
     "colFileStatus": "档案状态",
     "colInsNo": "社保编号",
     "colInsSalary": "缴费基数",
-    "colWorkerShare": "个人 (11%)",
-    "colCompanyShare": "企业 (18.75%)",
     "colTotalContribution": "社保合计",
     "colSheetMatch": "总表核对",
     "statusInsuredBadge": "已参保 ✓",
