@@ -867,19 +867,6 @@ export const InsurancePage: React.FC = () => {
           <Button
             variant="outline"
             size="sm"
-            leftIcon={<FileText className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />}
-            onClick={() => {
-              setSelectedGuideRecord(null);
-              setIsGuideModalOpen(true);
-            }}
-            className="border-blue-200 dark:border-blue-800/60 text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/30 font-bold"
-          >
-            {t('insurance.form1GuideBtn')}
-          </Button>
-
-          <Button
-            variant="outline"
-            size="sm"
             leftIcon={<Printer className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400" />}
             onClick={() => setIsPrintModalOpen(true)}
             className="font-bold border-brand-200 dark:border-brand-800 text-brand-700 dark:text-brand-300 hover:bg-brand-50 dark:hover:bg-brand-950/30"

@@ -35,7 +35,6 @@ import { Tabs } from '../../components/ui/Tabs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/Card';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { employeeService } from '../../services/employeeService';
-import { InsuranceForm1GuideModal } from '../insurance/components/InsuranceForm1GuideModal';
 import { EmployeeTemplateFillModal } from '../documents/components/EmployeeTemplateFillModal';
 import { EmployeeBadgeModal } from './components/badge/EmployeeBadgeModal';
 import { EmployeeBadge3DPreview } from './components/badge/EmployeeBadge3DPreview';
@@ -72,7 +71,6 @@ export const EmployeeProfilePage: React.FC = () => {
   const [employeeLogs, setEmployeeLogs] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState('overview');
   const [isLoading, setIsLoading] = useState(true);
-  const [isInsuranceGuideOpen, setIsInsuranceGuideOpen] = useState(false);
   const [isBadgeModalOpen, setIsBadgeModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [docFillModalState, setDocFillModalState] = useState<{
@@ -346,8 +344,8 @@ export const EmployeeProfilePage: React.FC = () => {
                 <h1 className="text-xl font-bold text-slate-900 dark:text-[#F8FAFC]">
                   {employee.firstName} {employee.lastName}
                 </h1>
-                {employee.arabicName && (
-                  <span className="text-xs font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-[#1E293B] px-2.5 py-0.5 rounded-full">
+                {employee.arabicName && employee.arabicName.trim().toLowerCase() !== `${employee.firstName} ${employee.lastName}`.trim().toLowerCase() && (
+                  <span className="text-sm font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-[#1E293B] px-3 py-1 rounded-lg">
                     {employee.arabicName}
                   </span>
                 )}

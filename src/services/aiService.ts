@@ -7,7 +7,7 @@
  */
 
 import { parseEgyptianNationalId, EgyptianNationalIdInfo } from '../utils/nationalIdParser';
-import { transliterateArabicNameToEnglish } from '../utils/arabicNameTransliteration';
+import { transliterateArabicNameToEnglish, transliterateEnglishNameToArabic, validateArabicTranslation } from '../utils/arabicNameTransliteration';
 import { employeeService } from './employeeService';
 import { driverPayoutService } from './driverPayoutService';
 
@@ -575,6 +575,152 @@ ${systemContext || 'مصنع جمصة - نيو هوب إيجيبت أكواتك'
     // Built-in intelligent offline response generator if API is unreachable
     const lastMsg = history[history.length - 1]?.text || '';
     return generateOfflinePandaResponse(lastMsg);
+  },
+
+  /**
+   * Batch translate romanized/English Egyptian names into authentic official Arabic names using Gemini AI
+   * with automatic fallback across models and offline phonetic engine.
+   */
+  async translateEmployeeNamesToAr(
+    employees: Array<{ id: string; employeeId?: string; englishName: string }>,
+    onProgress?: (progress: { current: number; total: number; percent: number }) => void
+  ): Promise<{
+    success: boolean;
+    results: Array<{ id: string; employeeId?: string; englishName: string; arabicName: string }>;
+    error?: string;
+  }> {
+    if (!employees || employees.length === 0) {
+      return { success: true, results: [] };
+    }
+
+    const apiKey = this.getApiKey();
+    const chunkSize = 35;
+    const allResults: Array<{ id: string; employeeId?: string; englishName: string; arabicName: string }> = [];
+    const models = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-2.0-flash-lite', 'gemini-flash-latest', 'gemini-2.5-flash'];
+
+    for (let i = 0; i < employees.length; i += chunkSize) {
+      const chunk = employees.slice(i, i + chunkSize);
+      const currentProcessed = Math.min(i + chunkSize, employees.length);
+      const percent = Math.round((currentProcessed / employees.length) * 100);
+      if (onProgress) {
+        onProgress({ current: currentProcessed, total: employees.length, percent });
+      }
+
+      let chunkResults: Array<{ id: string; employeeId?: string; englishName: string; arabicName: string }> | null = null;
+
+      if (apiKey) {
+        const payload = chunk.map(e => ({
+          id: e.id,
+          name: e.englishName,
+        }));
+
+        const prompt = `You are an expert specialist in Egyptian civil registry naming conventions, legal HR records, and authentic Arabic transliteration.
+Convert each romanized/English Egyptian name below into its official, authentic, correct full Arabic name (الاسم باللغة العربية كما هو مدون في بطاقة الرقم القومي المصرية).
+
+Strict Rules:
+1. Handle Egyptian compound names properly:
+   - "Abdelrahman" / "Abd El-Rahman" -> "عبد الرحمن"
+   - "Abdelaziz" -> "عبد العزيز"
+   - "Abdelghany" -> "عبد الغني"
+   - "El-Sayed" / "Elsayed" -> "السيد"
+   - "El-Shahat" -> "الشحات"
+   - "Abu El-Majd" -> "أبو المجد"
+2. Handle Egyptian names accurately:
+   - "Khaled" -> "خالد"
+   - "Mossad" / "Mosaad" -> "مسعد"
+   - "Mohamed" / "Muhammad" -> "محمد"
+   - "Mahmoud" -> "محمود"
+   - "Ibrahim" -> "إبراهيم"
+   - "Hassan" -> "حسن"
+   - "Shaaban" -> "شعبان"
+   - "Gomaa" -> "جمعة"
+   - "Ashraf" -> "أشرف"
+   - "Mostafa" / "Mustafa" -> "مصطفى"
+3. Preserve the exact provided "id" for each item.
+4. Output ONLY a valid JSON array of objects in this exact format, with NO code fences or markdown:
+[
+  { "id": "<matching id>", "arabicName": "<Official Arabic Name>" }
+]
+
+Names to transcribe:
+${JSON.stringify(payload, null, 2)}`;
+
+        for (const model of models) {
+          try {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+            const response = await fetch(url, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: {
+                  temperature: 0.1,
+                  responseMimeType: 'application/json',
+                },
+              }),
+            });
+
+            // If model is busy, unavailable or quota limited, try next model!
+            if (!response.ok) {
+              if (response.status === 404 || response.status === 429 || response.status === 503 || response.status >= 500) {
+                continue;
+              }
+              const errData = await response.json().catch(() => ({}));
+              console.warn(`Model ${model} returned error:`, errData);
+              continue;
+            }
+
+            const data = await response.json();
+            const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (rawText) {
+              const cleanJson = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+              const parsedArray: Array<{ id: string; arabicName: string }> = JSON.parse(cleanJson);
+              const arMap = new Map(parsedArray.map(item => [item.id, item.arabicName]));
+
+              chunkResults = chunk.map(emp => {
+                const rawCandidate = arMap.get(emp.id) || transliterateEnglishNameToArabic(emp.englishName);
+                const validatedName = validateArabicTranslation(emp.englishName, rawCandidate);
+                return {
+                  id: emp.id,
+                  employeeId: emp.employeeId,
+                  englishName: emp.englishName,
+                  arabicName: validatedName,
+                };
+              });
+              break;
+            }
+          } catch (e: any) {
+            console.warn(`Attempt with ${model} failed, trying next:`, e?.message);
+            continue;
+          }
+        }
+      }
+
+      // If Gemini succeeded for this chunk, add results; otherwise use high-precision fallback
+      if (chunkResults && chunkResults.length > 0) {
+        allResults.push(...chunkResults);
+      } else {
+        // High-precision offline fallback for this chunk
+        for (const emp of chunk) {
+          allResults.push({
+            id: emp.id,
+            employeeId: emp.employeeId,
+            englishName: emp.englishName,
+            arabicName: transliterateEnglishNameToArabic(emp.englishName),
+          });
+        }
+      }
+
+      // Short delay between chunks to avoid rate limiting
+      if (i + chunkSize < employees.length) {
+        await new Promise(r => setTimeout(r, 200));
+      }
+    }
+
+    return {
+      success: true,
+      results: allResults,
+    };
   },
 };
 

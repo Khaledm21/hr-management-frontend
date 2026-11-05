@@ -19,6 +19,7 @@ import {
   Download,
   Trash2,
   Printer,
+  Sparkles,
 } from 'lucide-react';
 import { cn, downloadCSV, getGenderAvatarUrl } from '../../lib/utils';
 import { DataTable, Column } from '../../components/ui/DataTable';
@@ -29,6 +30,7 @@ import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { EmployeeFormModal } from './EmployeeFormModal';
 import { EmployeeBadgeModal } from './components/badge/EmployeeBadgeModal';
 import { EmployeePrintTableModal } from './components/EmployeePrintTableModal';
+import { AiArabicNameModal } from './components/AiArabicNameModal';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEmployees, useDepartments, employeeKeys } from '../../hooks/queries';
 import { Employee } from '../../types';
@@ -48,6 +50,7 @@ export const EmployeesListPage: React.FC = () => {
   const [isBadgeModalOpen, setIsBadgeModalOpen] = useState(false);
   const [badgeModalEmployees, setBadgeModalEmployees] = useState<Employee[]>([]);
   const [isPrintTableModalOpen, setIsPrintTableModalOpen] = useState(false);
+  const [isAiTranslateModalOpen, setIsAiTranslateModalOpen] = useState(false);
 
   // Filters
   const initialDept = searchParams.get('departmentId') || searchParams.get('department') || 'all';
@@ -124,6 +127,30 @@ export const EmployeesListPage: React.FC = () => {
     let result: Employee | null = null;
     if (editingEmployee) {
       result = await employeeService.updateEmployee(editingEmployee.id, data);
+      if (result) {
+        // Immediate optimistic update on React Query employee caches
+        queryClient.setQueriesData({ queryKey: employeeKeys.all }, (old: any) => {
+          if (!old) return old;
+          if (Array.isArray(old?.data)) {
+            return {
+              ...old,
+              data: old.data.map((emp: Employee) =>
+                emp.id === editingEmployee.id || emp.employeeId === editingEmployee.employeeId
+                  ? { ...emp, ...result, ...data }
+                  : emp
+              ),
+            };
+          }
+          if (Array.isArray(old)) {
+            return old.map((emp: Employee) =>
+              emp.id === editingEmployee.id || emp.employeeId === editingEmployee.employeeId
+                ? { ...emp, ...result, ...data }
+                : emp
+            );
+          }
+          return old;
+        });
+      }
     } else {
       result = await employeeService.createEmployee(data);
     }
@@ -255,25 +282,34 @@ export const EmployeesListPage: React.FC = () => {
         header: t('employees.name'),
         sortable: true,
         width: '280px',
-        accessor: row => `${row.firstName} ${row.lastName}`,
+        accessor: row => `${row.firstName} ${row.lastName} ${row.arabicName || ''}`,
         render: row => {
           const fullName = `${row.firstName} ${row.lastName}`.trim();
-          const hasDifferentArabicName =
-            row.arabicName && row.arabicName.trim().toLowerCase() !== fullName.toLowerCase();
+          const hasArabicName = !!(
+            row.arabicName &&
+            row.arabicName.trim() !== '' &&
+            row.arabicName.trim().toLowerCase() !== fullName.toLowerCase()
+          );
 
           return (
             <div className="flex items-center gap-3 min-w-[250px]">
-              <Avatar name={fullName} src={getGenderAvatarUrl(row.avatar, row.gender, row.firstName || row.id)} size="sm" />
+              <Avatar
+                name={fullName}
+                src={getGenderAvatarUrl(row.avatar, row.gender, row.firstName || row.id)}
+                size="sm"
+              />
               <div>
                 <div className="font-semibold text-slate-900 dark:text-[#F8FAFC] hover:text-brand-600 dark:hover:text-[#38BDF8] transition-colors whitespace-nowrap">
                   {fullName}
                 </div>
                 <div className="text-[11px] text-slate-400 dark:text-slate-500 flex items-center gap-1.5 flex-wrap whitespace-nowrap">
-                  {hasDifferentArabicName && (
+                  {hasArabicName && (
                     <span className="text-slate-600 dark:text-slate-300 font-medium">{row.arabicName}</span>
                   )}
                   {row.nationalId && (
-                    <span className="font-mono text-[10px] text-slate-400 dark:text-slate-400">{t('employees.nationalIdShort')}: {row.nationalId}</span>
+                    <span className="font-mono text-[10px] text-slate-400 dark:text-slate-500">
+                      {hasArabicName ? '• ' : ''}{t('employees.nationalIdShort')}: {row.nationalId}
+                    </span>
                   )}
                 </div>
               </div>
@@ -525,6 +561,15 @@ export const EmployeesListPage: React.FC = () => {
           ) : isLoading ? (
             <div className="w-[150px] h-[38px] hidden sm:block" />
           ) : null}
+          <Button
+            variant="outline"
+            size="md"
+            className="border-emerald-300 dark:border-emerald-800 bg-emerald-50/80 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 font-bold"
+            leftIcon={<Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />}
+            onClick={() => setIsAiTranslateModalOpen(true)}
+          >
+            {t('employees.aiTranslateBtn')}
+          </Button>
           <Button
             variant="outline"
             size="md"
@@ -854,6 +899,41 @@ export const EmployeesListPage: React.FC = () => {
           initialSelectedIds={selectedIds}
           departmentFilter={selectedDept !== 'all' ? departments.find(d => d.id === selectedDept)?.name : undefined}
           statusFilter={selectedStatus !== 'all' ? selectedStatus : undefined}
+        />
+      )}
+
+      {/* AI Arabic Name Translation Modal */}
+      {isAiTranslateModalOpen && (
+        <AiArabicNameModal
+          isOpen={isAiTranslateModalOpen}
+          onClose={() => setIsAiTranslateModalOpen(false)}
+          employees={employees}
+          onSuccess={(updates) => {
+            if (updates && updates.length > 0) {
+              const map = new Map(updates.map(u => [u.id, u.arabicName]));
+              queryClient.setQueriesData({ queryKey: employeeKeys.all }, (old: any) => {
+                if (!old) return old;
+                if (Array.isArray(old?.data)) {
+                  return {
+                    ...old,
+                    data: old.data.map((emp: Employee) => {
+                      const newAr = map.get(emp.id) || (emp.employeeId && map.get(emp.employeeId));
+                      return newAr ? { ...emp, arabicName: newAr } : emp;
+                    }),
+                  };
+                }
+                if (Array.isArray(old)) {
+                  return old.map((emp: Employee) => {
+                    const newAr = map.get(emp.id) || (emp.employeeId && map.get(emp.employeeId));
+                    return newAr ? { ...emp, arabicName: newAr } : emp;
+                  });
+                }
+                return old;
+              });
+            }
+            queryClient.invalidateQueries({ queryKey: employeeKeys.all });
+            refetch();
+          }}
         />
       )}
     </div>
