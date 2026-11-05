@@ -61,6 +61,15 @@ export interface GeneratedJobSpec {
 const API_KEY_STORAGE_KEY = 'hr_gemini_api_key';
 const DEFAULT_GEMINI_KEY = (import.meta as any).env?.VITE_GEMINI_API_KEY || '';
 
+// Official Google Gemini API production models in optimal failover order
+const OFFICIAL_GEMINI_MODELS = [
+  'gemini-2.0-flash',
+  'gemini-1.5-flash',
+  'gemini-2.0-flash-lite',
+  'gemini-flash-latest',
+  'gemini-2.5-flash',
+];
+
 export const aiService = {
   /**
    * Retrieves the current Gemini API Key from localStorage, environment, or default
@@ -163,7 +172,7 @@ Rules:
         }
 
         // Modern Google Gemini models
-        const models = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-flash-latest', 'gemini-3.8-flash'];
+        const models = OFFICIAL_GEMINI_MODELS;
         let rawText: string | null = null;
         let lastErr: Error | null = null;
 
@@ -325,7 +334,7 @@ Return ONLY valid JSON matching this schema:
 }
 `;
 
-        const models = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-flash-latest'];
+        const models = OFFICIAL_GEMINI_MODELS;
         for (const model of models) {
           try {
             const response = await fetch(
@@ -493,7 +502,7 @@ ${specificFindings}
     systemContext?: string
   ): Promise<string> {
     const apiKey = this.getApiKey();
-    const models = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-flash-latest', 'gemini-3.8-flash'];
+    const models = OFFICIAL_GEMINI_MODELS;
 
     const PANDA_SYSTEM_PROMPT = `
 أنت "باندا نيو هوب" (New Hope Panda AI 🐼)، المساعد الذكي والخبير القانوني والإداري للموارد البشرية (HR) لشركة "نيو هوب إيجيبت أكواتك تكنولوجي المحدودة - مصنع جمصة" (New Hope Gamasa - 新希望六和 加马萨).
@@ -596,7 +605,7 @@ ${systemContext || 'مصنع جمصة - نيو هوب إيجيبت أكواتك'
     const apiKey = this.getApiKey();
     const chunkSize = 35;
     const allResults: Array<{ id: string; employeeId?: string; englishName: string; arabicName: string }> = [];
-    const models = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-2.0-flash-lite', 'gemini-flash-latest', 'gemini-2.5-flash'];
+    const models = OFFICIAL_GEMINI_MODELS;
 
     for (let i = 0; i < employees.length; i += chunkSize) {
       const chunk = employees.slice(i, i + chunkSize);
